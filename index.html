@@ -409,6 +409,64 @@ label.row{cursor:pointer}
 .docrow .st{font-size:13px;color:var(--label2)}
 .ok-badge{color:var(--green);display:flex}
 
+/* ---------- Finance (3.3) ---------- */
+.fin-year{display:flex;align-items:center;justify-content:center;gap:18px;margin:4px 0 10px}
+.fin-year b{font-size:17px;font-variant-numeric:tabular-nums;min-width:56px;text-align:center}
+.fin-year .navbtn[disabled]{opacity:.3}
+.fin-sum{padding:16px 16px 12px}
+.fs-net{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.fs-net span{font-size:15px;color:var(--label2);flex:1}
+.fs-net b{font-size:30px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--green)}
+.fs-net b.neg{color:var(--red)} .fs-net small{font-size:13px;color:var(--label2)}
+.fs-line{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:15px;border-top:.5px solid var(--sep)}
+.fs-line .l{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fs-line b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fs-sub{font-size:12px;color:var(--label2);white-space:nowrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none}
+.dot.inc{background:var(--green)} .dot.out{background:var(--orange)} .dot.trip{background:var(--indigo)}
+.switch.sm{width:40px;height:24px}
+.switch.sm span::before{width:20px;height:20px}
+.switch.sm input:checked+span::before{transform:translateX(16px)}
+.fin-chart{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;height:96px;margin-top:12px;align-items:end}
+.fb-col{display:flex;flex-direction:column;align-items:center;height:100%;gap:4px}
+.fb-bars{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:2px}
+.fb-bars i{display:block;width:40%;max-width:8px;border-radius:3px 3px 1px 1px;min-height:2px}
+.fb-bars i.inc{background:var(--green)} .fb-bars i.out{background:var(--orange)}
+.fb-col span{font-size:10px;color:var(--label3);font-weight:600}
+.fb-col.now span{color:var(--blue)}
+.fin-legend{display:flex;gap:16px;justify-content:center;font-size:12px;color:var(--label2);margin-top:8px}
+.fin-legend span{display:inline-flex;align-items:center;gap:5px}
+.fin-seg{margin:18px 0 4px}
+.fin-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px 16px;margin-top:14px}
+.fin-kpi div{min-width:0}
+.fin-kpi span{display:block;font-size:12px;color:var(--label2);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fin-kpi b{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-kpi b.g{color:var(--green)} .fin-kpi b.r{color:var(--red)}
+.fin-kpi .kbar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin-top:4px}
+.fin-kpi .kbar i{display:block;height:100%;background:var(--green);border-radius:3px}
+.paybtn{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--label3);display:grid;place-items:center;color:var(--label3);flex:none}
+.paybtn:active{background:var(--green);border-color:var(--green);color:#fff}
+.row button.body.tap-a{text-align:left;background:none;color:inherit;font:inherit}
+.fx-row{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;color:var(--label2);margin-top:6px;flex-wrap:wrap}
+.fx-row .fx-in{width:96px;text-align:center;font-size:13px;padding:4px 6px;border-radius:8px;background:var(--fill);border:0;color:var(--label);font-variant-numeric:tabular-nums}
+.fx-row .fx-s{font-size:12px;color:var(--label3)} .fx-row .fx-reset{font-size:12px;color:var(--blue)}
+.atts{margin-top:10px}
+.occ{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px}
+.occ-c{display:inline-flex;align-items:center;gap:4px;font-size:13px;padding:6px 10px;border-radius:99px;background:var(--fill);color:var(--label)}
+.occ-c.on{background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green);font-weight:600}
+.occ-c.late{color:var(--red)}
+.inv-acts{display:grid;gap:10px;margin-top:14px}
+.fcards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.fcards.one{grid-template-columns:1fr}
+.fcard{display:flex;flex-direction:column;align-items:flex-start;gap:4px;background:var(--card);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);text-align:left;min-width:0;color:var(--label)}
+.fcard:active{background:var(--fill)}
+.fc-h{display:flex;align-items:center;gap:8px;min-width:0;width:100%}
+.fc-h .ico{width:24px;height:24px;border-radius:7px;flex:none}
+.fc-t{font-size:13px;font-weight:600;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-t.r{color:var(--red)}
+.fcard b{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.fc-s{font-size:12px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+
 </style>
 </head>
 <body>
@@ -466,6 +524,7 @@ label.row{cursor:pointer}
   <section class="view" id="v-calendar"></section>
   <section class="view" id="v-trips"></section>
   <section class="view" id="v-expenses"></section>
+  <section class="view" id="v-finance"></section>
   <section class="view" id="v-settings"></section>
   <section class="view" id="v-trip"></section>
 </div>
@@ -475,7 +534,7 @@ label.row{cursor:pointer}
   <button data-tab="calendar"><span class="bwrap"><svg class="i"><use href="#i-calendar"/></svg><span class="badge hidden" id="badge-cal"></span></span><span>Calendar</span></button>
   <button data-tab="trips"><svg class="i"><use href="#i-suitcase"/></svg><span>Trips</span></button>
   <button data-tab="expenses"><svg class="i"><use href="#i-receipt"/></svg><span>Expenses</span></button>
-  <button data-tab="settings"><svg class="i"><use href="#i-gear"/></svg><span>Settings</span></button>
+  <button data-tab="finance"><svg class="i"><use href="#i-wallet"/></svg><span>Finance</span></button>
 </nav>
 
 <div class="backdrop" id="backdrop"></div>
@@ -1179,7 +1238,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '3.2';
+const APP_VERSION = '3.3';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -1260,6 +1319,7 @@ function normalizeDB() {
   db.fx.rates = Object.assign({ ...P.DEFAULT_FX_TO_USD }, db.fx.rates || {});
   db.fx.manual = db.fx.manual || {};
   migrateV32();
+  migrateV33();
 }
 function load() {
   try {
@@ -1352,7 +1412,8 @@ async function refreshRates(manualClick) {
   if (!rates) { if (manualClick) toast('Could not reach a rates service — using saved rates', 'warn'); return false; }
   let n = 0;
   for (const c of Object.keys(P.CURRENCIES)) { if (db.fx.manual[c]) continue; const r = rates[c]; if (r > 0) { db.fx.rates[c] = 1 / r; n++; } }
-  db.fx.updatedAt = new Date().toISOString(); db.fx.source = src; save();
+  applyPeg(db.fx.rates, db.fx.manual);
+  db.fx.updatedAt = new Date().toISOString(); db.fx.source = src; save(); scheduleRates();
   if (manualClick) toast(`Updated ${n} exchange rates`);
   return true;
 }
@@ -1428,7 +1489,7 @@ function outOfRange() { return db.expenses.filter(e => { const t = tripById(e.tr
 function tripTotals(t) {
   const res = { reimb: 0, company: 0, byCat: {}, byCur: {}, count: 0, noReceipt: 0, unconverted: 0 };
   for (const e of expensesOf(t)) {
-    const v = conv(e.amount, e.currency); res.count++;
+    const v = econv(e); res.count++;
     if (v == null) { res.unconverted++; continue; }
     if (e.paidBy === 'company') { res.company += v; continue; }
     res.reimb += v; res.byCat[e.category] = (res.byCat[e.category] || 0) + v;
@@ -1494,8 +1555,8 @@ function go(tab, opts = {}) { state.tab = tab; Object.assign(state, opts); rende
 function openTrip(id, seg) { if (state.tab !== 'trip') state.from = state.tab; state.tab = 'trip'; state.tripId = id; if (seg) state.tripSeg = seg; render(); window.scrollTo(0, 0); }
 function render() {
   $$('.view').forEach(v => v.classList.toggle('active', v.id === 'v-' + state.tab));
-  $$('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === (state.tab === 'trip' ? state.from : state.tab)));
-  ({ today: renderToday, calendar: renderCalendar, trips: renderTrips, expenses: renderExpenses, settings: renderSettings, trip: renderTrip })[state.tab]();
+  $$('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === (state.tab === 'trip' || state.tab === 'settings' ? state.from : state.tab)));
+  ({ today: renderToday, calendar: renderCalendar, trips: renderTrips, expenses: renderExpenses, settings: renderSettings, trip: renderTrip, finance: renderFinance })[state.tab]();
   updateBadges(); onScroll();
 }
 function updateBadges() {
@@ -1510,7 +1571,7 @@ const plusBtn = (id = 'nav-add') => `<button class="navbtn circle" id="${id}" ar
 /* ---------------- Shared row renderers ---------------- */
 function expenseRow(e, opts = {}) {
   const c = catOf(e.category); const t = tripById(e.tripId);
-  const v = conv(e.amount, e.currency);
+  const v = econv(e);
   const sub = [opts.showDate !== false ? fmtD(e.date, { day: 'numeric', month: 'short' }) : null, opts.showTrip !== false ? (t ? tripName(t) : null) : null, e.description && e.description !== c.label ? e.description : null].filter(Boolean).join(' · ');
   if (opts.simple) {
     const ss = e.paidBy === 'company' ? 'Company paid' : (e.description && e.description !== c.label ? e.description : c.label);
@@ -1547,7 +1608,7 @@ function renderToday() {
   const cur = tripsOn(today).sort((a, b) => b.startDate.localeCompare(a.startDate));
   const upcoming = db.trips.filter(t => t.startDate > today).sort((a, b) => a.startDate.localeCompare(b.startDate));
   const todays = db.expenses.filter(e => e.date === today && e.paidBy === 'me');
-  const todaySpend = todays.reduce((s, e) => s + (conv(e.amount, e.currency) || 0), 0);
+  const todaySpend = todays.reduce((s, e) => s + (econv(e) || 0), 0);
   let hero;
   if (cur.length) {
     const t = cur[0]; const tot = tripTotals(t); const dayN = daysBetween(t.startDate, today) + 1; const L = tripLen(t); const miss = missingDays(t).length;
@@ -1573,10 +1634,11 @@ function renderToday() {
   if (oor.length) att.push({ icon: 'calendar', color: '#5856d6', t: `${oor.length} expense${oor.length > 1 ? 's' : ''} outside the trip dates`, st: 'Tap to re-assign by date', fn: () => fixOutOfRange() });
   const recent = db.expenses.slice().sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt)).slice(0, 5);
   const onboarding = !db.trips.length && !db.expenses.length ? `<div class="notice">${icon('info')}<div><b>Welcome to VeriTrip.</b> 1) Add a trip (scan the e-ticket the company sent you). 2) During the trip, snap every receipt — VeriTrip reads amount, currency and date, and files it under the right trip. 3) Back home, open the trip and print the report.<div style="margin-top:10px;display:flex;gap:18px;flex-wrap:wrap"><button class="linkbtn" id="load-sample">Try with sample data</button><button class="linkbtn" id="ob-import">Import backup</button></div><div class="st" style="margin-top:8px;color:var(--label2);font-size:13px">Moving from another copy of VeriTrip (e.g. the file version on your computer)? There, go to Settings → Back up all data, send the .json file to this phone, then tap <b>Import backup</b>.</div></div></div>` : '';
-  v.innerHTML = navbar('Today', '', plusBtn()) + `<div class="ltitle">Today</div><div class="lsub">${esc(fmtD(today, { weekday: 'long', day: 'numeric', month: 'long' }))}</div>
+  v.innerHTML = navbar('Today', '', meBtn() + plusBtn()) + `<div class="ltitle">Today</div><div class="lsub">${esc(fmtD(today, { weekday: 'long', day: 'numeric', month: 'long' }))}</div>
     ${onboarding}${hero}
     <div class="quick q4">${Object.entries(FILE_KINDS).map(([k, x]) => `<label id="q-${k}" data-fk="${k}"><span class="ico" style="background:${x.color}">${icon(x.icon)}</span>${k === 'camera' ? 'Scan' : esc(x.short)}${fileInput(k)}</label>`).join('')}
       <button id="q-manual"><span class="ico" style="background:#8e8e93">${icon('pencil')}</span>Manual</button></div>
+    ${financeCardsHTML()}
     ${att.length ? `<div class="section-h"><h2>Needs attention</h2></div><div class="group">${att.map((a, i) => `<button class="row tap has-icon" data-att="${i}"><span class="ico" style="background:${a.color}">${icon(a.icon)}</span><span class="body"><div class="t">${esc(a.t)}</div><div class="st">${esc(a.st)}</div></span>${icon('chevR', 's chev')}</button>`).join('')}</div>` : ''}
     <div class="section-h"><h2>Recent expenses</h2>${recent.length ? '<button id="see-all">See all</button>' : ''}</div>
     ${recent.length ? `<div class="group">${recent.map(e => expenseRow(e)).join('')}</div>` : `<div class="card"><div class="empty">${icon('receipt')}No expenses yet.<br>Snap your first receipt.</div></div>`}
@@ -1585,6 +1647,7 @@ function renderToday() {
   $('#nav-add', v).onclick = () => addMenu();
   bindFileInputs($('.quick', v), (fs, kind) => { pickCtx = {}; pickHint = kind === 'camera' ? 'RECEIPT' : null; handleFiles(fs, pickHint); });
   $('#q-manual', v).onclick = () => newExpense({});
+  bindMe(v); bindFinanceCards(v);
   $('#see-all', v) && ($('#see-all', v).onclick = () => go('expenses'));
   $('#hero-ticket', v) && ($('#hero-ticket', v).onclick = () => newTripWizard());
   $('#load-sample', v) && ($('#load-sample', v).onclick = loadSample);
@@ -1626,7 +1689,7 @@ function renderCalendar() {
   }).join('');
   // selected day panel
   const sel = state.calSel; const selTrips = tripsOn(sel); const selExp = (expByDay[sel] || []).slice().sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const meTotal = selExp.filter(e => e.paidBy === 'me').reduce((s, e) => s + (conv(e.amount, e.currency) || 0), 0);
+  const meTotal = selExp.filter(e => e.paidBy === 'me').reduce((s, e) => s + (econv(e) || 0), 0);
   const r = resolveTrip(sel);
   const panel = `<div class="section-h"><h2>${esc(fmtD(sel, { weekday: 'long', day: 'numeric', month: 'long' }))}</h2>${meTotal ? `<span class="muted num">${esc(fmtBase(meTotal))}</span>` : ''}</div>
     ${selTrips.length ? `<div class="group">${selTrips.map(t => `<button class="row tap" data-trip="${esc(t.id)}"><span class="dot" style="background:${t.color}"></span><span class="body"><div class="t">${esc(tripName(t))}</div><div class="st">Day ${daysBetween(t.startDate, sel) + 1} of ${tripLen(t)}${sel === t.startDate ? ' · travel day (arrival)' : sel === t.endDate ? ' · travel day (departure)' : ''}</div></span>${icon('chevR', 's chev')}</button>`).join('')}</div>`
@@ -1686,7 +1749,7 @@ function renderExpenses() {
   if (q) list = list.filter(e => [e.merchant, e.description, e.category, catOf(e.category).label, e.refCode, e.currency, String(e.amount), tripName(tripById(e.tripId))].join(' ').toLowerCase().includes(q));
   list.sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
   const months = {}; list.forEach(e => (months[e.date.slice(0, 7)] = months[e.date.slice(0, 7)] || []).push(e));
-  const total = list.filter(e => e.paidBy === 'me').reduce((s, e) => s + (conv(e.amount, e.currency) || 0), 0);
+  const total = list.filter(e => e.paidBy === 'me').reduce((s, e) => s + (econv(e) || 0), 0);
   v.innerHTML = navbar('Expenses', '', `<button class="navbtn circle" id="exp-csv" aria-label="Export CSV">${icon('download')}</button>` + plusBtn()) +
     `<div class="ltitle">Expenses</div>
     <label class="search">${icon('search', 's')}<input id="exp-q" type="search" placeholder="Search merchant, trip, amount…" value="${esc(state.expQuery)}"></label>
@@ -1715,7 +1778,8 @@ function curOptions(sel) { return Object.entries(P.CURRENCIES).map(([c, x]) => `
 function renderSettings() {
   const v = $('#v-settings'); const s = db.settings; const ai = s.ai;
   const usedCurs = [...new Set([base(), ...db.expenses.map(e => e.currency), ...db.trips.map(t => t.defaultCurrency), 'EUR', 'USD', 'XOF', 'XAF'])].filter(c => P.CURRENCIES[c]);
-  v.innerHTML = navbar('Settings') + `<div class="ltitle">Settings</div>
+  const backL = { today: 'Today', calendar: 'Calendar', trips: 'Trips', expenses: 'Expenses', finance: 'Finance' }[state.from] || 'Back';
+  v.innerHTML = navbar('Settings', `<button class="navbtn" id="set-back">${icon('chevL')}${esc(backL)}</button>`) + `<div class="ltitle">Settings</div>
     <div class="ghead">Report</div><div class="group">
       <div class="field"><label>Name</label><input id="s-name" value="${esc(s.name)}" placeholder="Your name" autocomplete="name"></div>
       <div class="field"><label>Company</label><input id="s-company" value="${esc(s.company)}" placeholder="Company"></div>
@@ -1724,13 +1788,13 @@ function renderSettings() {
     </div><div class="foot">Home airport helps VeriTrip find the destination on round-trip e-tickets.</div>
     <div class="ghead">Appearance</div><div class="group"><div class="row"><span class="body">Theme</span><div class="seg" style="width:200px">${[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button data-theme="${k}" class="${s.theme === k ? 'on' : ''}">${l}</button>`).join('')}</div></div></div>
     <div class="ghead">Currency</div><div class="group">
-      <div class="field"><label>Claim in</label><select id="s-base">${curOptions(base())}</select></div>
+      <div class="field"><label>Report currency</label><select id="s-base">${curOptions(base())}</select></div>
       <div class="field"><label>Travel-day buffer</label><select id="s-buf">${[0, 1, 2].map(n => `<option value="${n}"${+s.travelBuffer === n ? ' selected' : ''}>${n ? n + ' day' + (n > 1 ? 's' : '') : 'Off'}</option>`).join('')}</select></div>
       <div class="row"><span class="body"><div class="t">Live exchange rates</div><div class="st">${db.fx.updatedAt ? 'Updated ' + esc(new Date(db.fx.updatedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + ' · ' + esc(db.fx.source) : 'Using built-in rates'}</div></span><label class="switch"><input type="checkbox" id="s-autofx"${s.autoFx ? ' checked' : ''}><span></span></label></div>
       <button class="row tap" id="s-fxnow"><span class="body" style="color:var(--blue)">Update rates now</span></button>
-    </div><div class="foot">Expenses just outside a trip (the buffer) are treated as travel days of that trip. Rates are today's rates, not historical.</div>
-    <div class="ghead">Exchange rates (1 ${esc(base())} = …)</div><div class="group" id="s-rates">${usedCurs.filter(c => c !== base()).map(c => `<div class="field"><label>${c}${db.fx.manual[c] ? ' <span class="pill" style="font-size:10px">manual</span>' : ''}</label><input type="number" step="any" inputmode="decimal" data-rate="${c}" value="${+(conv(1, base(), c) || 0).toPrecision(6)}"></div>`).join('')}</div>
-    <div class="foot">Edit a rate to lock it (live updates won't overwrite it). <button class="linkbtn small" id="s-unlock">Unlock all</button></div>
+    </div><div class="foot">Expenses just outside a trip (the buffer) are treated as travel days of that trip. Reports and Finance are in this currency (USD by default). Each item keeps its own currency and the rate of its own date — looked up online when you save it, editable on the item. XOF and XAF use the fixed peg of 655.957 per EUR.</div>
+    <div class="ghead">Today's rates (1 ${esc(base())} = …)</div><div class="group" id="s-rates">${usedCurs.filter(c => c !== base()).map(c => `<div class="field"><label>${c}${db.fx.manual[c] ? ' <span class="pill" style="font-size:10px">manual</span>' : ''}</label><input type="number" step="any" inputmode="decimal" data-rate="${c}" value="${+(conv(1, base(), c) || 0).toPrecision(6)}"></div>`).join('')}</div>
+    <div class="foot">Used for new items until the rate of their date is found. Edit a rate to lock it for every item in that currency. <button class="linkbtn small" id="s-unlock">Unlock all</button></div>
     <div class="ghead">AI extraction (optional)</div><div class="group">
       <div class="field"><label>Provider</label><select id="s-ai">${[['none', 'Off — on-device OCR'], ['gemini', 'Google Gemini'], ['openai', 'OpenAI']].map(([k, l]) => `<option value="${k}"${ai.provider === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field${ai.provider === 'none' ? ' hidden' : ''}" data-aif><label>API key</label><input id="s-key" type="password" autocomplete="off" value="${esc(ai.key)}" placeholder="Paste your key"></div>
@@ -1749,6 +1813,7 @@ function renderSettings() {
     <div class="foot" style="text-align:center;margin:18px 0">VeriTrip ${APP_VERSION} · data is stored only on this device${db.migratedFrom ? ' · migrated from v2' : ''}</div>`;
   const bindText = (id, key, fn) => { $(id, v).onchange = e => { s[key] = fn ? fn(e.target.value) : e.target.value.trim(); save(); }; };
   window.PWA && PWA.bindSettings(v);
+  $('#set-back', v).onclick = () => go(state.from && state.from !== 'settings' ? state.from : 'today');
   bindText('#s-name', 'name'); bindText('#s-company', 'company'); bindText('#s-emp', 'employeeId'); bindText('#s-home', 'homeIata', x => x.trim().toUpperCase().slice(0, 3));
   $$('[data-theme]', v).forEach(b => b.onclick = () => { s.theme = b.dataset.theme; save(); applyTheme(); renderSettings(); });
   $('#s-base', v).onchange = e => { s.baseCurrency = e.target.value; save(); renderSettings(); };
@@ -1790,7 +1855,7 @@ function openExpenseEditor(x, opt = {}) {
   const body = `${previewHtml}
     ${hasConf ? `<div class="legend-conf"><span><i style="background:var(--green)"></i>Confident</span><span><i style="background:var(--orange)"></i>Please check</span><span><i style="background:var(--red)"></i>Not found</span></div>` : ''}
     <div class="card"><div class="amount-hero${confCls(conf.amount)}" style="position:relative">${confTag(conf.amount)}<input id="ed-amt" type="text" inputmode="decimal" placeholder="0" value="${x.amount ? esc(groupAmt(+x.amount)) : ''}" aria-label="Amount"><select id="ed-cur" aria-label="Currency" class="${conf.currency != null && conf.currency < 0.75 ? 'lowc' : ''}">${Object.keys(P.CURRENCIES).map(c => `<option${c === x.currency ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
-    <div class="conv" id="ed-conv"></div>${conf.currency != null && conf.currency < 0.75 ? `<div class="conv" style="color:var(--orange);margin-top:-10px">${conf.currency > 0 ? 'Currency guessed from context — check' : 'Currency not printed — taken from the trip'}</div>` : ''}</div>
+    <div class="conv" id="ed-conv"></div>${fxRowHTML('ed-fx')}${conf.currency != null && conf.currency < 0.75 ? `<div class="conv" style="color:var(--orange);margin-top:-10px">${conf.currency > 0 ? 'Currency guessed from context — check' : 'Currency not printed — taken from the trip'}</div>` : ''}</div>
     <div class="group" style="margin-top:14px">
       <div class="field${confCls(conf.merchant)}">${confTag(conf.merchant)}<label>Merchant</label><input id="ed-mer" value="${esc(x.merchant || '')}" placeholder="e.g. Yango, Maquis…"></div>
       <div class="field${confCls(conf.date)}">${confTag(conf.date)}<label>Date</label><input id="ed-date" type="date" value="${esc(x.date || '')}"></div>
@@ -1812,12 +1877,13 @@ function openExpenseEditor(x, opt = {}) {
       const amt = $('#ed-amt', b), cur = $('#ed-cur', b), date = $('#ed-date', b), trip = $('#ed-trip', b), why = $('#ed-tripwhy', b), pay = $('#ed-pay', b);
       let paidBy = x.paidBy === 'company' ? 'company' : 'me';
       const parseAmt = () => { const r = P.parseNumberToken(amt.value.replace(/\s+/g, ' ').replace(/[^\d., ]/g, '').trim(), cur.value); return r != null ? r : parseFloat(amt.value.replace(',', '.')); };
-      const updConv = () => { const a = parseAmt(); const c = conv(a, cur.value); $('#ed-conv', b).textContent = !(a > 0) ? ' ' : cur.value === base() ? (paidBy === 'me' ? 'Reimbursable' : 'Company paid — not reimbursed') : `≈ ${fmtBase(c)} · ${rateLabel(cur.value)}${paidBy === 'company' ? ' · not reimbursed' : ''}`; };
+      let fxc = null; const updConv = () => { const a = parseAmt(); const c = cur.value === base() ? a : a * (fxc ? fxc.rate() : usdPer(cur.value)) / usdPer(base()); $('#ed-conv', b).textContent = !(a > 0) ? ' ' : cur.value === base() ? (paidBy === 'me' ? 'Reimbursable' : 'Company paid — not reimbursed') : `≈ ${fmtBase(c)}${paidBy === 'company' ? ' · not reimbursed' : ''}`; };
+      fxc = rateCtl($('#ed-fx', b), x, () => ({ cur: cur.value, date: date.value }), () => fxc && updConv());
       const updTrip = () => {
         if (!tripTouched) { const r = resolveTrip(date.value, { currency: cur.value }); trip.value = r.trip ? r.trip.id : ''; why.textContent = r.reason; $('#ed-tripf', b).className = 'field' + (r.trip ? (r.conf >= 0.75 ? '' : ' c-low') : ' c-low'); }
         else { const t = tripById(trip.value); why.textContent = t && date.value && (date.value < addDays(t.startDate, -(+db.settings.travelBuffer || 0)) || date.value > addDays(t.endDate, +db.settings.travelBuffer || 0)) ? `⚠︎ ${fmtD(date.value)} is outside ${tripName(t)} (${fmtRange(t.startDate, t.endDate)})` : ''; }
       };
-      amt.oninput = updConv; cur.onchange = () => { updConv(); updTrip(); }; date.onchange = updTrip;
+      amt.oninput = updConv; cur.onchange = () => { fxc.upd(); updTrip(); }; date.onchange = () => { fxc.upd(); updTrip(); };
       trip.onchange = () => { tripTouched = true; updTrip(); const t = tripById(trip.value); if (t && opt.isNew && conf.currency != null && conf.currency < 0.5) { cur.value = t.defaultCurrency; updConv(); } };
       $$('#ed-paid button', b).forEach(btn => btn.onclick = () => { paidBy = btn.dataset.p; $$('#ed-paid button', b).forEach(z => z.classList.toggle('on', z === btn)); pay.value = paidBy === 'me' ? 'Cash' : 'Company Paid'; updConv(); });
       pay.onchange = () => { const p = PAY_CO.includes(pay.value) ? 'company' : 'me'; if (p !== paidBy) { paidBy = p; $$('#ed-paid button', b).forEach(z => z.classList.toggle('on', z.dataset.p === p)); updConv(); } };
@@ -1834,12 +1900,12 @@ function openExpenseEditor(x, opt = {}) {
         if (!date.value) { toast('Enter the date', 'warn'); return; }
         const rec = Object.assign(opt.isNew ? { id: uid('EXP'), createdAt: new Date().toISOString(), source: ex ? ex.method : 'manual' } : db.expenses.find(e => e.id === x.id), {
           amount: Math.round(a * 1000) / 1000, currency: cur.value, merchant: $('#ed-mer', b).value.trim(), date: date.value, category: $('#ed-cat', b).value,
-          tripId: trip.value || null, paidBy, paymentMethod: pay.value, description: $('#ed-desc', b).value.trim(), refCode: $('#ed-ref', b).value.trim() });
+          tripId: trip.value || null, paidBy, paymentMethod: pay.value, description: $('#ed-desc', b).value.trim(), refCode: $('#ed-ref', b).value.trim() }, fxc.result());
         if (opt.isNew) {
           if (opt.fileRec) { rec.fileType = opt.fileRec.type === 'application/pdf' ? 'PDF' : 'IMAGE'; rec.fileName = opt.fileRec.name; rec.hasFile = true; Files.put(rec.id, opt.fileRec).catch(() => { rec.hasFile = false; if (opt.fileRec.thumb) rec.previewDataUrl = opt.fileRec.thumb; syncExpense(rec); save(); }); }
           db.expenses.push(rec);
         }
-        syncExpense(rec); save(); closeSheet(); render();
+        syncExpense(rec); save(); closeSheet(); render(); scheduleRates();
         const t = tripById(rec.tripId);
         toast(opt.isNew ? `Added to ${t ? tripName(t) : 'expenses (no trip)'}` : 'Saved');
         if (opt.onDone) setTimeout(opt.onDone, 350);
@@ -2266,17 +2332,18 @@ function exportICS(trips, name) {
 function exportCSV(list, name) {
   if (!list.length) return toast('Nothing to export', 'warn');
   const q = v => { const s = String(v ?? ''); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [['Trip', 'Trip start', 'Trip end', 'Date', 'Merchant', 'Description', 'Category', 'Paid by', 'Payment method', 'Reference', 'Amount', 'Currency', `Rate (${base()} per unit)`, `Amount ${base()}`, 'Reimbursable', 'Receipt']];
+  const rows = [['Trip', 'Trip start', 'Trip end', 'Date', 'Merchant', 'Description', 'Category', 'Paid by', 'Payment method', 'Reference', 'Amount', 'Currency', `Rate (1 ${base()} = … currency)`, 'Rate date', 'Rate source', `Amount ${base()}`, 'Reimbursable', 'Receipt']];
   for (const e of list.slice().sort((a, b) => a.date.localeCompare(b.date))) {
-    const t = tripById(e.tripId); const v = conv(e.amount, e.currency);
+    const t = tripById(e.tripId); const v = econv(e);
     rows.push([t ? tripName(t) : '', t ? t.startDate : '', t ? t.endDate : '', e.date, e.merchant, e.description, catOf(e.category).label, e.paidBy === 'company' ? 'Company' : 'Employee', e.paymentMethod, e.refCode,
-      e.amount, e.currency, v != null ? (+conv(1, e.currency)).toPrecision(6) : '', v != null ? v.toFixed(2) : '', e.paidBy === 'me' ? 'Yes' : 'No', e.hasFile || e.previewDataUrl ? (e.fileName || 'Yes') : 'No']);
+      e.amount, e.currency, v != null ? (e.currency === base() ? 1 : perBase(e.fxRate || usdPer(e.currency))) : '', e.fxDate || '', e.currency === base() ? '' : fxSrcLabel(e), v != null ? v.toFixed(2) : '', e.paidBy === 'me' ? 'Yes' : 'No', e.hasFile || e.previewDataUrl ? (e.fileName || 'Yes') : 'No']);
   }
   download(name, '\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
 }
 async function exportBackup() {
   const files = {};
-  for (const e of db.expenses) { if (!e.hasFile) continue; const r = await Files.get(e.id); if (r && r.blob) files[e.id] = { type: r.type, name: r.name, data: await blobToDataUrl(r.blob), thumb: r.thumb || null }; }
+  const ids = [...db.expenses.filter(e => e.hasFile).map(e => e.id), ...financeFileIds()];
+  for (const id of ids) { const r = await Files.get(id); if (r && r.blob) files[id] = { type: r.type, name: r.name, data: await blobToDataUrl(r.blob), thumb: r.thumb || null }; }
   const copy = JSON.parse(JSON.stringify(db)); copy.settings.ai.key = '';
   download(`VeriTrip-backup-${todayISO()}.json`, JSON.stringify({ app: 'VeriTrip', version: 3, exportedAt: new Date().toISOString(), db: copy, files }), 'application/json');
   toast('Backup exported (API key not included)');
@@ -2288,7 +2355,7 @@ async function importBackup(file) {
     if (!j.db || !Array.isArray(j.db.trips)) throw new Error('Not a VeriTrip backup');
     const key = db.settings.ai.key; db = j.db; normalizeDB(); if (!db.settings.ai.key) db.settings.ai.key = key;
     for (const [id, f] of Object.entries(j.files || {})) await Files.put(id, { blob: dataUrlToBlob(f.data), type: f.type, name: f.name, thumb: f.thumb });
-    save(); applyTheme(); go('today'); toast(`Restored ${db.trips.length} trips and ${db.expenses.length} expenses`);
+    save(); applyTheme(); go('today'); toast(`Restored ${db.trips.length} trips, ${db.expenses.length} expenses${db.finance.living.length + db.finance.invoices.length ? `, ${db.finance.living.length} living costs, ${db.finance.invoices.length} invoices` : ''}`); scheduleRates();
   } catch (e) { toast('Restore failed: ' + e.message, 'warn'); }
 }
 
@@ -2296,7 +2363,7 @@ async function importBackup(file) {
 async function printReport(t) {
   const s = db.settings; const tot = tripTotals(t); const exps = expensesOf(t).sort((a, b) => a.date.localeCompare(b.date));
   const me = exps.filter(e => e.paidBy === 'me'), co = exps.filter(e => e.paidBy === 'company');
-  const row = (e, i) => { const v = conv(e.amount, e.currency); return `<tr><td>${i + 1}</td><td>${esc(fmtD(e.date, { day: '2-digit', month: 'short' }))}</td><td>${esc(e.merchant)}${e.description ? `<br><span class="note">${esc(e.description)}</span>` : ''}</td><td>${esc(catOf(e.category).label)}</td><td>${esc(e.paymentMethod)}</td><td class="r">${esc(fmt(e.amount, e.currency))}</td><td class="r">${esc(fmtBase(v))}</td><td>${e.hasFile || e.previewDataUrl ? '✓' : '—'}</td></tr>`; };
+  const row = (e, i) => { const v = econv(e); return `<tr><td>${i + 1}</td><td>${esc(fmtD(e.date, { day: '2-digit', month: 'short' }))}</td><td>${esc(e.merchant)}${e.description ? `<br><span class="note">${esc(e.description)}</span>` : ''}</td><td>${esc(catOf(e.category).label)}</td><td>${esc(e.paymentMethod)}</td><td class="r">${esc(fmt(e.amount, e.currency))}</td><td class="r">${esc(fmtBase(v))}</td><td>${e.hasFile || e.previewDataUrl ? '✓' : '—'}</td></tr>`; };
   const imgs = [];
   for (const [i, e] of me.entries()) { const r = await getFile(e); if (r && r.thumb && r.type !== 'application/pdf') { let src = r.thumb; if (r.blob && r.type.startsWith('image/')) src = await blobToDataUrl(r.blob); imgs.push(`<figure><img src="${src}"><figcaption>#${i + 1} · ${esc(fmtD(e.date))} · ${esc(e.merchant)} · ${esc(fmt(e.amount, e.currency))}</figcaption></figure>`); } else if (r && r.thumb) imgs.push(`<figure><img src="${r.thumb}"><figcaption>#${i + 1} · ${esc(e.merchant)} (PDF, page 1)</figcaption></figure>`); }
   $('#print-root').innerHTML = `<h1>Travel expense claim</h1><div class="sub">${esc(tripName(t))}${t.country ? ', ' + esc(t.country) : ''} · ${esc(fmtRange(t.startDate, t.endDate))} (${tripLen(t)} days)</div>
@@ -2304,7 +2371,7 @@ async function printReport(t) {
     <div class="total"><span>Total to reimburse</span><span>${esc(fmtBase(tot.reimb))}</span></div>
     <h2>Out-of-pocket expenses</h2><table><thead><tr><th>#</th><th>Date</th><th>Merchant</th><th>Category</th><th>Paid with</th><th class="r">Amount</th><th class="r">${esc(base())}</th><th>Rcpt</th></tr></thead><tbody>${me.map(row).join('') || '<tr><td colspan="8">None</td></tr>'}</tbody><tfoot><tr><td colspan="6">Total</td><td class="r">${esc(fmtBase(tot.reimb))}</td><td></td></tr></tfoot></table>
     <h2>Summary by category</h2><table><tbody>${Object.entries(tot.byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(catOf(k).label)}</td><td class="r">${esc(fmtBase(v))}</td></tr>`).join('')}</tbody></table>
-    <h2>Exchange rates used</h2><table><tbody>${Object.entries(tot.byCur).map(([c, x]) => `<tr><td>${esc(rateLabel(c))}</td><td class="r">${esc(fmt(x.local, c))}</td><td class="r">${esc(fmtBase(x.base))}</td></tr>`).join('')}</tbody></table><div class="note">Rates ${db.fx.updatedAt ? 'from ' + esc(db.fx.source) + ' on ' + esc(new Date(db.fx.updatedAt).toLocaleDateString('en-GB')) : 'entered manually / defaults'}.</div>
+    <h2>Exchange rates used</h2><table><tbody>${Object.entries(tot.byCur).map(([c, x]) => `<tr><td>${esc(c === base() ? '—' : rateText(x.base / x.local * usdPer(base()), c) + (x.n > 1 ? ' (avg)' : ''))}</td><td class="r">${esc(fmt(x.local, c))}</td><td class="r">${esc(fmtBase(x.base))}</td></tr>`).join('')}</tbody></table><div class="note">Each expense is converted at the rate of its own date (historical rates where available; XOF/XAF at the fixed peg of 655.957 per EUR; rates you entered are kept).</div>
     ${co.length ? `<h2>Paid by the company (for reference, not claimed)</h2><table><tbody>${co.map(e => `<tr><td>${esc(fmtD(e.date, { day: '2-digit', month: 'short' }))}</td><td>${esc(e.merchant)}</td><td>${esc(catOf(e.category).label)}</td><td>${esc(e.paymentMethod)}</td><td class="r">${esc(e.amount ? fmt(e.amount, e.currency) : '')}</td></tr>`).join('')}</tbody></table>` : ''}
     <div class="sig"><div>Employee signature &amp; date</div><div>Approved by &amp; date</div></div>
     ${imgs.length ? `<div class="pb"></div><h2>Receipts</h2><div class="receipts">${imgs.join('')}</div>` : ''}`;
@@ -2361,7 +2428,7 @@ function init() {
   moveInlinePreviews();
   if (db.settings.autoFx && (!db.fx.updatedAt || Date.now() - Date.parse(db.fx.updatedAt) > 12 * 3600e3)) refreshRates(false).then(ok => ok && render());
   window.PWA && PWA.init();
-  window.VeriTrip = { db: () => db, resolveTrip, extractDocument, parseICS, icsToCandidates, render, go };
+  window.VeriTrip = { db: () => db, resolveTrip, extractDocument, parseICS, icsToCandidates, render, go, financeYear, invStatus, ensureRates, fxFor, econv, livDue, readFinanceDoc };
 }
 
 /* ================= v3.2 — trip wizard, flight & hotel, add-receipt options, simple trip screen ================= */
@@ -2673,7 +2740,7 @@ function renderTrip() {
   const remind = needF || needH ? `<button class="remind" id="tr-remind">${icon('info', 's')}<span>${needF && needH ? 'Add the flight and hotel the company booked' : needF ? 'Add the flight details' : 'Add the hotel details'} <b>— takes a few seconds</b></span>${icon('chevR', 's chev')}</button>` : '';
   const byDay = {}; list.forEach(e => (byDay[e.date] = byDay[e.date] || []).push(e));
   const dayLabel = d => `${fmtD(d, { weekday: 'short', day: 'numeric', month: 'short' })}${d >= t.startDate && d <= t.endDate ? ` · Day ${daysBetween(t.startDate, d) + 1}` : ''}`;
-  const listHTML = list.length ? Object.keys(byDay).sort().map(d => `<div class="dayh"><span>${esc(dayLabel(d))}</span><span class="num">${esc(fmtBase(byDay[d].filter(e => e.paidBy === 'me').reduce((s, e) => s + (conv(e.amount, e.currency) || 0), 0)))}</span></div><div class="group">${byDay[d].map(e => expenseRow(e, { showDate: false, showTrip: false, simple: true })).join('')}</div>`).join('')
+  const listHTML = list.length ? Object.keys(byDay).sort().map(d => `<div class="dayh"><span>${esc(dayLabel(d))}</span><span class="num">${esc(fmtBase(byDay[d].filter(e => e.paidBy === 'me').reduce((s, e) => s + (econv(e) || 0), 0)))}</span></div><div class="group">${byDay[d].map(e => expenseRow(e, { showDate: false, showTrip: false, simple: true })).join('')}</div>`).join('')
     : `<div class="card"><div class="empty">${icon('receipt')}No receipts yet.<br>Tap <b>Add receipt</b> after each purchase.</div></div>`;
   const catEntries = Object.entries(tot.byCat).sort((a, b) => b[1] - a[1]); const curs = Object.entries(tot.byCur);
   const details = `<details class="tdetails" id="tr-details"${state.tripDetailsOpen ? ' open' : ''}><summary>Details${miss.length ? ` <span class="dnote">${miss.length} day${miss.length > 1 ? 's' : ''} without receipts</span>` : ''}</summary>
@@ -2713,10 +2780,644 @@ function renderTrip() {
     { icon: 'printer', color: '#007aff', label: 'Report — print or save as PDF', sub: 'Claim with receipts attached', fn: () => printReport(t) },
     { icon: 'download', color: '#34c759', label: 'Export CSV', sub: 'For Excel / expense system', fn: () => exportCSV(expensesOf(t).sort((a, b) => a.date.localeCompare(b.date)), `VeriTrip-${slug}-${t.startDate}.csv`) },
     { icon: 'calendar', color: '#ff2d55', label: 'Add to calendar (.ics)', fn: () => exportICS([t], `VeriTrip-${slug}.ics`) },
+    { icon: 'check', color: '#34c759', label: t.reimbursed ? 'Mark as not reimbursed' : 'Mark as reimbursed', sub: t.reimbursed ? `Reimbursed ${fmtD(t.reimbursed, { day: 'numeric', month: 'short', year: 'numeric' })}` : 'The company has paid back this claim', fn: () => { t.reimbursed = t.reimbursed ? null : todayISO(); save(); render(); toast(t.reimbursed ? 'Marked as reimbursed' : 'Marked as not reimbursed'); } },
     { icon: 'trash', color: '#ff3b30', label: 'Delete trip', fn: () => deleteTrip(t) }]);
 }
 
+
+/* ===================== VeriTrip 3.3 — USD reporting · historical FX · Finance ===================== */
+
+/* ---------- FX: per-item rates, historical look-ups, CFA peg ---------- */
+const CFA_PEG = { XOF: 655.957, XAF: 655.957, KMF: 491.96775 }; // fixed parity: units per 1 EUR
+const pegged = c => !!CFA_PEG[c];
+function applyPeg(rates, manual = {}) { const eur = rates.EUR; if (!(eur > 0)) return; for (const c in CFA_PEG) if (P.CURRENCIES[c] && !manual[c]) rates[c] = eur / CFA_PEG[c]; }
+const r7 = x => +(+x).toPrecision(7);
+/* Best rate known right now (USD per 1 unit) for a currency on a date — no network. */
+function fxFor(cur, date) {
+  if (cur === 'USD') return { rate: 1, src: 'fixed' };
+  if (db.fx.manual[cur]) return { rate: usdPer(cur), src: 'manual' };
+  const h = date && db.fx.hist && db.fx.hist[date];
+  if (pegged(cur)) { if (h && h.r.EUR > 0) return { rate: h.r.EUR / CFA_PEG[cur], src: 'peg', via: h.src }; return { rate: usdPer('EUR') / CFA_PEG[cur], src: 'peg-latest' }; }
+  if (h && h.r[cur] > 0) return { rate: h.r[cur], src: 'hist', via: h.src };
+  return { rate: usdPer(cur), src: 'latest' };
+}
+const fxGood = s => ['hist', 'peg', 'fixed'].includes(String(s || '').split(' ')[0]);
+/* Store the rate on an item (unless the user locked it). Returns true if it changed. */
+function stampFx(o, cur, date) {
+  if (!o || o.fxManual) return false;
+  const f = fxFor(cur, date); if (!(f.rate > 0)) return false;
+  if (fxGood(o.fxSrc) && o.fxDate === date && o.fxRate > 0 && !fxGood(f.src)) return false; // keep a historical rate we already had
+  const rate = r7(f.rate), src = f.src === 'hist' ? 'hist · ' + (f.via || '') : f.src;
+  if (o.fxRate === rate && o.fxSrc === src && o.fxDate === date) return false;
+  o.fxRate = rate; o.fxSrc = src; o.fxDate = date || null; return true;
+}
+/* Amount of an item converted with ITS stored rate (falls back to today's rate). */
+function econv(o, amount = o.amount, cur = o.currency, to = base()) {
+  if (amount == null || isNaN(amount)) return null; if (cur === to) return +amount;
+  const r = o && o.fxRate > 0 ? o.fxRate : usdPer(cur); const b = usdPer(to); if (!r || !b) return null; return amount * r / b;
+}
+function fxSrcLabel(o) {
+  if (!o || !o.fxSrc) return ''; const s = String(o.fxSrc); const d = o.fxDate ? fmtD(o.fxDate, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  if (s === 'manual' || o.fxManual) return 'your rate';
+  if (s.startsWith('hist')) return `rate of ${d}`;
+  if (s === 'peg') return `fixed EUR peg · ${d}`;
+  if (s === 'peg-latest') return 'fixed EUR peg';
+  return "today's rate";
+}
+/* "1 USD = 655.96 XOF" for an item */
+function rateText(rate, cur, b = base()) { if (!(rate > 0)) return '—'; const x = usdPer(b) / rate; return `1 ${b} = ${x >= 100 ? x.toFixed(2) : x >= 1 ? x.toFixed(4) : x.toPrecision(4)} ${cur}`; }
+const perBase = (rate, b = base()) => rate > 0 ? +(usdPer(b) / rate).toPrecision(6) : '';
+
+function fxItems() {
+  const F = db.finance || {}; const out = [];
+  for (const e of db.expenses) out.push([e, e.currency, e.date]);
+  for (const l of F.living || []) out.push([l, l.currency, l.due]);
+  for (const c of F.contracts || []) out.push([c, c.currency, c.start]);
+  for (const i of F.invoices || []) { out.push([i, i.currency, i.date]); for (const p of i.payments || []) out.push([p, i.currency, p.date]); }
+  return out;
+}
+let fxBusy = false; const fxFailed = new Set();
+async function fetchHist(date, curs) {
+  const want = new Set([...curs, 'EUR']);
+  const tries = [
+    [`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/usd.json`, j => j && j.usd, 'currency-api'],
+    [`https://${date}.currency-api.pages.dev/v1/currencies/usd.json`, j => j && j.usd, 'currency-api'],
+    [`https://api.frankfurter.app/${date}?from=USD`, j => j && j.rates && Object.fromEntries(Object.entries(j.rates).map(([k, v]) => [k.toLowerCase(), v])), 'frankfurter (ECB)']];
+  for (const [url, pick, src] of tries) {
+    try {
+      const m = pick(await fetchJSON(url, 7000)); if (!m) continue;
+      const r = {}; for (const c of want) { const v = m[c.toLowerCase()]; if (v > 0) r[c] = r7(1 / v); }
+      if (!Object.keys(r).length) continue;
+      const h = db.fx.hist[date] || (db.fx.hist[date] = { src, r: {} }); Object.assign(h.r, r);
+      return true;
+    } catch (e) { /* next provider */ }
+  }
+  return false;
+}
+/* Fill in transaction-date rates for every item that only has today's rate. */
+async function ensureRates(max = 24) {
+  if (fxBusy || !db.settings.autoFx || (navigator.onLine === false)) return false;
+  fxBusy = true; let changed = false;
+  try {
+    const today = todayISO(); const need = new Map();
+    for (const [o, cur, date] of fxItems()) {
+      if (cur === 'USD' || o.fxManual) continue;
+      if (stampFx(o, cur, date)) changed = true;
+      if (!date || date > today || fxGood(o.fxSrc) || fxFailed.has(date)) continue;
+      if (!need.has(date)) need.set(date, new Set()); need.get(date).add(cur);
+    }
+    const dates = [...need.keys()].sort().reverse().slice(0, max);
+    await Promise.all(dates.map(async d => { if (!(await fetchHist(d, need.get(d)))) fxFailed.add(d); }));
+    if (dates.length) for (const [o, cur, date] of fxItems()) if (cur !== 'USD' && stampFx(o, cur, date)) changed = true;
+  } catch (e) { console.warn('FX', e); } finally { fxBusy = false; }
+  if (changed) save();
+  return changed;
+}
+let fxTimer = null;
+function scheduleRates() { clearTimeout(fxTimer); fxTimer = setTimeout(() => ensureRates().then(ch => { if (ch && !sheetOpen()) render(); }), 600); }
+
+/* ---------- Migration to 3.3 ---------- */
+function migrateV33() {
+  const F = db.finance = Object.assign({ living: [], clients: [], contracts: [], invoices: [], tripOOP: false }, db.finance || {});
+  for (const k of ['living', 'clients', 'contracts', 'invoices']) F[k] = Array.isArray(F[k]) ? F[k] : [];
+  F.living.forEach(l => { l.id = l.id || uid('LIV'); l.paid = l.paid || {}; l.atts = l.atts || []; l.freq = l.freq || 'year'; l.currency = l.currency || 'USD'; l.amount = +l.amount || 0; l.category = l.category || 'other'; });
+  F.contracts.forEach(c => { c.id = c.id || uid('CON'); c.freq = c.freq || 'month'; c.currency = c.currency || 'USD'; c.amount = +c.amount || 0; });
+  F.invoices.forEach(i => { i.id = i.id || uid('INV'); i.payments = (i.payments || []).map(p => ({ id: p.id || uid('PAY'), ...p, amount: +p.amount || 0, atts: p.atts || [] })); i.atts = i.atts || []; i.currency = i.currency || 'USD'; i.amount = +i.amount || 0; });
+  F.clients.forEach(c => { c.id = c.id || uid('CLI'); });
+  db.fx.hist = db.fx.hist || {};
+  applyPeg(db.fx.rates, db.fx.manual);
+  if (!db.v33) {
+    const was = db.settings.baseCurrency; db.settings.baseCurrency = 'USD'; db.v33 = true;
+    if (was && was !== 'USD' && (db.expenses.length || db.trips.length)) pendingToast = 'Reports are now in USD — every item keeps its own currency and rate';
+  }
+  for (const [o, cur, date] of fxItems()) if (!(o.fxRate > 0)) stampFx(o, cur, date);
+}
+
+/* ---------- Finance model ---------- */
+const LIV_CATS = [
+  { k: 'medical', label: 'Medical insurance', icon: 'person', color: '#ff2d55', hint: 'Self & family' },
+  { k: 'residency', label: 'Residency & visa', icon: 'id', color: '#5856d6', hint: 'Residence permit, visas' },
+  { k: 'car', label: 'Car', icon: 'car', color: '#ff9500', hint: 'Insurance, fuel, maintenance, registration' },
+  { k: 'rent', label: 'Rent', icon: 'building', color: '#007aff', hint: 'Home' },
+  { k: 'school', label: 'School fees', icon: 'sparkles', color: '#34c759', hint: 'Tuition, canteen, transport' },
+  { k: 'other', label: 'Other', icon: 'wallet', color: '#8e8e93', hint: '' }];
+const livCat = k => LIV_CATS.find(c => c.k === k) || LIV_CATS[LIV_CATS.length - 1];
+const FREQS = { month: { label: 'Monthly', step: 1, per: 12 }, quarter: { label: 'Quarterly', step: 3, per: 4 }, term: { label: 'Per term', step: 4, per: 3 }, year: { label: 'Yearly', step: 12, per: 1 }, once: { label: 'One-off', step: 0, per: 1 } };
+const CON_FREQS = ['month', 'quarter', 'year', 'once'];
+function addMonths(iso, n) { const [y, m, d] = iso.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1 + n, 1)); const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate(); t.setUTCDate(Math.min(d, last)); return t.toISOString().slice(0, 10); }
+/* All due dates of a recurring item between from..to (inclusive). */
+function occurrences(anchor, freq, from, to, end) {
+  if (!anchor) return []; const f = FREQS[freq] || FREQS.year; const out = [];
+  if (!f.step) return anchor >= from && anchor <= to && (!end || anchor <= end) ? [anchor] : [];
+  for (let k = 0; k < 600; k++) { const d = addMonths(anchor, k * f.step); if (d > to || (end && d > end)) break; if (d >= from) out.push(d); }
+  return out;
+}
+const yRange = Y => [`${Y}-01-01`, `${Y}-12-31`];
+const FIN = () => db.finance;
+function livOcc(l, Y) { const [a, b] = yRange(Y); return occurrences(l.due, l.freq, a, b, l.end).map(d => ({ item: l, date: d, paid: !!l.paid[d], paidOn: l.paid[d] || null, usd: econv(l) })); }
+/* Unpaid instalments from the last year up to `days` ahead. */
+function livDue(days = 60) {
+  const today = todayISO(), to = addDays(today, days), from = addDays(today, -365); const out = [];
+  for (const l of FIN().living) for (const d of occurrences(l.due, l.freq, from, to, l.end)) if (!l.paid[d]) out.push({ item: l, date: d, overdue: d < today, usd: econv(l) });
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+const clientById = id => FIN().clients.find(c => c.id === id);
+const clientName = id => (clientById(id) || {}).name || 'No client';
+const invReceived = i => (i.payments || []).reduce((s, p) => s + (+p.amount || 0), 0);
+function invStatus(i, today = todayISO()) {
+  const got = invReceived(i);
+  if (i.amount > 0 && got >= i.amount - 0.005) return 'paid';
+  if (i.draft) return 'draft';
+  if (i.due && i.due < today) return 'overdue';
+  return 'sent';
+}
+const STATUS = { draft: { label: 'Draft', cls: '' }, sent: { label: 'Sent', cls: 'company' }, paid: { label: 'Paid', cls: 'ok' }, overdue: { label: 'Overdue', cls: 'red' } };
+function invPill(i) { const s = invStatus(i); const got = invReceived(i); return `<span class="pill ${STATUS[s].cls}">${STATUS[s].label}</span>${s !== 'paid' && got > 0 ? ' <span class="pill warn">Partial</span>' : ''}`; }
+const invOpen = i => Math.max(0, i.amount - invReceived(i));
+function payUsd(i, p) { return econv(p, p.amount, i.currency); }
+function contractYear(c, Y) { const [a, b] = yRange(Y); return occurrences(c.start, c.freq, a, b, c.end).length * (econv(c) || 0); }
+
+function financeYear(Y) {
+  const F = FIN(); const [a, b] = yRange(Y); const today = todayISO();
+  const months = Array.from({ length: 12 }, () => ({ inc: 0, liv: 0, trip: 0 }));
+  let income = 0, livBudget = 0, livPaid = 0, tripOOP = 0;
+  for (const i of F.invoices) for (const p of i.payments) if (p.date >= a && p.date <= b) { const v = payUsd(i, p) || 0; income += v; months[+p.date.slice(5, 7) - 1].inc += v; }
+  for (const l of F.living) for (const o of livOcc(l, Y)) { const v = o.usd || 0; livBudget += v; if (o.paid) livPaid += v; months[+o.date.slice(5, 7) - 1].liv += v; }
+  for (const e of db.expenses) { if (e.paidBy !== 'me' || e.date < a || e.date > b) continue; const t = tripById(e.tripId); if (t && t.reimbursed) continue; const v = econv(e) || 0; tripOOP += v; months[+e.date.slice(5, 7) - 1].trip += v; }
+  let outstanding = 0, overdue = 0, nOver = 0;
+  for (const i of F.invoices) { const s = invStatus(i, today); if (s === 'paid' || s === 'draft') continue; const v = econv(i, invOpen(i)) || 0; outstanding += v; if (s === 'overdue') { overdue += v; nOver++; } }
+  const spend = livBudget + (F.tripOOP ? tripOOP : 0);
+  return { Y, income, livBudget, livPaid, livLeft: livBudget - livPaid, tripOOP, outstanding, overdue, nOver, net: income - spend, months };
+}
+function financeYears() {
+  const F = FIN(); const ys = new Set([+todayISO().slice(0, 4)]);
+  for (const i of F.invoices) { ys.add(+String(i.date).slice(0, 4)); for (const p of i.payments) ys.add(+String(p.date).slice(0, 4)); }
+  for (const l of F.living) if (l.due) ys.add(+l.due.slice(0, 4));
+  return [...ys].filter(y => y > 1990 && y < 2200).sort();
+}
+
+/* ---------- Shared bits: amount parsing, rate row, attachments ---------- */
+function parseAmtStr(str, cur) { const s = String(str || '').trim(); if (!s) return null; const r = P.parseNumberToken(s.replace(/\s+/g, ' ').replace(/[^\d., ]/g, '').trim(), cur); return r != null ? r : (parseFloat(s.replace(/\s/g, '').replace(',', '.')) || null); }
+const curSel = (id, sel) => `<select id="${id}" aria-label="Currency">${Object.keys(P.CURRENCIES).map(c => `<option${c === sel ? ' selected' : ''}>${c}</option>`).join('')}</select>`;
+function fxRowHTML(id) { return `<div class="fx-row" id="${id}"><span class="fx-l">1 ${esc(base())} =</span><input type="text" inputmode="decimal" class="fx-in" aria-label="Exchange rate"><span class="fx-c"></span><span class="fx-s"></span><button type="button" class="linkbtn small fx-reset hidden">Reset</button></div>`; }
+/* Editable exchange-rate control. get() → { cur, date } */
+function rateCtl(el, o, get, onUpd) {
+  let manual = o.fxManual && o.fxRate > 0 ? o.fxRate : null; const inp = $('.fx-in', el); const asked = new Set();
+  const origCur = o.currency; let tmp = {};
+  const calc = () => {
+    const { cur, date } = get();
+    tmp = cur === origCur ? { fxRate: o.fxRate, fxSrc: o.fxSrc, fxDate: o.fxDate } : {};
+    if (manual) tmp = { fxRate: manual, fxSrc: 'manual', fxDate: date, fxManual: true }; else stampFx(tmp, cur, date);
+    return { cur, date };
+  };
+  const upd = () => {
+    const { cur, date } = calc(); el.classList.toggle('hidden', cur === base());
+    if (document.activeElement !== inp) inp.value = perBase(tmp.fxRate);
+    $('.fx-c', el).textContent = cur; $('.fx-s', el).textContent = manual ? '· your rate' : '· ' + fxSrcLabel(tmp); $('.fx-reset', el).classList.toggle('hidden', !manual);
+    const key = cur + date;
+    if (!manual && cur !== 'USD' && date && date <= todayISO() && !fxGood(tmp.fxSrc) && db.settings.autoFx && !asked.has(key) && !fxFailed.has(date)) {
+      asked.add(key); $('.fx-s', el).textContent = '· looking up rate of ' + fmtD(date, { day: 'numeric', month: 'short' }) + '…';
+      fetchHist(date, [cur]).then(ok => { if (!ok) fxFailed.add(date); save(); upd(); });
+    }
+    onUpd && onUpd();
+  };
+  inp.oninput = () => { const x = parseFloat(String(inp.value).replace(/\s/g, '').replace(',', '.')); manual = x > 0 ? usdPer(base()) / x : null; calc(); $('.fx-reset', el).classList.toggle('hidden', !manual); $('.fx-s', el).textContent = manual ? '· your rate' : ''; onUpd && onUpd(); };
+  inp.onchange = upd;
+  $('.fx-reset', el).onclick = () => { manual = null; upd(); };
+  upd();
+  return { upd, rate: () => tmp.fxRate, result: () => { calc(); return manual ? { fxRate: r7(manual), fxSrc: 'manual', fxDate: get().date, fxManual: true } : { fxRate: tmp.fxRate, fxSrc: tmp.fxSrc, fxDate: tmp.fxDate, fxManual: false }; } };
+}
+/* Attachment list (invoice PDF, receipt, payment proof) stored in IndexedDB */
+function attsHTML(list, id) {
+  return `<div class="group atts${list.length ? '' : ' hidden'}" id="${id}" style="margin-top:10px">${list.map((a, k) => `<div class="docrow" style="margin:0;border-radius:0;box-shadow:none">${a.thumb ? `<img src="${a.thumb}" alt="">` : `<span class="ico" style="background:#ff9500">${icon('doc')}</span>`}<div class="body"><div class="t">${esc(a.name || 'Document')}</div><div class="st">${esc(a.note || (a.type === 'application/pdf' ? 'PDF' : 'Image'))}</div></div><button type="button" class="btn sm gray" data-att-view="${k}">View</button><button type="button" class="navbtn" data-att-del="${k}" aria-label="Remove">${icon('x', 's')}</button></div>`).join('')}</div>`;
+}
+function bindAtts(root, id, list, redraw) {
+  $$(`#${id} [data-att-view]`, root).forEach(b => b.onclick = async () => { const a = list[+b.dataset.attView]; if (a.fileRec) { const url = URL.createObjectURL(a.fileRec.blob); const vw = $('#viewer'); vw.innerHTML = `<button class="x">${icon('x')}</button>` + (a.type === 'application/pdf' ? `<iframe src="${url}"></iframe>` : `<img src="${url}">`); vw.classList.add('show'); vw.querySelector('.x').onclick = () => { vw.classList.remove('show'); vw.innerHTML = ''; }; } else showFile({ hasFile: true, id: a.id }); });
+  $$(`#${id} [data-att-del]`, root).forEach(b => b.onclick = () => { const a = list.splice(+b.dataset.attDel, 1)[0]; if (a && !a.fileRec) a._del = true, (list._removed = list._removed || []).push(a); redraw(); });
+}
+async function commitAtts(list) {
+  for (const a of list._removed || []) Files.del(a.id).catch(() => {});
+  const out = [];
+  for (const a of list) { if (a.fileRec) { try { await Files.put(a.id, a.fileRec); } catch (e) { toast('Could not store the document', 'warn'); continue; } } out.push({ id: a.id, name: a.name, type: a.type, thumb: a.thumb || null, note: a.note || '' }); }
+  return out;
+}
+function newAtt(res, note) { const r = res.fileRec; const thumb = r && r.thumb ? (r.thumb.length < 60000 ? r.thumb : null) : null; return { id: uid('DOC'), name: r ? r.name : 'Document', type: r ? r.type : '', thumb, note, fileRec: r }; }
+/* Read an invoice / bill: amount, currency, date + invoice no., due date, party */
+async function readFinanceDoc(file, progress) {
+  const res = await extractDocument(file, 'RECEIPT', progress);
+  const text = res.text || ''; const lines = P.normalizeText(text).split('\n');
+  const refYear = +todayISO().slice(0, 4);
+  const no = text.match(/(?:invoice|facture|inv|bill)\s*(?:no\.?|n[°ºo]\.?|number|num[ée]ro|#)?\s*[:#]?\s*([A-Z0-9][A-Z0-9\-\/]{2,}\d)/i);
+  let due = null; for (const ln of lines) if (/due|[ée]ch[ée]ance|payable\s+(?:by|before|avant)|date\s+limite/i.test(ln)) { const d = P.findDates(ln, { refYear }); if (d.length) { due = d[0].date; break; } }
+  let issued = null; for (const ln of lines) if (/(invoice|facture|issue|émission|emission)\s*date|date\s*(de\s*)?(facture|facturation|d'émission)/i.test(ln)) { const d = P.findDates(ln, { refYear }); if (d.length) { issued = d[0].date; break; } }
+  let party = null; const bi = lines.findIndex(l => /^(bill(ed)?\s+to|invoice\s+to|client|customer|factur[ée]\s+[àa]|destinataire)\s*:?/i.test(l.trim()));
+  if (bi >= 0) { const same = lines[bi].replace(/^(bill(ed)?\s+to|invoice\s+to|client|customer|factur[ée]\s+[àa]|destinataire)\s*:?/i, '').trim(); party = same.length > 2 ? same : (lines.slice(bi + 1).find(l => l.trim().length > 2) || '').trim(); }
+  const known = FIN().clients.find(c => c.name && text.toLowerCase().includes(c.name.toLowerCase()));
+  res.fin = { number: no ? no[1] : '', due, issued, party, clientId: known ? known.id : null };
+  res.methodLabel = { ai: 'Read by AI — please check', 'pdf-text': 'Read from PDF', 'pdf+ocr': 'Scanned PDF · on-device OCR', local: 'On-device OCR — please check' }[res.method] || '';
+  return res;
+}
+function guessLivCat(text) {
+  const t = String(text || '').toLowerCase();
+  if (/carburant|fuel|essence|gasoil|diesel|vidange|garage|pneu|vignette|carte grise|registration|v[ée]hicule|vehicle|auto\b|car insurance|assurance auto/.test(t)) return 'car';
+  if (/assurance|insurance|mutuelle|sant[ée]|health|medical|m[ée]dical/.test(t)) return 'medical';
+  if (/s[ée]jour|residen|visa|immigration|permit/.test(t)) return 'residency';
+  if (/loyer|rent\b|bail|lease|landlord|propri[ée]taire/.test(t)) return 'rent';
+  if (/[ée]cole|school|scolarit[ée]|tuition|lyc[ée]e|coll[èe]ge|cantine|frais de scolarit/.test(t)) return 'school';
+  return null;
+}
+function docBox(title, sub) { return `<div class="bk-up"><div class="bk-up-t">${icon('doc', 's')} ${esc(title)}</div><div class="muted small" style="margin:2px 0 10px">${esc(sub)}</div>${fileChips(true)}<div class="bk-prog hidden" data-prog><div class="spinner sm"></div><span data-msg>Reading…</span></div></div>`; }
+function bindDocBox(root, onRes, note) {
+  bindFileInputs(root, async fs => {
+    const pr = $('[data-prog]', root), msg = $('[data-msg]', root); pr.classList.remove('hidden');
+    try { const res = await readFinanceDoc(fs[0], (m, p) => { msg.textContent = m + (p != null ? ` ${Math.round(clamp(p, 0, 1) * 100)}%` : ''); }); pr.classList.add('hidden'); onRes(res, newAtt(res, res.methodLabel || note)); }
+    catch (err) { console.warn(err); pr.classList.add('hidden'); toast('Could not read it — enter the details', 'warn'); }
+  });
+}
+const cOpts = (sel, withNew = true) => `<option value="">— None —</option>${FIN().clients.slice().sort((a, b) => a.name.localeCompare(b.name)).map(c => `<option value="${esc(c.id)}"${c.id === sel ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}${withNew ? '<option value="__new">+ New client…</option>' : ''}`;
+function bindClientSel(b, sel, wrap) { sel.onchange = () => { $(wrap, b).classList.toggle('hidden', sel.value !== '__new'); if (sel.value === '__new') setTimeout(() => $(wrap + ' input', b).focus(), 50); }; }
+function resolveClient(sel, nameInput) {
+  if (sel.value !== '__new') return sel.value || null;
+  const name = nameInput.value.trim(); if (!name) return null;
+  const ex = FIN().clients.find(c => c.name.toLowerCase() === name.toLowerCase()); if (ex) return ex.id;
+  const c = { id: uid('CLI'), name, email: '', phone: '', country: '', currency: '', note: '', createdAt: new Date().toISOString() }; FIN().clients.push(c); return c.id;
+}
+const fdate = (iso, y) => fmtD(iso, y ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' });
+function amountHero(id, amount, cur) { return `<div class="amount-hero"><input id="${id}-amt" type="text" inputmode="decimal" placeholder="0" value="${amount ? esc(groupAmt(+amount)) : ''}" aria-label="Amount">${curSel(id + '-cur', cur)}</div><div class="conv" id="${id}-conv"> </div>${fxRowHTML(id + '-fx')}`; }
+
+/* ---------- Finance tab ---------- */
+function renderFinance() {
+  const v = $('#v-finance'); const F = FIN(); const today = todayISO();
+  const Y = state.finYear || +today.slice(0, 4); const S = financeYear(Y); const seg = state.finSeg || 'living';
+  const years = financeYears(); const yi = years.indexOf(Y);
+  const spendM = m => m.liv + (F.tripOOP ? m.trip : 0);
+  const maxM = Math.max(1, ...S.months.map(m => Math.max(m.inc, spendM(m))));
+  const curM = +today.slice(0, 4) === Y ? +today.slice(5, 7) - 1 : -1;
+  const bars = S.months.map((m, k) => `<div class="fb-col${k === curM ? ' now' : ''}" title="${esc(fmtBase(m.inc))} in · ${esc(fmtBase(spendM(m)))} out"><div class="fb-bars"><i class="inc" style="height:${(m.inc / maxM * 100).toFixed(1)}%"></i><i class="out" style="height:${(spendM(m) / maxM * 100).toFixed(1)}%"></i></div><span>${'JFMAMJJASOND'[k]}</span></div>`).join('');
+  const sumLine = (cls, label, val, extra = '') => `<div class="fs-line"><i class="dot ${cls}"></i><span class="l">${label}</span>${extra}<b>${esc(fmtBase(val))}</b></div>`;
+  const summary = `<div class="fin-year"><button class="navbtn circle" id="fy-prev" aria-label="Previous year"${yi <= 0 && Y <= years[0] ? ' disabled' : ''}>${icon('chevL')}</button><b id="fy-lbl">${Y}</b><button class="navbtn circle" id="fy-next" aria-label="Next year">${icon('chevR')}</button></div>
+    <div class="card fin-sum" id="fin-sum">
+      <div class="fs-net"><span>Net ${Y}</span><b class="${S.net < 0 ? 'neg' : ''}" id="fs-net">${esc(fmtBase(S.net))}</b><small>${esc(base())}</small></div>
+      ${sumLine('inc', 'Income received', S.income)}
+      ${sumLine('out', 'Living expenses', S.livBudget, `<span class="fs-sub">${esc(fmtBase(S.livPaid, true))} paid</span>`)}
+      <div class="fs-line"><i class="dot trip"></i><span class="l">Trip expenses not reimbursed</span><label class="switch sm"><input type="checkbox" id="fs-trip"${F.tripOOP ? ' checked' : ''}><span></span></label><b class="${F.tripOOP ? '' : 'faint'}">${esc(fmtBase(S.tripOOP))}</b></div>
+      <div class="fin-chart" aria-label="Monthly income and spending">${bars}</div>
+      <div class="fin-legend"><span><i class="dot inc"></i>Income</span><span><i class="dot out"></i>Living${F.tripOOP ? ' + trips' : ''}</span></div>
+    </div>`;
+  let body = '';
+  if (seg === 'living') {
+    const due = livDue(60); const pct = S.livBudget ? clamp(S.livPaid / S.livBudget * 100, 0, 100) : 0;
+    const byCat = LIV_CATS.map(c => [c, F.living.filter(l => l.category === c.k)]).filter(([, l]) => l.length);
+    body = `<div class="card fin-kpi"><div><span>Year total</span><b>${esc(fmtBase(S.livBudget, true))}</b></div><div><span>Paid</span><b class="g">${esc(fmtBase(S.livPaid, true))}</b></div><div><span>Remaining</span><b>${esc(fmtBase(S.livLeft, true))}</b></div><div class="kbar"><i style="width:${pct.toFixed(1)}%"></i></div></div>
+      ${due.length ? `<div class="section-h"><h2>Due soon</h2><span class="muted small">next 60 days</span></div><div class="group" id="liv-due">${due.slice(0, 8).map(o => { const c = livCat(o.item.category); return `<div class="row has-icon"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><button class="body tap-a" data-liv="${esc(o.item.id)}"><div class="t">${esc(o.item.name)}</div><div class="st" style="${o.overdue ? 'color:var(--red)' : ''}">${o.overdue ? 'Overdue since ' + esc(fdate(o.date)) : 'Due ' + esc(fdate(o.date)) + ' · ' + esc(relDays(o.date))}</div></button><span class="amt">${esc(fmt(o.item.amount, o.item.currency))}${o.item.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(o.usd))}</span>` : ''}</span><button class="paybtn" data-pay="${esc(o.item.id)}|${o.date}" aria-label="Mark paid">${icon('check', 's')}</button></div>`; }).join('')}</div>` : ''}
+      <div class="section-h"><h2>Living expenses</h2><button id="liv-add">Add</button></div>
+      ${byCat.length ? byCat.map(([c, list]) => `<div class="ghead">${esc(c.label)}</div><div class="group">${list.map(l => livRow(l, Y)).join('')}</div>`).join('') : `<div class="card"><div class="empty">${icon('wallet')}Your yearly budget lives here — rent, school fees, insurance, residency, car.<br><button class="btn sm" id="liv-add2" style="margin-top:14px">${icon('plus', 's')} Add living expense</button></div></div>`}
+      <div class="foot">Personal costs, never added to trip claims. Totals in ${esc(base())} at each item's own rate.</div>`;
+  } else {
+    const inv = F.invoices.filter(i => String(i.date).slice(0, 4) == Y || invStatus(i) !== 'paid');
+    const order = { overdue: 0, sent: 1, draft: 2, paid: 3 };
+    inv.sort((a, b) => (order[invStatus(a)] - order[invStatus(b)]) || String(b.date).localeCompare(String(a.date)));
+    body = `<div class="card fin-kpi"><div><span>Received ${Y}</span><b class="g">${esc(fmtBase(S.income, true))}</b></div><div><span>Outstanding</span><b>${esc(fmtBase(S.outstanding, true))}</b></div><div><span>Overdue</span><b class="${S.overdue ? 'r' : ''}">${esc(fmtBase(S.overdue, true))}</b></div></div>
+      <div class="section-h"><h2>Invoices</h2><button id="inv-add">New</button></div>
+      ${inv.length ? `<div class="group" id="inv-list">${inv.map(invRow).join('')}</div>` : `<div class="card"><div class="empty">${icon('doc')}No invoices yet.<br><button class="btn sm" id="inv-add2" style="margin-top:14px">${icon('plus', 's')} New invoice</button></div></div>`}
+      <div class="section-h"><h2>Contracts</h2><button id="con-add">Add</button></div>
+      ${F.contracts.length ? `<div class="group">${F.contracts.map(c => conRow(c, Y)).join('')}</div>` : `<div class="foot" style="padding-top:0">Add a contract to bill a client every month or quarter.</div>`}
+      <div class="section-h"><h2>Clients</h2><button id="cli-add">Add</button></div>
+      ${F.clients.length ? `<div class="group">${F.clients.slice().sort((a, b) => a.name.localeCompare(b.name)).map(cliRow).join('')}</div>` : `<div class="foot" style="padding-top:0">Clients are also created when you type a new name on an invoice.</div>`}`;
+  }
+  v.innerHTML = navbar('Finance', '', `<button class="navbtn circle" id="fin-more" aria-label="Export">${icon('share')}</button>${meBtn()}${plusBtn('fin-plus')}`) + `<div class="ltitle">Finance</div><div class="lsub">Income and living costs · in ${esc(base())}</div>
+    ${summary}
+    <div class="seg fin-seg" id="fin-seg"><button data-s="living" class="${seg === 'living' ? 'on' : ''}">Living</button><button data-s="income" class="${seg === 'income' ? 'on' : ''}">Income</button></div>
+    ${body}`;
+  bindMe(v);
+  $('#fy-prev', v).onclick = () => { state.finYear = Y - 1; renderFinance(); };
+  $('#fy-next', v).onclick = () => { state.finYear = Y + 1; renderFinance(); };
+  $('#fs-trip', v).onchange = e => { F.tripOOP = e.target.checked; save(); renderFinance(); };
+  $$('#fin-seg button', v).forEach(b => b.onclick = () => { state.finSeg = b.dataset.s; renderFinance(); });
+  $('#fin-plus', v).onclick = () => finAddMenu();
+  $('#fin-more', v).onclick = () => actionSheet(`Finance ${Y}`, [
+    { icon: 'printer', color: '#007aff', label: `Print ${Y} report (${base()})`, sub: 'Summary, monthly table, living costs, invoices', fn: () => printFinance(Y) },
+    { icon: 'download', color: '#34c759', label: `Export ${Y} (CSV)`, sub: `${base()} and original amounts with the rate used`, fn: () => exportFinanceCSV(Y) }]);
+  $$('[data-liv]', v).forEach(b => b.onclick = () => openLivingEditor(F.living.find(l => l.id === b.dataset.liv)));
+  $$('[data-pay]', v).forEach(b => b.onclick = () => { const [id, d] = b.dataset.pay.split('|'); const l = F.living.find(x => x.id === id); if (!l) return; l.paid[d] = todayISO(); save(); renderFinance(); toast(`${l.name} marked paid`); });
+  $$('[data-inv]', v).forEach(b => b.onclick = () => openInvoiceEditor(F.invoices.find(i => i.id === b.dataset.inv)));
+  $$('[data-con]', v).forEach(b => b.onclick = () => openContractEditor(F.contracts.find(i => i.id === b.dataset.con)));
+  $$('[data-cli]', v).forEach(b => b.onclick = () => openClientEditor(F.clients.find(i => i.id === b.dataset.cli)));
+  ['liv-add', 'liv-add2'].forEach(id => $('#' + id, v) && ($('#' + id, v).onclick = () => openLivingEditor(null)));
+  ['inv-add', 'inv-add2'].forEach(id => $('#' + id, v) && ($('#' + id, v).onclick = () => openInvoiceEditor(null)));
+  $('#con-add', v) && ($('#con-add', v).onclick = () => openContractEditor(null));
+  $('#cli-add', v) && ($('#cli-add', v).onclick = () => openClientEditor(null));
+}
+function livRow(l, Y) {
+  const c = livCat(l.category); const occ = livOcc(l, Y); const paidN = occ.filter(o => o.paid).length; const today = todayISO();
+  const next = occurrences(l.due, l.freq, addDays(today, -365), addDays(today, 800), l.end).find(d => !l.paid[d]);
+  const yr = occ.length * (econv(l) || 0);
+  const st = `${FREQS[l.freq].label}${next ? ` · ${next < today ? 'overdue ' : 'next '}${fdate(next)}` : occ.length ? ' · all paid' : ''}${l.atts.length ? ' · 📎' : ''}`;
+  const pill = occ.length && paidN === occ.length ? '<span class="pill ok">Paid</span>' : paidN ? `<span class="pill warn">${paidN}/${occ.length}</span>` : '';
+  return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(st)}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${occ.length > 1 ? `${esc(fmtBase(yr, true))} / yr` : l.currency !== base() ? '≈ ' + esc(fmtBase(econv(l))) : ''} ${pill}</span></span></button>`;
+}
+function invRow(i) {
+  const s = invStatus(i); const col = { overdue: '#ff3b30', sent: '#5856d6', draft: '#8e8e93', paid: '#34c759' }[s]; const got = invReceived(i);
+  const st = s === 'paid' ? `Paid ${fdate((i.payments.slice(-1)[0] || {}).date || i.date)}` : s === 'draft' ? `Draft · ${fdate(i.date)}` : `${s === 'overdue' ? 'Overdue · due ' : 'Due '}${fdate(i.due || i.date)}${got ? ` · ${fmt(got, i.currency)} received` : ''}`;
+  return `<button class="row tap has-icon" data-inv="${esc(i.id)}"><span class="ico" style="background:${col}">${icon('doc')}</span><span class="body"><div class="t">${esc(i.number || 'Invoice')} · ${esc(clientName(i.clientId))}</div><div class="st"${s === 'overdue' ? ' style="color:var(--red)"' : ''}>${esc(st)}</div></span><span class="amt">${esc(fmt(i.amount, i.currency))}<span class="sub">${invPill(i)}</span></span></button>`;
+}
+function conRow(c, Y) {
+  const active = (!c.end || c.end >= todayISO());
+  return `<button class="row tap has-icon" data-con="${esc(c.id)}"><span class="ico" style="background:${active ? '#30b0c7' : '#8e8e93'}">${icon('pencil')}</span><span class="body"><div class="t">${esc(c.desc || 'Contract')}</div><div class="st">${esc(clientName(c.clientId))} · ${esc(FREQS[c.freq].label)}${c.end ? ' · until ' + fdate(c.end, true) : ''}</div></span><span class="amt">${esc(fmt(c.amount, c.currency))}<span class="sub">${esc(fmtBase(contractYear(c, Y), true))} in ${Y}</span></span></button>`;
+}
+function cliRow(c) {
+  const inv = FIN().invoices.filter(i => i.clientId === c.id); const got = inv.reduce((s, i) => s + i.payments.reduce((t, p) => t + (payUsd(i, p) || 0), 0), 0); const open = inv.filter(i => ['sent', 'overdue'].includes(invStatus(i))).length;
+  return `<button class="row tap has-icon" data-cli="${esc(c.id)}"><span class="ico" style="background:#007aff">${icon('person')}</span><span class="body"><div class="t">${esc(c.name)}</div><div class="st">${inv.length} invoice${inv.length === 1 ? '' : 's'}${open ? ` · ${open} open` : ''}${c.country ? ' · ' + esc(c.country) : ''}</div></span><span class="amt">${esc(fmtBase(got, true))}<span class="sub">received</span></span></button>`;
+}
+function finAddMenu() {
+  actionSheet('Add', [
+    { icon: 'wallet', color: '#ff9500', label: 'Living expense', sub: 'Rent, school, insurance, residency, car…', fn: () => openLivingEditor(null) },
+    { icon: 'doc', color: '#5856d6', label: 'Invoice', sub: 'Scan or upload it, or type it in', fn: () => openInvoiceEditor(null) },
+    { icon: 'pencil', color: '#30b0c7', label: 'Contract', sub: 'Recurring billing for a client', fn: () => openContractEditor(null) },
+    { icon: 'person', color: '#007aff', label: 'Client', fn: () => openClientEditor(null) }]);
+}
+const meBtn = () => `<button class="navbtn circle" id="nav-me" aria-label="Settings">${icon('person')}</button>`;
+function bindMe(v) { const b = $('#nav-me', v); if (b) b.onclick = () => openSettings(); }
+function openSettings() { if (state.tab !== 'settings' && state.tab !== 'trip') state.from = state.tab; go('settings'); }
+
+/* ---------- Living expense editor ---------- */
+function openLivingEditor(src, preset = {}) {
+  const isNew = !src; const F = FIN();
+  const x = src ? JSON.parse(JSON.stringify(src)) : Object.assign({ id: uid('LIV'), name: '', category: 'rent', amount: '', currency: base(), freq: 'year', due: todayISO(), end: '', paid: {}, atts: [], note: '' }, preset);
+  const atts = (x.atts || []).map(a => ({ ...a })); const paid = { ...x.paid }; let ctl;
+  const Y = state.finYear || +todayISO().slice(0, 4);
+  openSheet({ title: isNew ? 'Living expense' : 'Edit living expense', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
+    body: `${docBox('Scan or upload the bill', 'Invoice, receipt or PDF — amount, date and currency are read for you.')}${attsHTML(atts, 'lv-atts')}
+      <div class="card" style="margin-top:14px">${amountHero('lv', x.amount, x.currency)}</div>
+      <div class="group" style="margin-top:14px">
+        <div class="field"><label>Name</label><input id="lv-name" value="${esc(x.name)}" placeholder="e.g. Apartment rent, AXA family cover"></div>
+        <div class="field"><label>Category</label><select id="lv-cat">${LIV_CATS.map(c => `<option value="${c.k}"${c.k === x.category ? ' selected' : ''}>${esc(c.label)}</option>`).join('')}</select></div>
+        <div class="field"><label>Frequency</label><select id="lv-freq">${Object.entries(FREQS).map(([k, f]) => `<option value="${k}"${k === x.freq ? ' selected' : ''}>${f.label}</option>`).join('')}</select></div>
+        <div class="field"><label id="lv-due-l">${x.freq === 'once' ? 'Due date' : 'Next due'}</label><input id="lv-due" type="date" value="${esc(x.due || '')}"></div>
+        <div class="field${x.freq === 'once' ? ' hidden' : ''}" id="lv-endf"><label>Ends</label><input id="lv-end" type="date" value="${esc(x.end || '')}"></div>
+      </div><div class="foot" id="lv-cathint"></div>
+      <div class="ghead">Paid</div><div class="group" id="lv-paid"></div>
+      <div class="group" style="margin-top:14px"><div class="field"><label>Note</label><input id="lv-note" value="${esc(x.note || '')}" placeholder="Optional"></div></div>
+      ${!isNew ? `<div class="group" style="margin-top:24px"><button class="row tap" id="lv-del"><span class="body" style="color:var(--red);text-align:center">Delete</span></button></div>` : ''}`,
+    onMount: b => {
+      const amt = $('#lv-amt', b), cur = $('#lv-cur', b), due = $('#lv-due', b), freq = $('#lv-freq', b), cat = $('#lv-cat', b);
+      const updConv = () => { const a = parseAmtStr(amt.value, cur.value); const r = ctl ? ctl.rate() : usdPer(cur.value); const n = occurrences(due.value, freq.value, ...yRange(Y), $('#lv-end', b).value).length;
+        $('#lv-conv', b).textContent = !(a > 0) ? ' ' : (cur.value === base() ? '' : `≈ ${fmtBase(a * r / usdPer(base()))}`) + (n > 1 ? `${cur.value === base() ? '' : ' · '}${fmtBase(n * a * r / usdPer(base()))} in ${Y} (${n}×)` : ''); };
+      ctl = rateCtl($('#lv-fx', b), x, () => ({ cur: cur.value, date: due.value }), updConv);
+      const drawPaid = () => {
+        const list = occurrences(due.value, freq.value, ...yRange(Y), $('#lv-end', b).value);
+        const all = list.length ? list : (due.value ? [due.value] : []);
+        if (all.length <= 1) { const d = all[0]; $('#lv-paid', b).innerHTML = `<div class="row"><span class="body"><div class="t">Paid</div><div class="st">${d ? (paid[d] ? 'Paid ' + fdate(paid[d], true) : 'Due ' + fdate(d, true)) : 'Set a due date'}</div></span><label class="switch"><input type="checkbox" id="lv-paidsw"${d && paid[d] ? ' checked' : ''}${d ? '' : ' disabled'}><span></span></label></div>`;
+          $('#lv-paidsw', b) && ($('#lv-paidsw', b).onchange = e => { if (e.target.checked) paid[d] = todayISO(); else delete paid[d]; drawPaid(); }); }
+        else { const t = todayISO(); $('#lv-paid', b).innerHTML = `<div class="occ">${all.map(d => `<button type="button" class="occ-c${paid[d] ? ' on' : d < t ? ' late' : ''}" data-occ="${d}">${paid[d] ? icon('check', 's') : ''}${esc(fdate(d))}</button>`).join('')}</div><div class="row"><span class="body st" style="color:var(--label2)">${all.filter(d => paid[d]).length} of ${all.length} paid in ${Y}</span><button type="button" class="linkbtn small" id="lv-allpast">Mark past as paid</button></div>`;
+          $$('[data-occ]', b).forEach(c => c.onclick = () => { const d = c.dataset.occ; if (paid[d]) delete paid[d]; else paid[d] = d <= todayISO() ? d : todayISO(); drawPaid(); });
+          $('#lv-allpast', b).onclick = () => { all.filter(d => d <= todayISO()).forEach(d => { if (!paid[d]) paid[d] = d; }); drawPaid(); }; }
+        updConv();
+      };
+      const hint = () => { $('#lv-cathint', b).textContent = livCat(cat.value).hint; };
+      amt.oninput = updConv; cur.onchange = () => ctl.upd(); due.onchange = () => { ctl.upd(); drawPaid(); }; $('#lv-end', b).onchange = drawPaid; cat.onchange = hint;
+      freq.onchange = () => { $('#lv-endf', b).classList.toggle('hidden', freq.value === 'once'); $('#lv-due-l', b).textContent = freq.value === 'once' ? 'Due date' : 'Next due'; drawPaid(); };
+      const redrawAtts = () => { $('#lv-atts', b).outerHTML = attsHTML(atts, 'lv-atts'); bindAtts(b, 'lv-atts', atts, redrawAtts); };
+      bindAtts(b, 'lv-atts', atts, redrawAtts);
+      bindDocBox(b, (res, att) => {
+        atts.push(att); redrawAtts(); const Fd = res.fields || {};
+        if (Fd.amount && Fd.amount.value) { amt.value = groupAmt(+Fd.amount.value); }
+        if (Fd.currency && Fd.currency.value && P.CURRENCIES[Fd.currency.value]) cur.value = Fd.currency.value;
+        const d = res.fin.due || (Fd.date && Fd.date.value); if (d && (isNew || !due.value)) due.value = d;
+        if (!$('#lv-name', b).value && Fd.merchant && Fd.merchant.value) $('#lv-name', b).value = Fd.merchant.value;
+        const g = guessLivCat(res.text); if (g && isNew) { cat.value = g; hint(); }
+        ctl.upd(); drawPaid(); toast(res.methodLabel || 'Document read');
+      }, 'Bill');
+      hint(); drawPaid();
+      $('#lv-del', b) && ($('#lv-del', b).onclick = () => confirmSheet('Delete living expense?', `${x.name} · ${fmt(x.amount, x.currency)}`, 'Delete', () => { (src.atts || []).forEach(a => Files.del(a.id).catch(() => {})); F.living = F.living.filter(l => l.id !== src.id); save(); render(); toast('Deleted'); }));
+      if (isNew) setTimeout(() => amt.focus(), 350);
+      $('#sheet-primary').onclick = async () => {
+        const a = parseAmtStr(amt.value, cur.value); const name = $('#lv-name', b).value.trim();
+        if (!(a > 0)) { amt.focus(); toast('Enter the amount', 'warn'); return; }
+        if (!name) { $('#lv-name', b).focus(); toast('Give it a name', 'warn'); return; }
+        if (!due.value) { toast('Enter the due date', 'warn'); return; }
+        const rec = Object.assign(src || { id: x.id, createdAt: new Date().toISOString() }, { name, category: cat.value, amount: Math.round(a * 1000) / 1000, currency: cur.value, freq: freq.value, due: due.value, end: freq.value === 'once' ? '' : $('#lv-end', b).value, paid, note: $('#lv-note', b).value.trim() }, ctl.result());
+        rec.atts = await commitAtts(atts);
+        if (isNew) F.living.push(rec);
+        save(); closeSheet(); render(); toast(isNew ? `${name} added` : 'Saved'); scheduleRates();
+      };
+    } });
+}
+
+/* ---------- Invoice editor ---------- */
+function nextInvoiceNo(Y = +todayISO().slice(0, 4)) {
+  const used = new Set(FIN().invoices.map(i => i.number)); let n = FIN().invoices.filter(i => String(i.date).startsWith(String(Y))).length + 1;
+  let s; do { s = `INV-${Y}-${String(n).padStart(3, '0')}`; n++; } while (used.has(s)); return s;
+}
+function openInvoiceEditor(src, preset = {}) {
+  const isNew = !src; const F = FIN(); const T = todayISO();
+  const x = src ? JSON.parse(JSON.stringify(src)) : Object.assign({ id: uid('INV'), number: nextInvoiceNo(), clientId: '', contractId: '', date: T, due: addDays(T, 30), amount: '', currency: base(), draft: false, payments: [], atts: [], note: '' }, preset);
+  const atts = (x.atts || []).map(a => ({ ...a })); let ctl; let draft = !!x.draft;
+  const conOpts = (cli, sel) => `<option value="">— None —</option>${F.contracts.filter(c => !cli || c.clientId === cli).map(c => `<option value="${esc(c.id)}"${c.id === sel ? ' selected' : ''}>${esc(c.desc || 'Contract')} · ${esc(fmt(c.amount, c.currency))}</option>`).join('')}`;
+  const got = invReceived(x); const st = src ? invStatus(src) : null;
+  openSheet({ title: isNew ? 'New invoice' : 'Invoice', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
+    body: `${docBox('Scan or upload the invoice', 'Number, date, due date, amount and currency are read for you.')}${attsHTML(atts, 'iv-atts')}
+      <div class="card" style="margin-top:14px">${amountHero('iv', x.amount, x.currency)}</div>
+      <div class="group" style="margin-top:14px">
+        <div class="field"><label>Invoice no.</label><input id="iv-no" value="${esc(x.number)}" autocapitalize="characters"></div>
+        <div class="field"><label>Client</label><select id="iv-cli">${cOpts(x.clientId)}</select></div>
+        <div class="field hidden" id="iv-newcli"><label>New client</label><input id="iv-newcli-in" placeholder="Client name"></div>
+        <div class="field"><label>Contract</label><select id="iv-con">${conOpts(x.clientId, x.contractId)}</select></div>
+        <div class="field"><label>Date</label><input id="iv-date" type="date" value="${esc(x.date || '')}"></div>
+        <div class="field"><label>Due</label><input id="iv-due" type="date" value="${esc(x.due || '')}"></div>
+      </div>
+      <div class="ghead">Status</div><div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="iv-st"><button type="button" data-d="1" class="${draft ? 'on' : ''}">Draft</button><button type="button" data-d="0" class="${draft ? '' : 'on'}">Sent</button></div></div>
+        <div class="row"><span class="body st" id="iv-stx" style="color:var(--label2)"></span></div></div>
+      <div class="foot">Overdue is set automatically when the due date passes.</div>
+      ${!isNew ? `<div class="ghead">Payments</div><div class="group" id="iv-pays">${x.payments.length ? x.payments.map((p, k) => `<div class="row has-icon"><span class="ico" style="background:#34c759">${icon('check')}</span><span class="body"><div class="t">${esc(fmt(p.amount, x.currency))}</div><div class="st">${esc(fdate(p.date, true))}${x.currency !== base() ? ' · ≈ ' + esc(fmtBase(payUsd(x, p))) + ' · ' + esc(rateText(p.fxRate, x.currency)) : ''}${(p.atts || []).length ? ' · proof' : ''}</div></span>${(p.atts || []).length ? `<button type="button" class="btn sm gray" data-pview="${k}">View</button>` : ''}<button type="button" class="navbtn" data-pdel="${k}" aria-label="Remove payment">${icon('x', 's')}</button></div>`).join('') : `<div class="row"><span class="body st" style="color:var(--label2)">No payment yet</span></div>`}</div>
+        <div class="inv-acts">${st !== 'paid' ? `<button class="btn tinted" id="iv-pay">${icon('plus', 's')} Record payment</button><button class="btn" id="iv-full">${icon('check', 's')} Mark paid in full</button>` : ''}</div>` : ''}
+      <div class="group" style="margin-top:14px"><div class="field"><label>Note</label><input id="iv-note" value="${esc(x.note || '')}" placeholder="Optional"></div></div>
+      ${!isNew ? `<div class="group" style="margin-top:24px"><button class="row tap" id="iv-del"><span class="body" style="color:var(--red);text-align:center">Delete invoice</span></button></div>` : ''}`,
+    onMount: b => {
+      const amt = $('#iv-amt', b), cur = $('#iv-cur', b), date = $('#iv-date', b), due = $('#iv-due', b), cli = $('#iv-cli', b), con = $('#iv-con', b);
+      const stx = () => { const tmp = { ...x, amount: parseAmtStr(amt.value, cur.value) || 0, draft, due: due.value }; const s = invStatus(tmp); const left = Math.max(0, tmp.amount - got);
+        $('#iv-stx', b).innerHTML = `${invPill(tmp)} ${s === 'paid' ? 'Paid in full' : s === 'draft' ? 'Not sent yet' : s === 'overdue' ? `Due ${esc(fdate(due.value, true))} — ${esc(relDays(due.value))}` : due.value ? `Due ${esc(fdate(due.value, true))} · ${esc(relDays(due.value))}` : 'No due date'}${got && s !== 'paid' ? ` · ${esc(fmt(left, cur.value))} left` : ''}`; };
+      const updConv = () => { const a = parseAmtStr(amt.value, cur.value); $('#iv-conv', b).textContent = a > 0 && cur.value !== base() ? `≈ ${fmtBase(a * ctl.rate() / usdPer(base()))}` : ' '; stx(); };
+      ctl = rateCtl($('#iv-fx', b), x, () => ({ cur: cur.value, date: date.value }), () => ctl && updConv());
+      amt.oninput = updConv; cur.onchange = () => ctl.upd(); date.onchange = () => { ctl.upd(); if (isNew && date.value) due.value = addDays(date.value, 30); stx(); }; due.onchange = stx;
+      bindClientSel(b, cli, '#iv-newcli'); const oc = cli.onchange; cli.onchange = () => { oc(); con.innerHTML = conOpts(cli.value === '__new' ? 'none' : cli.value, con.value); };
+      con.onchange = () => { const c = F.contracts.find(k => k.id === con.value); if (c && !parseAmtStr(amt.value, cur.value)) { amt.value = groupAmt(c.amount); cur.value = c.currency; ctl.upd(); } if (c && !cli.value) { cli.value = c.clientId; } };
+      $$('#iv-st button', b).forEach(btn => btn.onclick = () => { draft = btn.dataset.d === '1'; $$('#iv-st button', b).forEach(z => z.classList.toggle('on', z === btn)); stx(); });
+      const redrawAtts = () => { $('#iv-atts', b).outerHTML = attsHTML(atts, 'iv-atts'); bindAtts(b, 'iv-atts', atts, redrawAtts); };
+      bindAtts(b, 'iv-atts', atts, redrawAtts);
+      bindDocBox(b, (res, att) => {
+        atts.push(att); redrawAtts(); const Fd = res.fields || {}; const fi = res.fin;
+        if (Fd.amount && Fd.amount.value) amt.value = groupAmt(+Fd.amount.value);
+        if (Fd.currency && Fd.currency.value && P.CURRENCIES[Fd.currency.value]) cur.value = Fd.currency.value;
+        if (fi.number) $('#iv-no', b).value = fi.number;
+        const d = fi.issued || (Fd.date && Fd.date.value); if (d) date.value = d;
+        if (fi.due) due.value = fi.due; else if (d && isNew) due.value = addDays(d, 30);
+        if (fi.clientId) cli.value = fi.clientId; else if (fi.party && !cli.value) { cli.value = '__new'; $('#iv-newcli', b).classList.remove('hidden'); $('#iv-newcli-in', b).value = fi.party.slice(0, 60); }
+        ctl.upd(); toast(res.methodLabel || 'Invoice read');
+      }, 'Invoice');
+      const collect = async () => {
+        const a = parseAmtStr(amt.value, cur.value);
+        if (!(a > 0)) { amt.focus(); toast('Enter the amount', 'warn'); return null; }
+        if (!date.value) { toast('Enter the invoice date', 'warn'); return null; }
+        if (cli.value === '__new' && !$('#iv-newcli-in', b).value.trim()) { $('#iv-newcli-in', b).focus(); toast('Enter the client name', 'warn'); return null; }
+        const clientId = resolveClient(cli, $('#iv-newcli-in', b));
+        const rec = Object.assign(src || { id: x.id, createdAt: new Date().toISOString(), payments: [] }, { number: $('#iv-no', b).value.trim() || nextInvoiceNo(+date.value.slice(0, 4)), clientId, contractId: con.value || null, date: date.value, due: due.value || null, amount: Math.round(a * 100) / 100, currency: cur.value, draft, note: $('#iv-note', b).value.trim() }, ctl.result());
+        rec.atts = await commitAtts(atts);
+        if (isNew) F.invoices.push(rec);
+        save(); return rec;
+      };
+      $('#sheet-primary').onclick = async () => { const r = await collect(); if (!r) return; closeSheet(); render(); toast(isNew ? `Invoice ${r.number} added` : 'Saved'); scheduleRates(); };
+      $('#iv-pay', b) && ($('#iv-pay', b).onclick = async () => { const r = await collect(); if (r) openPaymentSheet(r); });
+      $('#iv-full', b) && ($('#iv-full', b).onclick = async () => { const r = await collect(); if (!r) return; const left = invOpen(r); if (left > 0) { const p = { id: uid('PAY'), date: todayISO(), amount: Math.round(left * 100) / 100, atts: [], note: '' }; stampFx(p, r.currency, p.date); r.payments.push(p); } r.draft = false; save(); closeSheet(); render(); toast(`${r.number} paid in full`); scheduleRates(); });
+      $$('[data-pdel]', b).forEach(btn => btn.onclick = () => { const p = src.payments[+btn.dataset.pdel]; confirmSheet('Remove payment?', `${fmt(p.amount, src.currency)} on ${fdate(p.date, true)}`, 'Remove', () => { (p.atts || []).forEach(a => Files.del(a.id).catch(() => {})); src.payments = src.payments.filter(z => z !== p); save(); render(); setTimeout(() => openInvoiceEditor(src), 300); }); });
+      $$('[data-pview]', b).forEach(btn => btn.onclick = () => { const p = src.payments[+btn.dataset.pview]; showFile({ hasFile: true, id: p.atts[0].id }); });
+      $('#iv-del', b) && ($('#iv-del', b).onclick = () => confirmSheet('Delete invoice?', `${src.number} · ${fmt(src.amount, src.currency)}`, 'Delete', () => { [...(src.atts || []), ...src.payments.flatMap(p => p.atts || [])].forEach(a => Files.del(a.id).catch(() => {})); F.invoices = F.invoices.filter(i => i.id !== src.id); save(); render(); toast('Invoice deleted'); }));
+      updConv();
+      if (isNew && !preset.amount) setTimeout(() => amt.focus(), 350);
+    } });
+}
+function openPaymentSheet(inv) {
+  const left = invOpen(inv); const p = { id: uid('PAY'), date: todayISO(), amount: left, currency: inv.currency, atts: [], note: '' }; const atts = []; let ctl;
+  openSheet({ title: 'Record payment', left: { label: 'Cancel', fn: () => { closeSheet(); setTimeout(() => openInvoiceEditor(inv), 300); } }, right: { label: 'Save', fn: () => {} },
+    body: `<div class="notice">${icon('info')}<div><b>${esc(inv.number)}</b> · ${esc(clientName(inv.clientId))}<br>${esc(fmt(inv.amount, inv.currency))} invoiced · ${esc(fmt(invReceived(inv), inv.currency))} received · <b>${esc(fmt(left, inv.currency))} open</b></div></div>
+      <div class="card">${amountHero('py', left, inv.currency)}</div>
+      <div class="group" style="margin-top:14px"><div class="field"><label>Received on</label><input id="py-date" type="date" value="${esc(p.date)}"></div><div class="field"><label>Note</label><input id="py-note" placeholder="e.g. bank transfer"></div></div>
+      <div class="foot">Partial payments are fine — the invoice stays open until it is fully paid.</div>
+      <div style="margin-top:14px">${docBox('Payment proof (optional)', 'Bank advice, transfer screenshot or receipt.')}</div>${attsHTML(atts, 'py-atts')}`,
+    onMount: b => {
+      const amt = $('#py-amt', b), cur = $('#py-cur', b), date = $('#py-date', b); cur.disabled = true;
+      const updConv = () => { const a = parseAmtStr(amt.value, inv.currency); $('#py-conv', b).textContent = a > 0 ? (inv.currency !== base() ? `≈ ${fmtBase(a * ctl.rate() / usdPer(base()))} · ` : '') + (a >= left - 0.005 ? 'pays the invoice in full' : `${fmt(left - a, inv.currency)} will remain open`) : ' '; };
+      ctl = rateCtl($('#py-fx', b), p, () => ({ cur: inv.currency, date: date.value }), () => ctl && updConv());
+      amt.oninput = updConv; date.onchange = () => ctl.upd();
+      const redrawAtts = () => { $('#py-atts', b).outerHTML = attsHTML(atts, 'py-atts'); bindAtts(b, 'py-atts', atts, redrawAtts); };
+      bindDocBox(b, (res, att) => { atts.push(att); redrawAtts(); const Fd = res.fields || {}; if (Fd.date && Fd.date.value) { date.value = Fd.date.value; ctl.upd(); } toast('Proof attached'); }, 'Payment proof');
+      updConv();
+      $('#sheet-primary').onclick = async () => {
+        const a = parseAmtStr(amt.value, inv.currency);
+        if (!(a > 0)) { amt.focus(); toast('Enter the amount received', 'warn'); return; }
+        if (!date.value) { toast('Enter the date', 'warn'); return; }
+        Object.assign(p, { amount: Math.round(a * 100) / 100, date: date.value, note: $('#py-note', b).value.trim() }, ctl.result()); delete p.currency;
+        p.atts = await commitAtts(atts); inv.payments.push(p); inv.draft = false;
+        save(); closeSheet(); render(); scheduleRates();
+        toast(invStatus(inv) === 'paid' ? `${inv.number} paid in full` : `Partial payment recorded · ${fmt(invOpen(inv), inv.currency)} open`);
+      };
+    } });
+}
+
+/* ---------- Contract & client editors ---------- */
+function openContractEditor(src) {
+  const isNew = !src; const F = FIN();
+  const x = src ? { ...src } : { id: uid('CON'), clientId: '', desc: '', amount: '', currency: base(), freq: 'month', start: todayISO().slice(0, 8) + '01', end: '', note: '' }; let ctl;
+  openSheet({ title: isNew ? 'New contract' : 'Contract', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
+    body: `<div class="card">${amountHero('ct', x.amount, x.currency)}</div>
+      <div class="group" style="margin-top:14px">
+        <div class="field"><label>Client</label><select id="ct-cli">${cOpts(x.clientId)}</select></div>
+        <div class="field hidden" id="ct-newcli"><label>New client</label><input id="ct-newcli-in" placeholder="Client name"></div>
+        <div class="field"><label>Description</label><input id="ct-desc" value="${esc(x.desc)}" placeholder="e.g. MRI service contract"></div>
+        <div class="field"><label>Billing</label><select id="ct-freq">${CON_FREQS.map(k => `<option value="${k}"${k === x.freq ? ' selected' : ''}>${FREQS[k].label}</option>`).join('')}</select></div>
+        <div class="field"><label>Start</label><input id="ct-start" type="date" value="${esc(x.start || '')}"></div>
+        <div class="field"><label>End</label><input id="ct-end" type="date" value="${esc(x.end || '')}"></div>
+      </div><div class="foot">Amount per billing period.</div>
+      ${!isNew ? `<div style="margin-top:14px"><button class="btn tinted" id="ct-inv">${icon('doc', 's')} Create invoice from contract</button></div><div class="group" style="margin-top:24px"><button class="row tap" id="ct-del"><span class="body" style="color:var(--red);text-align:center">Delete contract</span></button></div>` : ''}`,
+    onMount: b => {
+      const amt = $('#ct-amt', b), cur = $('#ct-cur', b), start = $('#ct-start', b), cli = $('#ct-cli', b);
+      const Y = state.finYear || +todayISO().slice(0, 4);
+      const updConv = () => { const a = parseAmtStr(amt.value, cur.value); const n = occurrences(start.value, $('#ct-freq', b).value, ...yRange(Y), $('#ct-end', b).value).length; $('#ct-conv', b).textContent = a > 0 ? `${cur.value !== base() ? '≈ ' + fmtBase(a * ctl.rate() / usdPer(base())) + ' · ' : ''}${fmtBase(n * a * ctl.rate() / usdPer(base()))} in ${Y}` : ' '; };
+      ctl = rateCtl($('#ct-fx', b), x, () => ({ cur: cur.value, date: start.value }), () => ctl && updConv());
+      amt.oninput = updConv; cur.onchange = () => ctl.upd(); start.onchange = () => ctl.upd(); $('#ct-freq', b).onchange = updConv; $('#ct-end', b).onchange = updConv;
+      bindClientSel(b, cli, '#ct-newcli');
+      const collect = () => {
+        const a = parseAmtStr(amt.value, cur.value); if (!(a > 0)) { amt.focus(); toast('Enter the amount', 'warn'); return null; }
+        if (!start.value) { toast('Enter the start date', 'warn'); return null; }
+        const rec = Object.assign(src || { id: x.id, createdAt: new Date().toISOString() }, { clientId: resolveClient(cli, $('#ct-newcli-in', b)), desc: $('#ct-desc', b).value.trim(), amount: Math.round(a * 100) / 100, currency: cur.value, freq: $('#ct-freq', b).value, start: start.value, end: $('#ct-end', b).value }, ctl.result());
+        if (isNew) F.contracts.push(rec); save(); return rec;
+      };
+      $('#sheet-primary').onclick = () => { const r = collect(); if (!r) return; closeSheet(); state.finSeg = 'income'; render(); toast(isNew ? 'Contract added' : 'Saved'); scheduleRates(); };
+      $('#ct-inv', b) && ($('#ct-inv', b).onclick = () => { const r = collect(); if (!r) return; const T = todayISO(); openInvoiceEditor(null, { clientId: r.clientId, contractId: r.id, amount: r.amount, currency: r.currency, date: T, due: addDays(T, 30), note: r.desc ? `${r.desc} — ${fmtD(T, { month: 'long', year: 'numeric' })}` : '' }); });
+      $('#ct-del', b) && ($('#ct-del', b).onclick = () => confirmSheet('Delete contract?', 'Invoices already created are kept.', 'Delete', () => { F.contracts = F.contracts.filter(c => c.id !== src.id); F.invoices.forEach(i => { if (i.contractId === src.id) i.contractId = null; }); save(); render(); toast('Contract deleted'); }));
+      updConv(); if (isNew) setTimeout(() => amt.focus(), 350);
+    } });
+}
+function openClientEditor(src) {
+  const isNew = !src; const F = FIN(); const x = src ? { ...src } : { id: uid('CLI'), name: '', email: '', phone: '', country: '', currency: '', note: '' };
+  const f = (id, label, val, extra = '') => `<div class="field"><label>${label}</label><input id="${id}" value="${esc(val || '')}" ${extra}></div>`;
+  openSheet({ title: isNew ? 'New client' : 'Client', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
+    body: `<div class="group">${f('cl-name', 'Name', x.name, 'placeholder="Company or person"')}${f('cl-email', 'Email', x.email, 'type="email" placeholder="Optional"')}${f('cl-phone', 'Phone', x.phone, 'type="tel" placeholder="Optional"')}${f('cl-country', 'Country', x.country, 'placeholder="Optional"')}${f('cl-note', 'Note', x.note, 'placeholder="Optional"')}</div>
+      ${!isNew ? `<div style="margin-top:14px"><button class="btn tinted" id="cl-inv">${icon('doc', 's')} New invoice for ${esc(x.name)}</button></div><div class="group" style="margin-top:24px"><button class="row tap" id="cl-del"><span class="body" style="color:var(--red);text-align:center">Delete client</span></button></div>` : ''}`,
+    onMount: b => {
+      const collect = () => { const name = $('#cl-name', b).value.trim(); if (!name) { $('#cl-name', b).focus(); toast('Enter the name', 'warn'); return null; }
+        const rec = Object.assign(src || { id: x.id, createdAt: new Date().toISOString() }, { name, email: $('#cl-email', b).value.trim(), phone: $('#cl-phone', b).value.trim(), country: $('#cl-country', b).value.trim(), note: $('#cl-note', b).value.trim() });
+        if (isNew) F.clients.push(rec); save(); return rec; };
+      $('#sheet-primary').onclick = () => { const r = collect(); if (!r) return; closeSheet(); state.finSeg = 'income'; render(); toast(isNew ? 'Client added' : 'Saved'); };
+      $('#cl-inv', b) && ($('#cl-inv', b).onclick = () => { const r = collect(); if (r) openInvoiceEditor(null, { clientId: r.id }); });
+      $('#cl-del', b) && ($('#cl-del', b).onclick = () => confirmSheet('Delete client?', 'Their invoices and contracts are kept without a client.', 'Delete', () => { F.clients = F.clients.filter(c => c.id !== src.id); save(); render(); toast('Client deleted'); }));
+      if (isNew) setTimeout(() => $('#cl-name', b).focus(), 350);
+    } });
+}
+
+/* ---------- Today cards ---------- */
+function financeCardsHTML() {
+  const due = livDue(60); const over = FIN().invoices.filter(i => invStatus(i) === 'overdue');
+  if (!due.length && !over.length) return '';
+  const dueSum = due.reduce((s, o) => s + (o.usd || 0), 0); const late = due.filter(o => o.overdue).length;
+  const overSum = over.reduce((s, i) => s + (econv(i, invOpen(i)) || 0), 0);
+  const card = (id, col, ic, title, sub, amt, warn) => `<button class="fcard" id="${id}"><span class="fc-h"><span class="ico" style="background:${col}">${icon(ic, 's')}</span><span class="fc-t${warn ? ' r' : ''}">${esc(title)}</span></span><b>${esc(amt)}</b><span class="fc-s">${esc(sub)}</span></button>`;
+  return `<div class="fcards${due.length && over.length ? '' : ' one'}">${due.length ? card('fc-due', '#ff9500', 'wallet', `${due.length} bill${due.length > 1 ? 's' : ''} due${late ? ` · ${late} late` : ''}`, `${due[0].item.name} · ${fdate(due[0].date)}`, fmtBase(dueSum, true), late) : ''}${over.length ? card('fc-over', '#ff3b30', 'doc', `${over.length} overdue invoice${over.length > 1 ? 's' : ''}`, `${over[0].number} · ${clientName(over[0].clientId)}`, fmtBase(overSum, true), true) : ''}</div>`;
+}
+function bindFinanceCards(v) {
+  $('#fc-due', v) && ($('#fc-due', v).onclick = () => go('finance', { finSeg: 'living', finYear: +todayISO().slice(0, 4) }));
+  $('#fc-over', v) && ($('#fc-over', v).onclick = () => go('finance', { finSeg: 'income', finYear: +todayISO().slice(0, 4) }));
+}
+
+/* ---------- Finance CSV & printable yearly report ---------- */
+function financeRows(Y) {
+  const F = FIN(); const [a, b] = yRange(Y); const rows = [];
+  for (const l of F.living) for (const o of livOcc(l, Y)) rows.push({ type: 'Living expense', date: o.date, name: l.name, party: livCat(l.category).label, status: o.paid ? 'Paid' : (o.date < todayISO() ? 'Overdue' : 'Unpaid'), amount: l.amount, currency: l.currency, o: l, paidOn: o.paidOn || '', freq: FREQS[l.freq].label });
+  for (const i of F.invoices) {
+    if (String(i.date) >= a && String(i.date) <= b) rows.push({ type: 'Invoice', date: i.date, name: i.number, party: clientName(i.clientId), status: STATUS[invStatus(i)].label + (invReceived(i) && invStatus(i) !== 'paid' ? ' (partial)' : ''), amount: i.amount, currency: i.currency, o: i, due: i.due || '', received: invReceived(i) });
+    for (const p of i.payments) if (p.date >= a && p.date <= b) rows.push({ type: 'Payment received', date: p.date, name: i.number, party: clientName(i.clientId), status: 'Received', amount: p.amount, currency: i.currency, o: p, note: p.note || '' });
+  }
+  return rows.sort((x, y) => x.date.localeCompare(y.date) || x.type.localeCompare(y.type));
+}
+function exportFinanceCSV(Y) {
+  const rows = financeRows(Y); if (!rows.length) return toast(`Nothing recorded for ${Y}`, 'warn');
+  const q = v => { const s = String(v ?? ''); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const B = base();
+  const out = [['Type', 'Date', 'Name / Invoice no.', 'Category / Client', 'Status', 'Frequency', 'Due', 'Paid on', 'Amount', 'Currency', `Rate (1 ${B} = … currency)`, 'Rate date', 'Rate source', `Amount ${B}`, 'Note']];
+  for (const r of rows) { const v = econv(r.o, r.amount, r.currency); out.push([r.type, r.date, r.name, r.party, r.status, r.freq || '', r.due || '', r.paidOn || '', r.amount, r.currency, r.currency === B ? 1 : perBase(r.o.fxRate || usdPer(r.currency)), r.o.fxDate || '', r.currency === B ? '' : fxSrcLabel(r.o), v != null ? v.toFixed(2) : '', r.note || '']); }
+  const S = financeYear(Y);
+  out.push([]); out.push(['Summary ' + Y, '', '', '', '', '', '', '', '', '', '', '', '', '']);
+  out.push(['Income received', '', '', '', '', '', '', '', '', '', '', '', '', S.income.toFixed(2)]);
+  out.push(['Living expenses (year)', '', '', '', '', '', '', '', '', '', '', '', '', S.livBudget.toFixed(2)]);
+  out.push(['Living expenses paid', '', '', '', '', '', '', '', '', '', '', '', '', S.livPaid.toFixed(2)]);
+  out.push(['Trip expenses not reimbursed', '', '', '', FIN().tripOOP ? 'counted in net' : 'not counted', '', '', '', '', '', '', '', '', S.tripOOP.toFixed(2)]);
+  out.push(['Net', '', '', '', '', '', '', '', '', '', '', '', '', S.net.toFixed(2)]);
+  download(`VeriTrip-finance-${Y}.csv`, '\ufeff' + out.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
+}
+function printFinance(Y) {
+  const s = db.settings; const S = financeYear(Y); const F = FIN(); const B = base();
+  const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const liv = F.living.map(l => { const occ = livOcc(l, Y); return { l, occ, total: occ.length * (econv(l) || 0), paid: occ.filter(o => o.paid).length * (econv(l) || 0) }; }).filter(x => x.occ.length);
+  const inv = F.invoices.filter(i => String(i.date).startsWith(String(Y)) || i.payments.some(p => p.date.startsWith(String(Y))) || invStatus(i) === 'overdue').sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const rate = (o, c) => c === B ? '' : esc(rateText(o.fxRate || usdPer(c), c));
+  $('#print-root').innerHTML = `<h1>Finance report ${Y}</h1><div class="sub">${esc(s.name || '')}${s.name ? ' · ' : ''}All amounts in ${esc(B)} · each item at the rate of its own date</div>
+    <div class="meta"><div><b>Income received</b>${esc(fmtBase(S.income))}</div><div><b>Living expenses</b>${esc(fmtBase(S.livBudget))} (${esc(fmtBase(S.livPaid))} paid)</div><div><b>Trip expenses not reimbursed</b>${esc(fmtBase(S.tripOOP))}${F.tripOOP ? '' : ' (not in net)'}</div><div><b>Outstanding invoices</b>${esc(fmtBase(S.outstanding))}${S.overdue ? ` · ${esc(fmtBase(S.overdue))} overdue` : ''}</div><div><b>Report currency</b>${esc(B)}</div><div><b>Prepared</b>${esc(fmtD(todayISO(), { day: 'numeric', month: 'long', year: 'numeric' }))}</div></div>
+    <div class="total"><span>Net ${Y}</span><span>${esc(fmtBase(S.net))}</span></div>
+    <h2>By month</h2><table><thead><tr><th>Month</th><th class="r">Income</th><th class="r">Living</th><th class="r">Trips (unreimb.)</th><th class="r">Net</th></tr></thead><tbody>${S.months.map((m, k) => `<tr><td>${M[k]}</td><td class="r">${esc(fmtBase(m.inc))}</td><td class="r">${esc(fmtBase(m.liv))}</td><td class="r">${esc(fmtBase(m.trip))}</td><td class="r">${esc(fmtBase(m.inc - m.liv - (F.tripOOP ? m.trip : 0)))}</td></tr>`).join('')}</tbody></table>
+    <h2>Living expenses</h2><table><thead><tr><th>Item</th><th>Category</th><th>Frequency</th><th class="r">Amount</th><th>Rate</th><th class="r">Year ${esc(B)}</th><th class="r">Paid ${esc(B)}</th></tr></thead><tbody>${liv.map(x => `<tr><td>${esc(x.l.name)}</td><td>${esc(livCat(x.l.category).label)}</td><td>${esc(FREQS[x.l.freq].label)}${x.occ.length > 1 ? ' ×' + x.occ.length : ''}</td><td class="r">${esc(fmt(x.l.amount, x.l.currency))}</td><td class="note">${rate(x.l, x.l.currency)}</td><td class="r">${esc(fmtBase(x.total))}</td><td class="r">${esc(fmtBase(x.paid))}</td></tr>`).join('') || '<tr><td colspan="7">None</td></tr>'}</tbody><tfoot><tr><td colspan="5">Total</td><td class="r">${esc(fmtBase(S.livBudget))}</td><td class="r">${esc(fmtBase(S.livPaid))}</td></tr></tfoot></table>
+    <h2>Invoices &amp; payments</h2><table><thead><tr><th>No.</th><th>Client</th><th>Date</th><th>Due</th><th>Status</th><th class="r">Amount</th><th class="r">Received</th><th class="r">Received ${esc(B)}</th></tr></thead><tbody>${inv.map(i => { const got = i.payments.filter(p => p.date.startsWith(String(Y))).reduce((t, p) => t + (payUsd(i, p) || 0), 0); return `<tr><td>${esc(i.number)}</td><td>${esc(clientName(i.clientId))}</td><td>${esc(fdate(i.date, true))}</td><td>${esc(i.due ? fdate(i.due, true) : '—')}</td><td>${esc(STATUS[invStatus(i)].label)}${invReceived(i) && invStatus(i) !== 'paid' ? ' (partial)' : ''}</td><td class="r">${esc(fmt(i.amount, i.currency))}</td><td class="r">${esc(fmt(invReceived(i), i.currency))}</td><td class="r">${esc(fmtBase(got))}</td></tr>`; }).join('') || '<tr><td colspan="8">None</td></tr>'}</tbody><tfoot><tr><td colspan="7">Received in ${Y}</td><td class="r">${esc(fmtBase(S.income))}</td></tr></tfoot></table>
+    <div class="note">Rates: transaction-date rates (currency-api / ECB) when available; XOF/XAF at the fixed peg of 655.957 per EUR; rates you entered are kept as entered.</div>`;
+  document.body.classList.add('printing');
+  const done = () => { document.body.classList.remove('printing'); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  setTimeout(() => { window.print(); setTimeout(done, 1500); }, 250);
+}
+function financeFileIds() { const F = FIN(); return [...F.living.flatMap(l => l.atts || []), ...F.invoices.flatMap(i => [...(i.atts || []), ...i.payments.flatMap(p => p.atts || [])])].map(a => a.id); }
+
+/* ---------- Start-up ---------- */
+window.addEventListener('online', () => scheduleRates());
 document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
+setTimeout(() => { if (db) scheduleRates(); }, 1200);
 
 /* ---------------- PWA layer (only in the pwa/ build) ---------------- */
 const PWA = (() => {
