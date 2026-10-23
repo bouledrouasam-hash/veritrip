@@ -353,6 +353,61 @@ details.raw pre{white-space:pre-wrap;font-size:12px;max-height:220px;overflow:au
 #update-bar .body span{color:var(--label2)}
 #update-bar button{font-size:15px;font-weight:600;padding:8px 12px;border-radius:99px;color:var(--blue)}
 #update-bar button.prim{background:var(--blue);color:#fff}
+/* ---- v3.2 ---- */
+.vh{position:absolute!important;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0);pointer-events:none}
+label.row{cursor:pointer}
+.quick.q4{grid-template-columns:repeat(4,1fr);gap:8px}
+.quick label{position:relative;background:var(--card);border-radius:14px;padding:14px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;font-weight:500;box-shadow:var(--shadow);cursor:pointer}
+.quick label:active{background:var(--fill)}
+.thero .ltitle{display:flex;align-items:center;gap:10px}
+.thero .flag{font-size:34px;line-height:1}
+.thero .lsub b{color:var(--label);font-weight:600}
+.remind{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 14px;border-radius:12px;margin:0 0 12px;background:color-mix(in srgb,var(--orange) 11%,var(--card));color:var(--label);font-size:15px;line-height:1.3}
+.remind>svg:first-child{color:var(--orange);flex:none}
+.remind span{flex:1}.remind b{font-weight:400;color:var(--label2)}
+.remind .chev{color:var(--label3)}
+.reimb{background:var(--card);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+.reimb .k{font-size:14px;color:var(--label2);font-weight:500}
+.reimb .v{font-size:40px;font-weight:700;letter-spacing:-.015em;font-variant-numeric:tabular-nums;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reimb .s{font-size:14px;color:var(--label2)}
+.btiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.btile{background:var(--card);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);text-align:left;min-width:0;border:1.5px solid transparent}
+.btile:active{background:var(--fill)}
+.btile .k{font-size:13px;color:var(--label2);display:flex;align-items:center;gap:5px}
+.btile .k .att{margin-left:auto;color:var(--label3);display:flex}
+.btile .m{font-size:17px;font-weight:600;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+.btile .s{font-size:13px;color:var(--label2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btile.empty{background:transparent;box-shadow:none;border:1.5px dashed var(--fill2)}
+.btile.empty .m{color:var(--blue)}
+.btn.addr{margin-top:14px;min-height:54px;font-size:18px;border-radius:14px}
+.dayh{display:flex;justify-content:space-between;font-size:13px;color:var(--label2);margin:18px 16px 7px;text-transform:uppercase;letter-spacing:.02em}
+.tdetails{margin-top:26px}
+.tdetails>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:13px 16px;background:var(--card);border-radius:12px;box-shadow:var(--shadow);font-size:17px}
+.tdetails>summary::-webkit-details-marker{display:none}
+.tdetails>summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--label3);border-bottom:2px solid var(--label3);transform:rotate(45deg);transition:transform .2s}
+.tdetails[open]>summary::after{transform:rotate(-135deg)}
+.tdetails .dnote{font-size:13px;color:var(--orange)}
+.steps{display:flex;align-items:center;gap:6px;justify-content:center;margin:2px 0 14px}
+.steps i{width:7px;height:7px;border-radius:50%;background:var(--fill2)}
+.steps i.on{background:var(--blue);width:20px;border-radius:4px}
+.steps i.done{background:color-mix(in srgb,var(--blue) 45%,transparent)}
+.steps span{font-size:12px;color:var(--label2);margin-left:6px}
+.wz-q{font-size:22px;font-weight:700;text-align:center;margin:4px 0 12px}
+.seg.big{border-radius:11px;padding:3px}
+.seg.big button{min-height:40px;font-size:15px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:6px}
+.bk-up{background:var(--card);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+.bk-up-t{font-weight:600;font-size:16px;display:flex;align-items:center;gap:6px}
+.chips3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.chip3{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px;border-radius:12px;background:color-mix(in srgb,var(--blue) 10%,transparent);color:var(--blue);font-size:13px;font-weight:600;cursor:pointer}
+.chip3:active{opacity:.7}
+.chip3 svg{width:22px;height:22px}
+.bk-prog{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:14px;color:var(--label2)}
+.spinner.sm{width:20px;height:20px;border-width:3px}
+.docrow{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:12px;padding:10px 12px;margin-top:10px;box-shadow:var(--shadow)}
+.docrow img{width:44px;height:56px;object-fit:cover;border-radius:6px;border:.5px solid var(--sep)}
+.docrow .body{flex:1;min-width:0}.docrow .t{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.docrow .st{font-size:13px;color:var(--label2)}
+.ok-badge{color:var(--green);display:flex}
 
 </style>
 </head>
@@ -382,6 +437,7 @@ details.raw pre{white-space:pre-wrap;font-size:12px;max-height:220px;overflow:au
   <symbol id="i-chevR" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
   <symbol id="i-chevL" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
   <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v8h14v-8"/></symbol>
@@ -1123,7 +1179,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '3.1';
+const APP_VERSION = '3.2';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -1172,7 +1228,7 @@ function migrateTrip(t, i) {
   const loc = String(t.location || '');
   const city = t.city || loc.split(',')[0].trim();
   const country = t.country || (loc.includes(',') ? loc.split(',').slice(1).join(',').trim() : (P.detectPlace(loc) || {}).country || '');
-  return { id: t.id || uid('TRIP'), type: t.type === 'LOCAL' ? 'LOCAL' : 'TRAVEL', city, country, location: loc || [city, country].filter(Boolean).join(', '),
+  return { ...t, id: t.id || uid('TRIP'), type: t.type === 'LOCAL' ? 'LOCAL' : 'TRAVEL', city, country, location: loc || [city, country].filter(Boolean).join(', '),
     purpose: t.purpose || '', startDate: t.startDate, endDate: t.endDate || t.startDate, defaultCurrency: t.defaultCurrency || (P.detectPlace(loc) || {}).currency || 'USD',
     airlineInfo: t.airlineInfo || '', hotelInfo: t.hotelInfo || '', pnr: t.pnr || '', flights: t.flights || [], color: t.color || TRIP_COLORS[i % TRIP_COLORS.length],
     noExpenseDays: t.noExpenseDays || [], notes: t.notes || '' };
@@ -1203,6 +1259,7 @@ function normalizeDB() {
   db.fx = Object.assign(d.fx, db.fx || {});
   db.fx.rates = Object.assign({ ...P.DEFAULT_FX_TO_USD }, db.fx.rates || {});
   db.fx.manual = db.fx.manual || {};
+  migrateV32();
 }
 function load() {
   try {
@@ -1455,6 +1512,11 @@ function expenseRow(e, opts = {}) {
   const c = catOf(e.category); const t = tripById(e.tripId);
   const v = conv(e.amount, e.currency);
   const sub = [opts.showDate !== false ? fmtD(e.date, { day: 'numeric', month: 'short' }) : null, opts.showTrip !== false ? (t ? tripName(t) : null) : null, e.description && e.description !== c.label ? e.description : null].filter(Boolean).join(' · ');
+  if (opts.simple) {
+    const ss = e.paidBy === 'company' ? 'Company paid' : (e.description && e.description !== c.label ? e.description : c.label);
+    return `<button class="row tap has-icon" data-exp="${esc(e.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(e.merchant || c.label)}</div><div class="st">${esc(ss)}</div></span>
+    <span class="amt"><span style="${e.paidBy === 'company' ? 'color:var(--label2)' : ''}">${e.paidBy === 'company' && !(+e.amount) ? 'Prepaid' : esc(fmt(e.amount, e.currency))}</span>${e.paidBy === 'me' && e.currency !== base() && v != null ? `<span class="sub">≈ ${esc(fmtBase(v))}</span>` : ''}</span></button>`;
+  }
   const tags = (e.paidBy === 'company' ? `<span class="pill company">Company</span> ` : '') + (!t ? `<span class="pill warn">No trip</span> ` : '') + (e.paidBy === 'me' && !e.hasFile && !e.previewDataUrl ? `<span class="pill">No receipt</span>` : '');
   return `<button class="row tap has-icon" data-exp="${esc(e.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span>
     <span class="body"><div class="t">${esc(e.merchant || c.label)}</div><div class="st">${esc(sub)}</div>${tags ? `<div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${tags}</div>` : ''}</span>
@@ -1476,16 +1538,6 @@ function bindRows(root) {
 
 /* ---------------- Add menus ---------------- */
 let pickHint = null;
-function addMenu(ctx = {}) {
-  actionSheet('Add', [
-    { icon: 'camera', color: '#007aff', label: 'Scan receipt', sub: 'Take a photo — fields are read automatically', fn: () => pickFile('camera', 'RECEIPT', ctx) },
-    { icon: 'photo', color: '#34c759', label: 'Upload photos or PDFs', sub: 'Pick one or several receipts', fn: () => pickFile('pick', null, ctx) },
-    { icon: 'pencil', color: '#ff9500', label: 'Enter expense manually', fn: () => newExpense(ctx) },
-    { icon: 'plane', color: '#5856d6', label: 'New trip from e-ticket / hotel booking', sub: 'Creates the trip with route, dates and PNR', fn: () => pickFile('pick', 'TRIPDOC', ctx) },
-    { icon: 'suitcase', color: '#af52de', label: 'New trip manually', fn: () => editTrip(null, ctx) },
-    { icon: 'calendar', color: '#ff2d55', label: 'Import trips from calendar (.ics)', fn: () => $('#f-ics').click() }
-  ]);
-}
 let pickCtx = {};
 function pickFile(which, hint, ctx = {}) { pickHint = hint; pickCtx = ctx; const el = $(which === 'camera' ? '#f-camera' : '#f-pick'); el.value = ''; el.click(); }
 
@@ -1509,7 +1561,7 @@ function renderToday() {
     const t = upcoming[0];
     hero = `<button class="hero idle" data-trip="${esc(t.id)}" style="width:100%;text-align:left"><div class="k">${icon('clock', 's')} Next trip · ${esc(relDays(t.startDate))}</div><div class="city">${esc(tripName(t))}</div><div class="dates muted">${esc(fmtRange(t.startDate, t.endDate))}</div></button>`;
   } else {
-    hero = `<div class="hero idle"><div class="k">${icon('suitcase', 's')} No active trip</div><div class="city" style="font-size:22px">Where are you going next?</div><div class="dates muted" style="margin-bottom:14px">Scan your e-ticket or hotel booking and VeriTrip creates the trip for you.</div><button class="btn sm" id="hero-ticket">${icon('plane', 's')} Add trip from e-ticket</button></div>`;
+    hero = `<div class="hero idle"><div class="k">${icon('suitcase', 's')} No active trip</div><div class="city" style="font-size:22px">Where are you going next?</div><div class="dates muted" style="margin-bottom:14px">Add the trip with its flight and hotel — scan the e-ticket or type it in.</div><button class="btn sm" id="hero-ticket">${icon('plus', 's')} New trip</button></div>`;
   }
   // needs attention
   const att = [];
@@ -1523,20 +1575,18 @@ function renderToday() {
   const onboarding = !db.trips.length && !db.expenses.length ? `<div class="notice">${icon('info')}<div><b>Welcome to VeriTrip.</b> 1) Add a trip (scan the e-ticket the company sent you). 2) During the trip, snap every receipt — VeriTrip reads amount, currency and date, and files it under the right trip. 3) Back home, open the trip and print the report.<div style="margin-top:10px;display:flex;gap:18px;flex-wrap:wrap"><button class="linkbtn" id="load-sample">Try with sample data</button><button class="linkbtn" id="ob-import">Import backup</button></div><div class="st" style="margin-top:8px;color:var(--label2);font-size:13px">Moving from another copy of VeriTrip (e.g. the file version on your computer)? There, go to Settings → Back up all data, send the .json file to this phone, then tap <b>Import backup</b>.</div></div></div>` : '';
   v.innerHTML = navbar('Today', '', plusBtn()) + `<div class="ltitle">Today</div><div class="lsub">${esc(fmtD(today, { weekday: 'long', day: 'numeric', month: 'long' }))}</div>
     ${onboarding}${hero}
-    <div class="quick"><button id="q-scan"><span class="ico" style="background:var(--blue)">${icon('camera')}</span>Scan receipt</button>
-      <button id="q-upload"><span class="ico" style="background:var(--green)">${icon('doc')}</span>Photo / PDF</button>
-      <button id="q-manual"><span class="ico" style="background:var(--orange)">${icon('pencil')}</span>Manual</button></div>
+    <div class="quick q4">${Object.entries(FILE_KINDS).map(([k, x]) => `<label id="q-${k}" data-fk="${k}"><span class="ico" style="background:${x.color}">${icon(x.icon)}</span>${k === 'camera' ? 'Scan' : esc(x.short)}${fileInput(k)}</label>`).join('')}
+      <button id="q-manual"><span class="ico" style="background:#8e8e93">${icon('pencil')}</span>Manual</button></div>
     ${att.length ? `<div class="section-h"><h2>Needs attention</h2></div><div class="group">${att.map((a, i) => `<button class="row tap has-icon" data-att="${i}"><span class="ico" style="background:${a.color}">${icon(a.icon)}</span><span class="body"><div class="t">${esc(a.t)}</div><div class="st">${esc(a.st)}</div></span>${icon('chevR', 's chev')}</button>`).join('')}</div>` : ''}
     <div class="section-h"><h2>Recent expenses</h2>${recent.length ? '<button id="see-all">See all</button>' : ''}</div>
     ${recent.length ? `<div class="group">${recent.map(e => expenseRow(e)).join('')}</div>` : `<div class="card"><div class="empty">${icon('receipt')}No expenses yet.<br>Snap your first receipt.</div></div>`}
     ${upcoming.length && cur.length ? `<div class="section-h"><h2>Upcoming</h2></div><div class="group">${upcoming.slice(0, 2).map(tripRow).join('')}</div>` : ''}`;
   bindRows(v);
   $('#nav-add', v).onclick = () => addMenu();
-  $('#q-scan', v).onclick = () => pickFile('camera', 'RECEIPT');
-  $('#q-upload', v).onclick = () => pickFile('pick', null);
+  bindFileInputs($('.quick', v), (fs, kind) => { pickCtx = {}; pickHint = kind === 'camera' ? 'RECEIPT' : null; handleFiles(fs, pickHint); });
   $('#q-manual', v).onclick = () => newExpense({});
   $('#see-all', v) && ($('#see-all', v).onclick = () => go('expenses'));
-  $('#hero-ticket', v) && ($('#hero-ticket', v).onclick = () => pickFile('pick', 'TRIPDOC'));
+  $('#hero-ticket', v) && ($('#hero-ticket', v).onclick = () => newTripWizard());
   $('#load-sample', v) && ($('#load-sample', v).onclick = loadSample);
   $('#ob-import', v) && ($('#ob-import', v).onclick = () => { $('#f-backup').value = ''; $('#f-backup').click(); });
   $$('[data-att]', v).forEach(b => b.onclick = () => att[+b.dataset.att].fn());
@@ -1598,7 +1648,7 @@ function renderCalendar() {
   $$('[data-day]', v).forEach(c => c.onclick = () => { state.calSel = c.dataset.day; if (c.dataset.day.slice(0, 7) !== state.calMonth) state.calMonth = c.dataset.day.slice(0, 7); renderCalendar(); });
   $('#nav-add', v).onclick = () => addMenu({ date: sel });
   $('#cal-share', v).onclick = () => exportICS(db.trips, 'VeriTrip-trips.ics');
-  const add = () => newExpense({ date: sel });
+  const add = () => receiptSheet({ date: sel });
   $('#day-add', v) && ($('#day-add', v).onclick = add); $('#day-add2', v) && ($('#day-add2', v).onclick = add);
   $('#day-none', v) && ($('#day-none', v).onclick = () => { selTrips.forEach(t => { if (!t.noExpenseDays.includes(sel)) t.noExpenseDays.push(sel); }); save(); render(); toast('Marked as a day without expenses'); });
   // swipe months
@@ -1616,16 +1666,13 @@ function renderTrips() {
   const byYear = {}; past.forEach(t => (byYear[t.startDate.slice(0, 4)] = byYear[t.startDate.slice(0, 4)] || []).push(t));
   const yearTotal = y => byYear[y].reduce((s, t) => s + tripTotals(t).reimb, 0);
   v.innerHTML = navbar('Trips', '', plusBtn()) + `<div class="ltitle">Trips</div><div class="lsub">${db.trips.length} trip${db.trips.length === 1 ? '' : 's'} · ${db.trips.reduce((s, t) => s + tripLen(t), 0)} days</div>
-    ${!db.trips.length ? `<div class="card"><div class="empty">${icon('suitcase')}No trips yet.<br><br><button class="btn sm" id="t-ticket">${icon('plane', 's')} Add from e-ticket</button></div></div>` : ''}
+    ${!db.trips.length ? `<div class="card"><div class="empty">${icon('suitcase')}No trips yet.<br><br><button class="btn sm" id="t-ticket">${icon('plus', 's')} New trip</button></div></div>` : ''}
     ${cur.length ? `<div class="ghead">Now</div><div class="group">${cur.map(tripRow).join('')}</div>` : ''}
     ${up.length ? `<div class="ghead">Upcoming</div><div class="group">${up.map(tripRow).join('')}</div>` : ''}
     ${Object.keys(byYear).sort().reverse().map(y => `<div class="ghead" style="display:flex;justify-content:space-between"><span>${y}</span><span class="num">${esc(fmtBase(yearTotal(y)))} claimed</span></div><div class="group">${byYear[y].map(tripRow).join('')}</div>`).join('')}`;
   bindRows(v);
-  $('#nav-add', v).onclick = () => actionSheet('New trip', [
-    { icon: 'plane', color: '#5856d6', label: 'From e-ticket / hotel booking', sub: 'PDF or photo', fn: () => pickFile('pick', 'TRIPDOC') },
-    { icon: 'pencil', color: '#ff9500', label: 'Enter manually', fn: () => editTrip(null) },
-    { icon: 'calendar', color: '#ff2d55', label: 'Import from calendar (.ics)', fn: () => $('#f-ics').click() }]);
-  $('#t-ticket', v) && ($('#t-ticket', v).onclick = () => pickFile('pick', 'TRIPDOC'));
+  $('#nav-add', v).onclick = () => newTripWizard();
+  $('#t-ticket', v) && ($('#t-ticket', v).onclick = () => newTripWizard());
 }
 
 /* ---------------- Expenses list ---------------- */
@@ -1655,64 +1702,6 @@ function renderExpenses() {
 }
 
 function groupAmt(n) { const [i, d] = String(Math.round(n * 100) / 100).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f') + (d ? ',' + d : ''); }
-/* ---------------- Trip detail ---------------- */
-function renderTrip() {
-  const v = $('#v-trip'); const t = tripById(state.tripId);
-  if (!t) { go('trips'); return; }
-  const tot = tripTotals(t); const miss = missingDays(t); const L = tripLen(t);
-  const exps = expensesOf(t).sort((a, b) => (a.date + a.createdAt).localeCompare(b.date + b.createdAt));
-  const elapsed = clamp(daysBetween(t.startDate, todayISO()) + 1, 1, L);
-  const fromLabel = { today: 'Today', calendar: 'Calendar', expenses: 'Expenses', settings: 'Settings' }[state.from] || 'Trips';
-  const catEntries = Object.entries(tot.byCat).sort((a, b) => b[1] - a[1]);
-  const seg = state.tripSeg;
-  let content = '';
-  if (seg === 'expenses') {
-    const byDay = {}; exps.forEach(e => (byDay[e.date] = byDay[e.date] || []).push(e));
-    content = exps.length ? Object.keys(byDay).sort().map(d => `<div class="ghead" style="display:flex;justify-content:space-between"><span>${esc(fmtD(d, { weekday: 'short', day: 'numeric', month: 'short' }))}${d < t.startDate || d > t.endDate ? ' · travel day' : ` · day ${daysBetween(t.startDate, d) + 1}`}</span><span class="num">${esc(fmtBase(byDay[d].filter(e => e.paidBy === 'me').reduce((s, e) => s + (conv(e.amount, e.currency) || 0), 0)))}</span></div><div class="group">${byDay[d].map(e => expenseRow(e, { showDate: false, showTrip: false })).join('')}</div>`).join('')
-      : `<div class="card"><div class="empty">${icon('receipt')}No expenses on this trip yet.</div></div>`;
-  } else if (seg === 'days') {
-    const today = todayISO();
-    content = `<div class="group">${tripDays(t).map((d, i) => {
-      const de = exps.filter(e => e.date === d); const me = de.filter(e => e.paidBy === 'me'); const sum = me.reduce((s, e) => s + (conv(e.amount, e.currency) || 0), 0);
-      const status = d > today ? `<span class="pill">Upcoming</span>` : miss.includes(d) ? `<span class="pill warn">Missing?</span>` : me.length ? `<span class="num">${esc(fmtBase(sum))}</span>` : `<span class="pill ok">No spend</span>`;
-      return `<button class="row tap" data-cal="${d}"><span class="body"><div class="t">${esc(fmtD(d, { weekday: 'long', day: 'numeric', month: 'short' }))}</div><div class="st">Day ${i + 1}${i === 0 ? ' · arrival' : i === L - 1 ? ' · departure' : ''}${de.length ? ` · ${de.length} item${de.length > 1 ? 's' : ''}` : ''}</div></span>${status}${icon('chevR', 's chev')}</button>`;
-    }).join('')}</div><div class="foot">Tap a day to open it in the calendar. Orange days have no out-of-pocket expense yet.</div>`;
-  } else {
-    const curs = Object.entries(tot.byCur);
-    content = `<div class="ghead">By category</div><div class="group">${catEntries.length ? catEntries.map(([k, val]) => { const c = catOf(k); return `<div class="row has-icon"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(c.label)}</div></span><span class="num">${esc(fmtBase(val))}</span></div>`; }).join('') : '<div class="row"><span class="body muted">No out-of-pocket expenses</span></div>'}</div>
-     <div class="ghead">By currency (rate used)</div><div class="group">${curs.length ? curs.map(([c, x]) => `<div class="row"><span class="body"><div class="t num">${esc(fmt(x.local, c))}</div><div class="st">${esc(rateLabel(c))}</div></span><span class="num">${esc(fmtBase(x.base))}</span></div>`).join('') : '<div class="row"><span class="body muted">—</span></div>'}</div>
-     <div class="foot">Rates: ${db.fx.updatedAt ? 'live, updated ' + esc(new Date(db.fx.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : 'built-in defaults'} · edit in Settings.</div>
-     <div class="ghead">Export</div><div class="group">
-      <button class="row tap has-icon" id="tr-print"><span class="ico" style="background:#007aff">${icon('printer')}</span><span class="body"><div class="t">Print / save as PDF</div><div class="st">Claim report with receipts attached</div></span>${icon('chevR', 's chev')}</button>
-      <button class="row tap has-icon" id="tr-csv"><span class="ico" style="background:#34c759">${icon('download')}</span><span class="body"><div class="t">Export CSV</div><div class="st">For Excel / expense system</div></span>${icon('chevR', 's chev')}</button>
-      <button class="row tap has-icon" id="tr-ics"><span class="ico" style="background:#ff2d55">${icon('calendar')}</span><span class="body"><div class="t">Add to calendar (.ics)</div></span>${icon('chevR', 's chev')}</button></div>
-     <div class="group" style="margin-top:24px"><button class="row tap" id="tr-del"><span class="body" style="color:var(--red);text-align:center">Delete trip</span></button></div>`;
-  }
-  v.innerHTML = navbar(tripName(t), `<button class="navbtn" id="tr-back">${icon('chevL')}${esc(fromLabel)}</button>`, `<button class="navbtn" id="tr-edit">Edit</button>`) +
-    `<div class="ltitle">${esc(tripName(t))}</div>
-    <div class="trip-head"><span class="pill"><span class="dot" style="background:${t.color};width:8px;height:8px"></span>${esc(fmtRange(t.startDate, t.endDate))}</span>${t.country ? `<span class="pill">${esc(t.country)}</span>` : ''}<span class="pill">${esc(t.defaultCurrency)}</span>${t.pnr ? `<span class="pill">PNR ${esc(t.pnr)}</span>` : ''}${t.flights && t.flights.length ? `<span class="pill">${icon('plane', 's')} ${esc(t.flights.join(' · '))}</span>` : ''}${t.purpose ? `<span class="pill">${esc(t.purpose)}</span>` : ''}</div>
-    <div class="tiles">
-      <div class="tile big"><div class="k">${icon('wallet', 's')} To be reimbursed</div><div class="v">${esc(fmtBase(tot.reimb))}</div><div class="s">${tot.count - (exps.filter(e => e.paidBy === 'company').length)} out-of-pocket items${tot.noReceipt ? ` · ${tot.noReceipt} without receipt` : ''}${tot.unconverted ? ` · ${tot.unconverted} need an FX rate` : ''}</div>
-        ${catEntries.length ? `<div class="catbar">${catEntries.map(([k, val]) => `<i style="width:${val / tot.reimb * 100}%;background:${catOf(k).color}" title="${esc(catOf(k).label)}"></i>`).join('')}</div>` : ''}</div>
-      <div class="tile"><div class="k">${icon('building', 's')} Company paid</div><div class="v">${esc(fmtBase(tot.company, true))}</div><div class="s">Flights, hotel…</div></div>
-      <div class="tile"><div class="k">${icon('calendar', 's')} Per day</div><div class="v">${esc(fmtBase(tot.reimb / elapsed, true))}</div><div class="s">${miss.length ? `<span style="color:var(--orange)">${miss.length} day${miss.length > 1 ? 's' : ''} missing</span>` : `${L} day${L > 1 ? 's' : ''}`}</div></div>
-    </div>
-    <div class="seg" style="margin:20px 0 4px">${[['expenses', 'Expenses'], ['days', 'Days'], ['report', 'Report']].map(([k, l]) => `<button data-seg="${k}" class="${seg === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    ${content}
-    <div style="margin-top:22px" class="btnrow"><button class="btn" id="tr-scan">${icon('camera', 's')} Scan receipt</button><button class="btn tinted" id="tr-add">${icon('plus', 's')} Add manually</button></div>`;
-  bindRows(v);
-  $('#tr-back', v).onclick = () => go(state.from || 'trips');
-  $('#tr-edit', v).onclick = () => editTrip(t.id);
-  $$('[data-seg]', v).forEach(b => b.onclick = () => { state.tripSeg = b.dataset.seg; renderTrip(); });
-  $$('[data-cal]', v).forEach(b => b.onclick = () => go('calendar', { calSel: b.dataset.cal, calMonth: b.dataset.cal.slice(0, 7) }));
-  const ctxDate = tripStatus(t) === 'current' ? todayISO() : t.startDate;
-  $('#tr-scan', v).onclick = () => pickFile('camera', 'RECEIPT', { tripId: t.id, date: ctxDate });
-  $('#tr-add', v).onclick = () => newExpense({ tripId: t.id, date: ctxDate });
-  $('#tr-print', v) && ($('#tr-print', v).onclick = () => printReport(t));
-  $('#tr-csv', v) && ($('#tr-csv', v).onclick = () => exportCSV(exps, `VeriTrip-${tripName(t).replace(/\W+/g, '_')}-${t.startDate}.csv`));
-  $('#tr-ics', v) && ($('#tr-ics', v).onclick = () => exportICS([t], `VeriTrip-${tripName(t).replace(/\W+/g, '_')}.ics`));
-  $('#tr-del', v) && ($('#tr-del', v).onclick = () => deleteTrip(t));
-}
 function deleteTrip(t) {
   const n = expensesOf(t).length;
   actionSheet(`Delete ${tripName(t)}?`, [
@@ -1859,17 +1848,12 @@ function openExpenseEditor(x, opt = {}) {
 }
 
 /* ---------------- Trip editor ---------------- */
-function editTrip(id, ctx = {}) {
-  const t = id ? tripById(id) : null;
-  const draft = t ? { ...t } : { type: 'TRAVEL', city: '', country: '', purpose: '', startDate: ctx.date || todayISO(), endDate: addDays(ctx.date || todayISO(), 4), defaultCurrency: base(), color: nextColor(), pnr: '', flights: [], airlineInfo: '', hotelInfo: '', notes: '' };
-  openTripEditor(draft, { isNew: !t });
-}
 function openTripEditor(x, opt = {}) {
   const conf = opt.conf || {}; const ci = opt.companyItem; const match = opt.matchTrip;
   const f = (id, label, val, extra = '', ck) => `<div class="field${confCls(conf[ck])}">${confTag(conf[ck])}<label>${label}</label><input id="${id}" value="${esc(val || '')}" ${extra}></div>`;
   const body = `${opt.preview ? `<div class="preview"><img src="${opt.preview}" alt=""><div class="meta"><div style="font-weight:600">${esc(opt.fileName || '')}</div><div class="muted">${esc(opt.methodLabel || '')}</div>${(opt.warnings || []).map(w => `<div style="color:var(--orange)">${esc(w)}</div>`).join('')}</div></div>` : ''}
     ${match ? `<div class="notice">${icon('info')}<div>This booking overlaps <b>${esc(tripName(match))}</b> (${esc(fmtRange(match.startDate, match.endDate))}).<div class="seg" style="margin-top:8px" id="tp-target"><button data-t="update" class="on">Update that trip</button><button data-t="new">Create new trip</button></div></div></div>` : ''}
-    <div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="tp-type"><button data-v="TRAVEL" class="${x.type !== 'LOCAL' ? 'on' : ''}">Travel</button><button data-v="LOCAL" class="${x.type === 'LOCAL' ? 'on' : ''}">Local / home</button></div></div>
+    <div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="tp-type"><button data-v="TRAVEL" class="${x.type !== 'LOCAL' ? 'on' : ''}">Travel</button><button data-v="LOCAL" class="${x.type === 'LOCAL' ? 'on' : ''}">Local</button></div></div>
       ${f('tp-city', 'City', x.city, 'placeholder="e.g. Brazzaville" list="dl-cities"', 'city')}
       ${f('tp-country', 'Country', x.country, 'placeholder="Country"', 'country')}
       ${f('tp-purpose', 'Purpose', x.purpose, 'placeholder="e.g. CT installation, PM visit"')}</div>
@@ -1911,9 +1895,10 @@ function openTripEditor(x, opt = {}) {
         vals.location = [vals.city, vals.country].filter(Boolean).join(', ');
         let t;
         if (match && target === 'update') {
-          t = match; const keep = { pnr: t.pnr, flights: t.flights, hotelInfo: t.hotelInfo };
+          t = match; const keep = { pnr: t.pnr, flights: t.flights, hotelInfo: t.hotelInfo, type: t.type };
           Object.assign(t, vals, { startDate: vals.startDate < t.startDate ? vals.startDate : t.startDate, endDate: vals.endDate > t.endDate ? vals.endDate : t.endDate, color: t.color,
-            pnr: vals.pnr || keep.pnr, flights: vals.flights.length ? vals.flights : keep.flights, hotelInfo: vals.hotelInfo || keep.hotelInfo, purpose: vals.purpose || match.purpose });
+            pnr: vals.pnr || keep.pnr, flights: vals.flights.length ? vals.flights : keep.flights, hotelInfo: vals.hotelInfo || keep.hotelInfo, purpose: vals.purpose || match.purpose, type: 'TRAVEL' });
+          if (x.route) t.route = x.route; if (x.flightOut) { t.flightOut = x.flightOut; t.flightBack = x.flightBack || t.flightBack; } if (x.hotelIn) { t.hotelIn = x.hotelIn; t.hotelOut = x.hotelOut; }
         } else if (!opt.isNew) { t = tripById(x.id); Object.assign(t, vals); }
         else { t = Object.assign({ id: uid('TRIP'), noExpenseDays: [] }, vals); db.trips.push(t); }
         const n = autoAssignInto(t);
@@ -1922,7 +1907,7 @@ function openTripEditor(x, opt = {}) {
           const rec = syncExpense({ id: uid('EXP'), tripId: t.id, date: ci.date || t.startDate, merchant: ci.merchant || (ci.category === 'Lodging' ? vals.hotelInfo : 'Flight'), description: ci.description || '', category: ci.category,
             amount: a || 0, currency: $('#tp-ci-cur', b).value, paidBy: 'company', paymentMethod: ci.paymentMethod || 'Company Paid', refCode: vals.pnr || ci.refCode || '', source: ci.source || 'ocr', createdAt: new Date().toISOString(),
             fileType: opt.fileRec ? (opt.fileRec.type === 'application/pdf' ? 'PDF' : 'IMAGE') : null, fileName: opt.fileRec ? opt.fileRec.name : '', hasFile: !!opt.fileRec });
-          db.expenses.push(rec); if (opt.fileRec) Files.put(rec.id, opt.fileRec).catch(() => {});
+          db.expenses.push(rec); if (ci.category === 'Lodging') t.hotelExpId = rec.id; else t.flightExpId = rec.id; if (opt.fileRec) Files.put(rec.id, opt.fileRec).catch(() => {});
         }
         save(); closeSheet();
         toast(`${opt.isNew && target !== 'update' ? 'Trip created' : 'Trip saved'}${n ? ` · ${n} expense${n > 1 ? 's' : ''} linked` : ''}`);
@@ -2019,7 +2004,7 @@ async function extractDocument(file, hint, progress) {
   if (isPdf) {
     progress('Opening PDF…', 0.05);
     const pdfjs = await loadPdfJs(); pdfBytes = new Uint8Array(await file.arrayBuffer());
-    const pdf = await pdfjs.getDocument({ data: pdfBytes.slice() }).promise; const N = Math.min(pdf.numPages, 6); const parts = []; let ocrPages = 0;
+    const pdf = await pdfjs.getDocument({ data: pdfBytes.slice() }).promise; const N = Math.min(pdf.numPages, 8); const parts = []; let ocrPages = 0;
     for (let i = 1; i <= N; i++) {
       const page = await pdf.getPage(i); const txt = pdfLines(await page.getTextContent());
       const vp1 = page.getViewport({ scale: 1 });
@@ -2198,6 +2183,11 @@ function reviewTripDoc(res, o) {
   const ci = { category: isHotel ? 'Lodging' : 'Flights', amount: res.fields.amount.value || '', currency: res.fields.currency.value || cur, date: start,
     merchant: isHotel ? (v(H.hotel) || 'Hotel') : (v(T.airline) || 'Flight'), description: isHotel ? `${H.nights ? H.nights + ' nights' : 'Hotel stay'}${H.confirmation ? ' · conf. ' + H.confirmation.value : ''}` : (T.route ? T.route.value : ''),
     refCode: v(T.pnr) || v(H.confirmation) || '', paymentMethod: /expedia/i.test(res.text) ? 'Expedia (Company Paid)' : /agency|agence|egencia|bcd|cwt|fcm/i.test(res.text) ? 'Travel Agency' : 'Company Paid', source: res.method };
+  if (!match) {
+    const B = emptyBooking(isHotel ? 'hotel' : 'flight'); applyDocToBooking(B, res);
+    return newTripWizard({ type: 'TRAVEL', city, country, cur, start, end, [isHotel ? 'hotel' : 'flight']: B });
+  }
+  Object.assign(draft, isHotel ? { hotelIn: v(H.checkIn) || start, hotelOut: v(H.checkOut) || end } : { route: v(T.route) || '', flightOut: v(T.startDate) || '', flightBack: v(T.endDate) || '' });
   openTripEditor(draft, { isNew: !match, conf, companyItem: ci, matchTrip: match, preview: res.preview, fileRec: res.fileRec, fileName: res.fileRec && res.fileRec.name, methodLabel: o.methodLabel, warnings: res.warnings, text: res.text, onDone: o.onDone });
 }
 
@@ -2328,7 +2318,7 @@ async function printReport(t) {
 function loadSample() {
   const T = todayISO(); const d = n => addDays(T, n);
   const trips = [
-    { id: uid('TRIP'), type: 'TRAVEL', city: 'Dakar', country: 'Senegal', purpose: 'MRI installation — Hôpital Principal', startDate: d(-3), endDate: d(3), defaultCurrency: 'XOF', pnr: 'QW7PLM', flights: ['HF500', 'HF501'], hotelInfo: 'Radisson Blu Dakar', color: '#0a84ff' },
+    { id: uid('TRIP'), type: 'TRAVEL', city: 'Dakar', country: 'Senegal', purpose: 'MRI installation — Hôpital Principal', startDate: d(-3), endDate: d(3), defaultCurrency: 'XOF', pnr: 'QW7PLM', flights: ['HF500', 'HF501'], route: 'ABJ → DSS → ABJ', flightOut: d(-3), flightBack: d(3), hotelInfo: 'Radisson Blu Dakar', hotelIn: d(-3), hotelOut: d(3), color: '#0a84ff' },
     { id: uid('TRIP'), type: 'TRAVEL', city: 'Addis Ababa', country: 'Ethiopia', purpose: 'Site inspection', startDate: d(-12), endDate: d(-7), defaultCurrency: 'ETB', pnr: 'ET4K2Z', flights: ['ET935', 'ET934'], hotelInfo: 'Skylight Hotel', color: '#34c759' },
     { id: uid('TRIP'), type: 'TRAVEL', city: 'Brazzaville', country: 'Congo', purpose: 'CT preventive maintenance', startDate: d(-22), endDate: d(-17), defaultCurrency: 'XAF', pnr: 'K7XQ2M', flights: ['HF740', 'HF741'], hotelInfo: 'Radisson Blu M\'Bamou', color: '#ff9500' },
     { id: uid('TRIP'), type: 'TRAVEL', city: 'Nairobi', country: 'Kenya', purpose: 'Training', startDate: d(12), endDate: d(16), defaultCurrency: 'KES', color: '#af52de' }
@@ -2373,6 +2363,359 @@ function init() {
   window.PWA && PWA.init();
   window.VeriTrip = { db: () => db, resolveTrip, extractDocument, parseICS, icsToCandidates, render, go };
 }
+
+/* ================= v3.2 — trip wizard, flight & hotel, add-receipt options, simple trip screen ================= */
+const ISO2 = { "Côte d'Ivoire": 'CI', Senegal: 'SN', Mali: 'ML', 'Burkina Faso': 'BF', Niger: 'NE', Togo: 'TG', Benin: 'BJ', 'Guinea-Bissau': 'GW', Cameroon: 'CM', Gabon: 'GA', Congo: 'CG', Chad: 'TD',
+  'Central African Republic': 'CF', 'Equatorial Guinea': 'GQ', 'DR Congo': 'CD', Guinea: 'GN', Morocco: 'MA', Algeria: 'DZ', Tunisia: 'TN', Egypt: 'EG', Libya: 'LY', Mauritania: 'MR', Nigeria: 'NG', Ghana: 'GH',
+  'Sierra Leone': 'SL', Liberia: 'LR', Gambia: 'GM', 'Cape Verde': 'CV', Kenya: 'KE', Uganda: 'UG', Tanzania: 'TZ', Rwanda: 'RW', Ethiopia: 'ET', Djibouti: 'DJ', Sudan: 'SD', 'South Africa': 'ZA', Angola: 'AO',
+  Mozambique: 'MZ', Zambia: 'ZM', Zimbabwe: 'ZW', Botswana: 'BW', Namibia: 'NA', Malawi: 'MW', Madagascar: 'MG', Mauritius: 'MU', UAE: 'AE', Qatar: 'QA', 'Türkiye': 'TR', Turkey: 'TR', 'Saudi Arabia': 'SA',
+  France: 'FR', Belgium: 'BE', Germany: 'DE', Netherlands: 'NL', Spain: 'ES', Portugal: 'PT', 'United Kingdom': 'GB', Japan: 'JP', Switzerland: 'CH', 'Ivory Coast': 'CI' };
+function flagOf(country) {
+  const k = String(country || '').trim().toLowerCase(); if (!k) return '';
+  const hit = Object.keys(ISO2).find(n => n.toLowerCase() === k); const c = hit ? ISO2[hit] : '';
+  return c ? String.fromCodePoint(...[...c].map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65)) : '';
+}
+const isTravel = t => t && t.type !== 'LOCAL';
+const linkedExp = (t, id, cat) => db.expenses.find(e => e.id === id && e.tripId === t.id) || db.expenses.find(e => e.tripId === t.id && e.paidBy === 'company' && e.category === cat);
+const flightExp = t => linkedExp(t, t.flightExpId, 'Flights');
+const hotelExp = t => linkedExp(t, t.hotelExpId, 'Lodging');
+const hasFlight = t => !!(t.flightSkip || (t.flights || []).length || t.pnr || t.route || t.airlineInfo || flightExp(t));
+const hasHotel = t => !!(t.hotelSkip || t.hotelInfo || hotelExp(t));
+const needsBookings = t => isTravel(t) && (!hasFlight(t) || !hasHotel(t));
+
+/* One-time migration for v3.2: decide Travel vs Local for existing trips. */
+function migrateV32() {
+  if (!db || db.v32) return;
+  const home = db.settings && db.settings.homeIata && P.IATA[String(db.settings.homeIata).toUpperCase()];
+  for (const t of db.trips) {
+    if (t.type === 'LOCAL') continue;
+    t.type = 'TRAVEL';
+    const company = db.expenses.some(e => e.tripId === t.id && e.paidBy === 'company');
+    if (!company && !hasFlight(t) && !hasHotel(t)) {
+      const atHome = home && t.city && home[0].toLowerCase() === t.city.trim().toLowerCase();
+      if (atHome || tripLen(t) === 1) t.type = 'LOCAL';
+    }
+  }
+  db.v32 = true;
+}
+
+/* ---------- file choosers (camera / photo library / file) ---------- */
+const FILE_KINDS = {
+  camera: { accept: 'image/*', capture: true, multiple: false, icon: 'camera', color: '#007aff', label: 'Scan with camera', short: 'Camera' },
+  photos: { accept: 'image/*', capture: false, multiple: true, icon: 'photo', color: '#34c759', label: 'Photo library', short: 'Photos' },
+  file: { accept: 'image/*,application/pdf,.pdf', capture: false, multiple: true, icon: 'doc', color: '#ff9500', label: 'File (PDF or image)', short: 'File' } };
+function fileInput(kind, single) { const k = FILE_KINDS[kind]; return `<input type="file" class="vh" tabindex="-1" data-fin="${kind}" accept="${k.accept}"${k.capture ? ' capture="environment"' : ''}${k.multiple && !single ? ' multiple' : ''}>`; }
+/* Rows for a sheet — each row is a <label> wrapping the input, so iOS opens the picker straight from the tap. */
+function fileRows(sub = {}, single) {
+  return Object.entries(FILE_KINDS).map(([kind, k]) => `<label class="row tap has-icon" data-fk="${kind}"><span class="ico" style="background:${k.color}">${icon(k.icon)}</span><span class="body"><div class="t">${esc(k.label)}</div>${sub[kind] ? `<div class="st">${esc(sub[kind])}</div>` : ''}</span>${fileInput(kind, single)}</label>`).join('');
+}
+/* Compact chips — used inside the trip wizard and flight/hotel sheets */
+function fileChips(single) { return `<div class="chips3">${Object.entries(FILE_KINDS).map(([kind, k]) => `<label class="chip3" data-fk="${kind}">${icon(k.icon)}<span>${esc(k.short)}</span>${fileInput(kind, single)}</label>`).join('')}</div>`; }
+function bindFileInputs(root, onFiles) {
+  $$('input[data-fin]', root).forEach(inp => inp.onchange = () => { const fs = [...(inp.files || [])]; const kind = inp.dataset.fin; inp.value = ''; if (fs.length) onFiles(fs, kind); });
+}
+const RECEIPT_SUBS = { camera: 'Take a photo — amount, date and currency are read for you', photos: 'Pick one or several photos', file: 'PDF (multi-page OK) or image from Files' };
+function receiptSheet(ctx = {}, title = 'Add receipt') {
+  openSheet({ title, left: { label: 'Cancel' },
+    body: `<div class="group">${fileRows(RECEIPT_SUBS)}</div><div class="group" style="margin-top:14px"><button class="row tap has-icon" id="rs-manual"><span class="ico" style="background:#8e8e93">${icon('pencil')}</span><span class="body"><div class="t">Enter manually</div><div class="st">No receipt, or add it later</div></span></button></div>`,
+    onMount: b => {
+      bindFileInputs(b, (fs, kind) => { pickCtx = ctx; pickHint = kind === 'camera' ? 'RECEIPT' : (ctx.tripId ? 'RECEIPT' : null); handleFiles(fs, pickHint); });
+      $('#rs-manual', b).onclick = () => { closeSheet(); setTimeout(() => newExpense(ctx), 250); };
+    } });
+}
+function addMenu(ctx = {}) {
+  openSheet({ title: 'Add', left: { label: 'Cancel' },
+    body: `<div class="ghead" style="margin-top:4px">Receipt</div><div class="group">${fileRows(RECEIPT_SUBS)}<button class="row tap has-icon" id="am-manual"><span class="ico" style="background:#8e8e93">${icon('pencil')}</span><span class="body"><div class="t">Enter expense manually</div></span></button></div>
+      <div class="ghead">Trip</div><div class="group"><button class="row tap has-icon" id="am-trip"><span class="ico" style="background:#5856d6">${icon('suitcase')}</span><span class="body"><div class="t">New trip</div><div class="st">Travel or local · flight and hotel in 3 quick steps</div></span>${icon('chevR', 's chev')}</button>
+      <button class="row tap has-icon" id="am-ics"><span class="ico" style="background:#ff2d55">${icon('calendar')}</span><span class="body"><div class="t">Import trips from calendar (.ics)</div></span></button></div>`,
+    onMount: b => {
+      bindFileInputs(b, (fs, kind) => { pickCtx = ctx; pickHint = kind === 'camera' ? 'RECEIPT' : null; handleFiles(fs, pickHint); });
+      $('#am-manual', b).onclick = () => { closeSheet(); setTimeout(() => newExpense(ctx), 250); };
+      $('#am-trip', b).onclick = () => newTripWizard({ start: ctx.date });
+      $('#am-ics', b).onclick = () => { closeSheet(); $('#f-ics').value = ''; $('#f-ics').click(); };
+    } });
+}
+
+/* ---------- booking drafts (flight / hotel) ---------- */
+function emptyBooking(kind, t) {
+  const B = { kind, mode: null, amount: '', currency: '', fileRec: null, preview: null, fileName: '', method: '', warnings: [], conf: {} };
+  if (kind === 'flight') Object.assign(B, { route: '', out: '', back: '', nos: '', pnr: '', airline: '' });
+  else Object.assign(B, { name: '', cin: '', cout: '', ref: '' });
+  if (t) {
+    const e = kind === 'flight' ? flightExp(t) : hotelExp(t);
+    if (kind === 'flight') Object.assign(B, { route: t.route || '', out: t.flightOut || '', back: t.flightBack || '', nos: (t.flights || []).join(', ') || (t.airlineInfo && !/[a-z]{4}/i.test(t.airlineInfo) ? t.airlineInfo : ''), pnr: t.pnr || '', airline: t.airline || (t.airlineInfo && /[a-z]{4}/i.test(t.airlineInfo) ? t.airlineInfo : '') });
+    else Object.assign(B, { name: t.hotelInfo || (e && e.merchant !== 'Hotel' ? e.merchant : '') || '', cin: t.hotelIn || '', cout: t.hotelOut || '', ref: t.hotelRef || '' });
+    if (e) Object.assign(B, { amount: +e.amount ? String(e.amount) : '', currency: e.currency, expId: e.id, hasFile: e.hasFile, fileName: e.fileName || '' });
+    B.skip = kind === 'flight' ? !!t.flightSkip : !!t.hotelSkip;
+  }
+  return B;
+}
+const bookingFilled = B => B.kind === 'flight' ? !!(B.route || B.nos || B.pnr || B.out || B.fileRec || B.amount) : !!(B.name || B.cin || B.fileRec || B.amount);
+function bookingFormHTML(B, cur) {
+  const f = (id, label, val, extra = '', ck) => `<div class="field${confCls(B.conf[ck])}">${confTag(B.conf[ck])}<label>${label}</label><input id="${id}" value="${esc(val || '')}" ${extra}></div>`;
+  const doc = B.fileRec || B.hasFile ? `<div class="docrow">${B.preview ? `<img src="${B.preview}" alt="">` : `<span class="ico" style="background:#ff9500">${icon('doc')}</span>`}<div class="body"><div class="t">${esc(B.fileName || 'Document attached')}</div><div class="st">${esc(B.method || 'Attached')}${(B.warnings || []).length ? ' · ' + esc(B.warnings[0]) : ''}</div></div>${B.expId && B.hasFile && !B.fileRec ? `<button class="btn sm gray" id="bk-view">View</button>` : `<span class="ok-badge">${icon('check')}</span>`}</div>` : '';
+  const isF = B.kind === 'flight';
+  return `<div class="bk-up"><div class="bk-up-t">${icon(isF ? 'plane' : 'bed', 's')} ${isF ? 'Scan or upload the e-ticket' : 'Scan or upload the hotel booking'}</div><div class="muted small" style="margin:2px 0 10px">${isF ? 'Route, dates, flight number and PNR are filled in for you.' : 'Hotel name and check-in / check-out are filled in for you.'}</div>${fileChips(true)}<div id="bk-prog" class="bk-prog hidden"><div class="spinner sm"></div><span id="bk-msg">Reading…</span></div></div>
+    ${doc}
+    <div class="ghead">${isF ? 'Or enter it' : 'Or enter it'}</div>
+    <div class="group">${isF ? `${f('bk-route', 'Route', B.route, 'placeholder="ABJ → DSS → ABJ" autocapitalize="characters"', 'route')}
+      ${f('bk-out', 'Outbound', B.out, 'type="date"', 'out')}${f('bk-back', 'Return', B.back, 'type="date"', 'back')}
+      ${f('bk-nos', 'Flight no.', B.nos, 'placeholder="HF500, HF501" autocapitalize="characters"', 'nos')}${f('bk-pnr', 'PNR', B.pnr, 'placeholder="Booking ref." autocapitalize="characters" style="text-transform:uppercase"', 'pnr')}`
+      : `${f('bk-name', 'Hotel', B.name, 'placeholder="Hotel name"', 'name')}${f('bk-cin', 'Check-in', B.cin, 'type="date"', 'cin')}${f('bk-cout', 'Check-out', B.cout, 'type="date"', 'cout')}`}
+      <div class="field${confCls(B.conf.amount)}">${confTag(B.conf.amount)}<label>Price</label><input id="bk-amt" inputmode="decimal" value="${esc(B.amount ? groupAmt(+B.amount) : '')}" placeholder="optional"><select id="bk-cur" style="flex:none;width:auto;margin-left:6px">${Object.keys(P.CURRENCIES).map(c => `<option${c === (B.currency || cur) ? ' selected' : ''}>${c}</option>`).join('')}</select></div></div>
+    <div class="foot">${icon('building', 's')} Company paid — kept with the trip, never added to what you claim.</div>`;
+}
+function readBookingForm(root, B) {
+  const g = id => { const el = $('#' + id, root); return el ? el.value.trim() : ''; };
+  if (B.kind === 'flight') Object.assign(B, { route: g('bk-route').toUpperCase(), out: g('bk-out'), back: g('bk-back'), nos: g('bk-nos').toUpperCase(), pnr: g('bk-pnr').toUpperCase() });
+  else Object.assign(B, { name: g('bk-name'), cin: g('bk-cin'), cout: g('bk-cout') });
+  const cur = g('bk-cur'); const raw = g('bk-amt'); let a = raw ? P.parseNumberToken(raw.replace(/\s+/g, ' ').replace(/[^\d., ]/g, '').trim(), cur) : null; if (raw && a == null) a = parseFloat(raw.replace(/\s/g, '').replace(',', '.')) || null;
+  B.amount = a ? String(a) : ''; B.currency = cur;
+  return B;
+}
+/* Read an e-ticket / hotel booking into booking drafts. Returns the extraction result. */
+async function readBookingDoc(file, progress) {
+  const res = await extractDocument(file, 'TRIPDOC', progress);
+  res.methodLabel = { ai: 'Read by AI — please check', 'pdf-text': 'Read from PDF', 'pdf+ocr': 'Scanned PDF · on-device OCR', local: 'On-device OCR — please check' }[res.method] || '';
+  return res;
+}
+function applyDocToBooking(B, res) {
+  const v = x => x && x.value; const c = x => (x ? x.conf : 0);
+  Object.assign(B, { fileRec: res.fileRec, preview: res.preview, fileName: res.fileRec ? res.fileRec.name : '', method: res.methodLabel, warnings: res.warnings || [], mode: 'doc' });
+  if (res.fields && res.fields.amount && res.fields.amount.value) { B.amount = String(res.fields.amount.value); B.currency = res.fields.currency.value || B.currency; B.conf.amount = res.fields.amount.conf; }
+  if (B.kind === 'flight') {
+    const T = res.ticket || {};
+    if (v(T.route)) { B.route = v(T.route); B.conf.route = c(T.route); }
+    if (v(T.startDate)) { B.out = v(T.startDate); B.conf.out = c(T.startDate); }
+    if (v(T.endDate) && v(T.endDate) !== v(T.startDate)) { B.back = v(T.endDate); B.conf.back = c(T.endDate); }
+    if ((v(T.flights) || []).length) { B.nos = v(T.flights).join(', '); B.conf.nos = c(T.flights); }
+    if (v(T.pnr)) { B.pnr = v(T.pnr); B.conf.pnr = c(T.pnr); }
+    if (v(T.airline)) B.airline = v(T.airline);
+  } else {
+    const H = res.hotel || {};
+    if (v(H.hotel)) { B.name = v(H.hotel); B.conf.name = c(H.hotel); }
+    if (v(H.checkIn)) { B.cin = v(H.checkIn); B.conf.cin = c(H.checkIn); }
+    if (v(H.checkOut)) { B.cout = v(H.checkOut); B.conf.cout = c(H.checkOut); }
+    else if (B.cin && H.nights) { B.cout = addDays(B.cin, H.nights); B.conf.cout = 0.6; }
+    if (v(H.confirmation)) B.ref = v(H.confirmation);
+  }
+}
+/* Write a booking draft onto a trip (+ its company-paid item). */
+function commitBooking(t, B) {
+  const isF = B.kind === 'flight';
+  if (isF) {
+    const fl = B.nos.split(/[,;\s]+/).map(z => z.trim().toUpperCase()).filter(z => /^[A-Z0-9]{2}\d{1,4}$/.test(z));
+    Object.assign(t, { route: B.route, flightOut: B.out, flightBack: B.back, flights: fl, pnr: B.pnr, airline: B.airline || t.airline || '', airlineInfo: fl.length ? fl.join(', ') : (B.nos || B.airline || ''), flightSkip: !!B.skip && !bookingFilled(B) });
+  } else Object.assign(t, { hotelInfo: B.name, hotelIn: B.cin, hotelOut: B.cout, hotelRef: B.ref || '', hotelSkip: !!B.skip && !bookingFilled(B) });
+  if (!bookingFilled(B)) return null;
+  let e = B.expId ? db.expenses.find(x => x.id === B.expId) : null;
+  const nights = !isF && B.cin && B.cout ? daysBetween(B.cin, B.cout) : 0;
+  const vals = { tripId: t.id, date: (isF ? B.out : B.cin) || t.startDate, merchant: isF ? (B.airline || (t.flights && t.flights[0] ? 'Flight ' + t.flights.join(' · ') : 'Flight')) : (B.name || 'Hotel'),
+    description: isF ? (B.route || '') : (nights > 0 ? `${nights} night${nights > 1 ? 's' : ''}` : 'Hotel stay') + (B.ref ? ' · conf. ' + B.ref : ''), category: isF ? 'Flights' : 'Lodging',
+    amount: +B.amount || 0, currency: B.currency || t.defaultCurrency, paidBy: 'company', paymentMethod: 'Company Paid', refCode: isF ? B.pnr : (B.ref || '') };
+  if (B.fileRec) Object.assign(vals, { fileType: B.fileRec.type === 'application/pdf' ? 'PDF' : 'IMAGE', fileName: B.fileRec.name, hasFile: true, previewDataUrl: B.preview || null });
+  if (e) Object.assign(e, syncExpense({ ...e, ...vals }));
+  else { e = syncExpense({ id: uid('EXP'), createdAt: new Date().toISOString(), source: B.fileRec ? 'ocr' : 'manual', hasFile: false, ...vals }); db.expenses.push(e); }
+  if (B.fileRec) Files.put(e.id, B.fileRec).catch(() => {});
+  if (isF) t.flightExpId = e.id; else t.hotelExpId = e.id;
+  return e;
+}
+
+/* ---------- New trip: short step-by-step sheet ---------- */
+function newTripWizard(pre = {}) {
+  const start = pre.start || todayISO();
+  const W = { step: 1, type: pre.type || 'TRAVEL', city: pre.city || '', country: pre.country || '', cur: pre.cur || base(), start, end: pre.end || addDays(start, 4), purpose: pre.purpose || '',
+    datesTouched: !!pre.end, flight: pre.flight || emptyBooking('flight'), hotel: pre.hotel || emptyBooking('hotel') };
+  const total = () => (W.type === 'LOCAL' ? 1 : 3);
+  const dots = () => total() > 1 ? `<div class="steps">${[1, 2, 3].map(i => `<i class="${i === W.step ? 'on' : i < W.step ? 'done' : ''}"></i>`).join('')}<span>Step ${W.step} of 3</span></div>` : '';
+  function fillFromDoc(res) {
+    const T = res.ticket || {}, H = res.hotel || {}; const v = x => x && x.value;
+    const city = v(T.city) || v(H.city); const country = v(T.country) || v(H.country);
+    if (city && !W.city) { W.city = city; if (country) W.country = country; const p = P.detectPlace(city); if (p) { W.cur = p.currency; if (!W.country) W.country = p.country; } }
+    if (!W.datesTouched) {
+      const s = W.flight.out || W.hotel.cin, e = W.flight.back || W.hotel.cout;
+      if (s) { W.start = s; W.end = e && e >= s ? e : (W.end >= s ? W.end : s); }
+    }
+  }
+  async function onDoc(files, kind, b) {
+    const pr = $('#bk-prog', b); pr && pr.classList.remove('hidden');
+    const msg = (m, p) => { const el = $('#bk-msg'); if (el) el.textContent = m + (p != null ? ` ${Math.round(clamp(p, 0, 1) * 100)}%` : ''); };
+    try {
+      const res = await readBookingDoc(files[0], msg);
+      const isHotel = res.docType === 'HOTEL';
+      const target = isHotel ? W.hotel : W.flight;
+      applyDocToBooking(target, res); fillFromDoc(res);
+      if (kind === 'flight' && isHotel) toast('That looks like a hotel booking — added under Hotel');
+      if (kind === 'hotel' && !isHotel && res.docType === 'TICKET') toast('That looks like an e-ticket — added under Flight');
+      draw();
+    } catch (err) { console.warn(err); pr && pr.classList.add('hidden'); toast('Could not read it — enter the details below', 'warn'); }
+  }
+  function draw() {
+    const s = W.step;
+    if (s === 1) {
+      openSheet({ title: 'New trip', left: { label: 'Cancel' }, right: { label: W.type === 'LOCAL' ? 'Create' : 'Next', fn: () => {} },
+        body: `${dots()}<div class="wz-q">Local trip?</div>
+          <div class="seg big" id="wz-type"><button data-v="TRAVEL" class="${W.type !== 'LOCAL' ? 'on' : ''}">${icon('plane', 's')} Travel</button><button data-v="LOCAL" class="${W.type === 'LOCAL' ? 'on' : ''}">${icon('pin', 's')} Local</button></div>
+          <div class="foot" id="wz-hint" style="margin-bottom:10px">${W.type === 'LOCAL' ? 'Near home — no flight or hotel.' : 'Next: the flight and hotel the company booked.'}</div>
+          <div class="group"><div class="field"><label>City</label><input id="wz-city" value="${esc(W.city)}" placeholder="e.g. Brazzaville" list="dl-cities2" autocomplete="off"></div>
+            <div class="field"><label>Start</label><input id="wz-start" type="date" value="${esc(W.start)}"></div>
+            <div class="field"><label>End</label><input id="wz-end" type="date" value="${esc(W.end)}"></div>
+            <div class="field"><label>Purpose</label><input id="wz-purpose" value="${esc(W.purpose)}" placeholder="optional · e.g. CT install"></div></div>
+          <datalist id="dl-cities2">${P.PLACES.map(p => `<option value="${esc(p[0])}">${esc(p[1])}</option>`).join('')}</datalist>
+          <div class="foot" id="wz-len"></div>`,
+        onMount: b => {
+          const city = $('#wz-city', b), st = $('#wz-start', b), en = $('#wz-end', b);
+          const len = () => { const n = st.value && en.value ? daysBetween(st.value, en.value) + 1 : 0; $('#wz-len', b).textContent = n > 0 ? `${n} day${n > 1 ? 's' : ''}${W.country ? ' · ' + W.country + ' · ' + W.cur : ''}` : '⚠︎ End is before start'; };
+          const sync = () => { W.city = city.value.trim(); W.start = st.value; W.end = en.value; W.purpose = $('#wz-purpose', b).value.trim(); };
+          city.onchange = () => { const p = P.detectPlace(city.value); if (p && p.city.toLowerCase() === city.value.trim().toLowerCase()) { W.country = p.country; W.cur = p.currency; } else if (!p) { W.country = ''; } len(); };
+          st.onchange = () => { W.datesTouched = true; if (en.value < st.value) en.value = addDays(st.value, W.type === 'LOCAL' ? 0 : 4); len(); }; en.onchange = () => { W.datesTouched = true; len(); }; len();
+          $$('#wz-type button', b).forEach(btn => btn.onclick = () => { W.type = btn.dataset.v; $$('#wz-type button', b).forEach(z => z.classList.toggle('on', z === btn)); $('#sheet-primary').textContent = W.type === 'LOCAL' ? 'Create' : 'Next'; $('#wz-hint', b).textContent = W.type === 'LOCAL' ? 'Near home — no flight or hotel.' : 'Next: the flight and hotel the company booked.'; });
+          $('#sheet-primary').onclick = () => {
+            sync(); city.onchange();
+            if (!W.city) { city.focus(); toast('Enter the city', 'warn'); return; }
+            if (!W.start || !W.end || W.end < W.start) { toast('Check the dates', 'warn'); return; }
+            if (W.type === 'LOCAL') finish(); else { W.step = 2; draw(); }
+          };
+        } });
+    } else {
+      const kind = s === 2 ? 'flight' : 'hotel'; const B = W[kind];
+      openSheet({ title: kind === 'flight' ? 'Flight' : 'Hotel', left: { label: 'Back', fn: () => { readBookingForm($('#sheet-b'), B); W.step--; draw(); } }, right: { label: s === 3 ? 'Create' : 'Next', fn: () => {} },
+        body: `${dots()}${bookingFormHTML(B, W.cur)}<button class="btn gray" id="wz-later" style="margin-top:18px">Add later</button>`,
+        onMount: b => {
+          bindFileInputs(b, fs => { readBookingForm(b, B); onDoc(fs, kind, b); });
+          const next = () => { if (s === 3) finish(); else { W.step = 3; draw(); } };
+          $('#sheet-primary').onclick = () => { readBookingForm(b, B); B.mode = bookingFilled(B) ? (B.fileRec ? 'doc' : 'manual') : 'later'; if (kind === 'hotel' && B.cin && B.cout && B.cout < B.cin) { toast('Check-out is before check-in', 'warn'); return; } next(); };
+          $('#wz-later', b).onclick = () => { Object.assign(W[kind], emptyBooking(kind), { mode: 'later' }); next(); };
+        } });
+    }
+  }
+  function finish() {
+    const p = P.detectPlace(W.city);
+    const t = { id: uid('TRIP'), type: W.type, city: W.city, country: W.country || (p && p.city.toLowerCase() === W.city.toLowerCase() ? p.country : ''), purpose: W.purpose, startDate: W.start, endDate: W.end,
+      defaultCurrency: W.cur, color: nextColor(), pnr: '', flights: [], airlineInfo: '', hotelInfo: '', notes: '', noExpenseDays: [] };
+    t.location = [t.city, t.country].filter(Boolean).join(', ');
+    db.trips.push(t);
+    if (W.type !== 'LOCAL') { commitBooking(t, W.flight); commitBooking(t, W.hotel); }
+    const n = autoAssignInto(t); save(); closeSheet();
+    const miss = needsBookings(t);
+    toast(`Trip created${n ? ` · ${n} expense${n > 1 ? 's' : ''} linked` : ''}${miss ? ' · add bookings later' : ''}`);
+    openTrip(t.id);
+  }
+  draw();
+  return W;
+}
+function editTrip(id, ctx = {}) {
+  if (!id) return newTripWizard({ start: ctx.date });
+  const t = tripById(id); if (t) openTripEditor({ ...t }, { isNew: false });
+}
+
+/* ---------- Flight / Hotel sheet for an existing trip ---------- */
+function bookingSheet(t, kind) {
+  const B = emptyBooking(kind, t);
+  const draw = () => openSheet({ title: kind === 'flight' ? 'Flight' : 'Hotel', left: { label: 'Cancel' }, right: { label: 'Save', fn: () => {} },
+    body: `${bookingFormHTML(B, t.defaultCurrency)}
+      <div class="group" style="margin-top:14px"><div class="row"><span class="body"><div class="t">${kind === 'flight' ? 'No flight on this trip' : 'No hotel on this trip'}</div><div class="st">${kind === 'flight' ? 'e.g. you drove there' : 'e.g. staying with family or on site'}</div></span><label class="switch"><input type="checkbox" id="bk-skip"${B.skip ? ' checked' : ''}><span></span></label></div></div>`,
+    onMount: b => {
+      bindFileInputs(b, async fs => {
+        readBookingForm(b, B); $('#bk-prog', b).classList.remove('hidden');
+        try { const res = await readBookingDoc(fs[0], (m, p) => { const el = $('#bk-msg'); if (el) el.textContent = m + (p != null ? ` ${Math.round(clamp(p, 0, 1) * 100)}%` : ''); }); applyDocToBooking(B, res); draw(); }
+        catch (err) { console.warn(err); $('#bk-prog', b).classList.add('hidden'); toast('Could not read it — enter the details', 'warn'); }
+      });
+      $('#bk-view', b) && ($('#bk-view', b).onclick = () => { const e = db.expenses.find(x => x.id === B.expId); if (e) showFile(e); });
+      $('#sheet-primary').onclick = () => {
+        readBookingForm(b, B); B.skip = $('#bk-skip', b).checked;
+        if (kind === 'hotel' && B.cin && B.cout && B.cout < B.cin) { toast('Check-out is before check-in', 'warn'); return; }
+        if (kind === 'flight' && B.out && B.back && B.back < B.out) { toast('Return is before outbound', 'warn'); return; }
+        commitBooking(t, B);
+        const s = kind === 'flight' ? B.out : B.cin, e = kind === 'flight' ? B.back : B.cout;
+        let widened = false;
+        if (s && s < t.startDate) { t.startDate = s; widened = true; } if (e && e > t.endDate) { t.endDate = e; widened = true; }
+        if (widened) autoAssignInto(t);
+        save(); closeSheet(); render(); toast(`${kind === 'flight' ? 'Flight' : 'Hotel'} saved${widened ? ' · trip dates extended' : ''}`);
+      };
+    } });
+  draw();
+}
+
+/* ---------- Trip screen (simplified) ---------- */
+function tripDayText(t) {
+  const L = tripLen(t), st = tripStatus(t), today = todayISO();
+  if (st === 'current') return `Day ${daysBetween(t.startDate, today) + 1} of ${L}`;
+  if (st === 'upcoming') { const n = daysBetween(today, t.startDate); return n === 1 ? `Starts tomorrow · ${L} days` : `Starts in ${n} days · ${L} days`; }
+  return `${L} day${L > 1 ? 's' : ''} · ended`;
+}
+function bookingTile(t, kind) {
+  const isF = kind === 'flight'; const e = isF ? flightExp(t) : hotelExp(t);
+  const skip = isF ? t.flightSkip : t.hotelSkip; const has = isF ? hasFlight(t) : hasHotel(t);
+  let main, sub;
+  if (!has) { main = isF ? 'Add flight' : 'Add hotel'; sub = 'Scan or enter'; }
+  else if (skip && !(isF ? (t.route || (t.flights || []).length || t.pnr) : t.hotelInfo) && !e) { main = isF ? 'No flight' : 'No hotel'; sub = 'Not needed'; }
+  else if (isF) {
+    main = t.route || ((t.flights || []).length ? t.flights.join(' · ') : (t.airlineInfo || (e && e.merchant) || 'Flight'));
+    sub = [t.route && (t.flights || []).length ? t.flights[0] : null, t.flightOut ? fmtD(t.flightOut, { day: 'numeric', month: 'short' }) + (t.flightBack ? ' – ' + fmtD(t.flightBack, { day: 'numeric', month: 'short' }) : '') : null, !t.flightOut && t.pnr ? 'PNR ' + t.pnr : null].filter(Boolean).join(' · ') || (e && e.description) || 'Company paid';
+  } else {
+    main = t.hotelInfo || (e && e.merchant) || 'Hotel';
+    const ci = t.hotelIn, co = t.hotelOut; const n = ci && co ? daysBetween(ci, co) : 0;
+    sub = ci ? `${fmtD(ci, { day: 'numeric', month: 'short' })}${co ? ' – ' + fmtD(co, { day: 'numeric', month: 'short' }) : ''}${n > 0 ? ` · ${n} night${n > 1 ? 's' : ''}` : ''}` : (e && e.description) || 'Company paid';
+  }
+  return `<button class="btile${has ? '' : ' empty'}" id="tr-${kind}"><div class="k">${icon(isF ? 'plane' : 'bed', 's')} ${isF ? 'Flight' : 'Hotel'}${e && e.hasFile ? `<span class="att">${icon('doc', 's')}</span>` : ''}</div><div class="m">${has ? '' : icon('plus', 's')}${esc(main)}</div><div class="s">${esc(sub)}</div></button>`;
+}
+function renderTrip() {
+  const v = $('#v-trip'); const t = tripById(state.tripId);
+  if (!t) { go('trips'); return; }
+  const tot = tripTotals(t); const miss = missingDays(t); const L = tripLen(t);
+  const fe = flightExp(t), he = hotelExp(t);
+  const list = expensesOf(t).filter(e => e !== fe && e !== he).sort((a, b) => (a.date + a.createdAt).localeCompare(b.date + b.createdAt));
+  const mine = list.filter(e => e.paidBy === 'me');
+  const fromLabel = { today: 'Today', calendar: 'Calendar', expenses: 'Expenses', settings: 'Settings' }[state.from] || 'Trips';
+  const flag = flagOf(t.country); const travel = isTravel(t);
+  const needF = travel && !hasFlight(t), needH = travel && !hasHotel(t);
+  const remind = needF || needH ? `<button class="remind" id="tr-remind">${icon('info', 's')}<span>${needF && needH ? 'Add the flight and hotel the company booked' : needF ? 'Add the flight details' : 'Add the hotel details'} <b>— takes a few seconds</b></span>${icon('chevR', 's chev')}</button>` : '';
+  const byDay = {}; list.forEach(e => (byDay[e.date] = byDay[e.date] || []).push(e));
+  const dayLabel = d => `${fmtD(d, { weekday: 'short', day: 'numeric', month: 'short' })}${d >= t.startDate && d <= t.endDate ? ` · Day ${daysBetween(t.startDate, d) + 1}` : ''}`;
+  const listHTML = list.length ? Object.keys(byDay).sort().map(d => `<div class="dayh"><span>${esc(dayLabel(d))}</span><span class="num">${esc(fmtBase(byDay[d].filter(e => e.paidBy === 'me').reduce((s, e) => s + (conv(e.amount, e.currency) || 0), 0)))}</span></div><div class="group">${byDay[d].map(e => expenseRow(e, { showDate: false, showTrip: false, simple: true })).join('')}</div>`).join('')
+    : `<div class="card"><div class="empty">${icon('receipt')}No receipts yet.<br>Tap <b>Add receipt</b> after each purchase.</div></div>`;
+  const catEntries = Object.entries(tot.byCat).sort((a, b) => b[1] - a[1]); const curs = Object.entries(tot.byCur);
+  const details = `<details class="tdetails" id="tr-details"${state.tripDetailsOpen ? ' open' : ''}><summary>Details${miss.length ? ` <span class="dnote">${miss.length} day${miss.length > 1 ? 's' : ''} without receipts</span>` : ''}</summary>
+    <div class="ghead">Days without receipts</div><div class="group">${miss.length ? miss.map(d => `<button class="row tap" data-cal="${d}"><span class="body"><div class="t">${esc(fmtD(d, { weekday: 'long', day: 'numeric', month: 'short' }))}</div><div class="st">Day ${daysBetween(t.startDate, d) + 1} · tap to add or mark “no spend”</div></span>${icon('chevR', 's chev')}</button>`).join('') : `<div class="row"><span class="body muted">None — every past day has a receipt or is marked</span></div>`}</div>
+    <div class="ghead">Summary</div><div class="group">
+      <div class="row"><span class="body">Company paid</span><span class="num muted">${esc(fmtBase(tot.company, true))}</span></div>
+      <div class="row"><span class="body">Average per day</span><span class="num muted">${esc(fmtBase(tot.reimb / clamp(daysBetween(t.startDate, todayISO()) + 1, 1, L), true))}</span></div>
+      ${catEntries.map(([k, val]) => { const c = catOf(k); return `<div class="row"><span class="body"><span class="dot" style="background:${c.color};width:8px;height:8px;margin-right:8px"></span>${esc(c.label)}</span><span class="num muted">${esc(fmtBase(val))}</span></div>`; }).join('')}</div>
+    <div class="ghead">Currencies &amp; exchange rates</div><div class="group">
+      <div class="row"><span class="body">Local currency</span><span class="muted">${esc(t.defaultCurrency)}</span></div>
+      ${curs.map(([c, x]) => `<div class="row"><span class="body"><div class="t num">${esc(fmt(x.local, c))}</div><div class="st">${esc(rateLabel(c))}</div></span><span class="num muted">${esc(fmtBase(x.base))}</span></div>`).join('')}</div>
+    <div class="foot">Rates: ${db.fx.updatedAt ? 'live, updated ' + esc(new Date(db.fx.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : 'built-in defaults'} · edit in Settings.${tot.unconverted ? ` ${tot.unconverted} item(s) need a rate.` : ''}</div>
+    ${t.purpose || t.notes ? `<div class="ghead">Notes</div><div class="group"><div class="row"><span class="body" style="white-space:pre-wrap">${esc([t.purpose, t.notes].filter(Boolean).join('\n'))}</span></div></div>` : ''}
+  </details>`;
+  v.innerHTML = navbar(`${flag ? flag + ' ' : ''}${tripName(t)}`, `<button class="navbtn" id="tr-back">${icon('chevL')}${esc(fromLabel)}</button>`, `<button class="navbtn circle" id="tr-more" aria-label="More">${icon('more')}</button>`) +
+    `<div class="thero"><div class="ltitle">${flag ? `<span class="flag">${flag}</span>` : ''}${esc(tripName(t))}</div>
+      <div class="lsub" style="margin-bottom:14px">${esc(fmtRange(t.startDate, t.endDate))} · <b>${esc(tripDayText(t))}</b>${travel ? '' : ' · Local'}</div></div>
+    ${remind}
+    <div class="reimb"><div class="k">To reimburse</div><div class="v">${esc(fmtBase(tot.reimb))}</div><div class="s">${mine.length} receipt${mine.length === 1 ? '' : 's'}${tot.noReceipt ? ` · ${tot.noReceipt} without photo` : ''}</div></div>
+    ${travel ? `<div class="btiles">${bookingTile(t, 'flight')}${bookingTile(t, 'hotel')}</div>` : ''}
+    <button class="btn addr" id="tr-addr">${icon('camera')} Add receipt</button>
+    <div class="section-h"><h2>Expenses</h2></div>
+    ${listHTML}
+    ${details}`;
+  bindRows(v);
+  $('#tr-back', v).onclick = () => go(state.from || 'trips');
+  const ctxDate = tripStatus(t) === 'current' ? todayISO() : t.startDate;
+  $('#tr-addr', v).onclick = () => receiptSheet({ tripId: t.id, date: ctxDate });
+  $('#tr-flight', v) && ($('#tr-flight', v).onclick = () => bookingSheet(t, 'flight'));
+  $('#tr-hotel', v) && ($('#tr-hotel', v).onclick = () => bookingSheet(t, 'hotel'));
+  $('#tr-remind', v) && ($('#tr-remind', v).onclick = () => bookingSheet(t, needF ? 'flight' : 'hotel'));
+  $('#tr-details', v).ontoggle = e => { state.tripDetailsOpen = e.target.open; };
+  $$('[data-cal]', v).forEach(b => b.onclick = () => go('calendar', { calSel: b.dataset.cal, calMonth: b.dataset.cal.slice(0, 7) }));
+  const slug = tripName(t).replace(/\W+/g, '_');
+  $('#tr-more', v).onclick = () => actionSheet(tripName(t), [
+    { icon: 'pencil', color: '#8e8e93', label: 'Edit trip', sub: 'City, dates, type, currency', fn: () => editTrip(t.id) },
+    { icon: 'printer', color: '#007aff', label: 'Report — print or save as PDF', sub: 'Claim with receipts attached', fn: () => printReport(t) },
+    { icon: 'download', color: '#34c759', label: 'Export CSV', sub: 'For Excel / expense system', fn: () => exportCSV(expensesOf(t).sort((a, b) => a.date.localeCompare(b.date)), `VeriTrip-${slug}-${t.startDate}.csv`) },
+    { icon: 'calendar', color: '#ff2d55', label: 'Add to calendar (.ics)', fn: () => exportICS([t], `VeriTrip-${slug}.ics`) },
+    { icon: 'trash', color: '#ff3b30', label: 'Delete trip', fn: () => deleteTrip(t) }]);
+}
+
 document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
 
 /* ---------------- PWA layer (only in the pwa/ build) ---------------- */
