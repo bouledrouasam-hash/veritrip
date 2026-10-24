@@ -490,6 +490,10 @@ label.row{cursor:pointer}
 .attrow{align-items:flex-start;padding-top:12px;padding-bottom:12px}
 .attbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .attbtns .btn{flex:none}
+/* 3.5 — exchange-rate pending marker */
+.fxp{display:inline-block;margin-left:5px;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:600;letter-spacing:.1px;color:var(--orange);background:color-mix(in srgb,var(--orange) 14%,transparent);white-space:nowrap;vertical-align:1px}
+.fxp.est{color:var(--label2);background:var(--fill)}
+.fx-row .fx-s.pend{color:var(--orange)}
 
 </style>
 </head>
@@ -1395,6 +1399,208 @@ const flagTint = code => (code && FLAGS.tint[code]) || '';
 /** Big faded flag layer used behind the Today trip card and the trip screen header. */
 function flagBG(t) { const c = countryISO(t.country, t.city); return c ? { code: c, html: `<div class="hflag" data-flag="${c}">${flagSVG(c)}</div>`, tint: flagTint(c) } : null; }
 
+/* ===================== VeriTrip 3.5 — historical exchange rates =====================
+   Every item with a non-USD amount (expense, living cost + its payments, invoice, invoice payment) keeps
+     fxDate      the date the rate was looked up for (the item's own date)
+     fxRate      USD per 1 unit of the item's currency
+     fxRateDate  the date the rate really belongs to (a Sunday receipt gets Friday's rate → Friday)
+     fxSrc       where it came from ('currency-api', 'frankfurter (ECB)', 'peg · …', 'manual', 'latest', 'nearest cached')
+     fxStatus    'final' | 'pending' | 'fallback' | 'manual'
+     fxCur       the currency the rate is for
+   pending  = best estimate stored now; the exact rate is fetched when online (queue = all pending items, persisted with the data)
+   fallback = every source was tried and none has that currency/date — estimate kept, user can type the rate
+   manual   = the user's own rate, never overwritten (until "Reset to market rate")                                             */
+
+const CFA_PEG = { XOF: 655.957, XAF: 655.957, KMF: 491.96775 }; // fixed parity: units per 1 EUR
+const pegged = c => !!CFA_PEG[c];
+function applyPeg(rates, manual = {}) { const eur = rates.EUR; if (!(eur > 0)) return; for (const c in CFA_PEG) if (P.CURRENCIES[c] && !manual[c]) rates[c] = eur / CFA_PEG[c]; }
+const r7 = x => +(+x).toPrecision(7);
+const isoOK = d => /^\d{4}-\d\d-\d\d$/.test(d || '');
+
+/* ---------- cache: db.fx.hist[date][currency] = { r: USD per unit, d: rate date, s: source, p?: provisional } ---------- */
+function fxInitStore() {
+  const F = db.fx; F.hist = F.hist || {}; F.miss = F.miss || {};
+  F.sync = Object.assign({ last: null, lastTry: null, fails: 0, next: 0, err: '' }, F.sync || {});
+  for (const d in F.hist) { const h = F.hist[d]; if (h && h.r && typeof h.r === 'object' && 'src' in h) { const n = {}; for (const c in h.r) n[c] = { r: h.r[c], d, s: h.src }; F.hist[d] = n; } } // 3.3/3.4 layout
+}
+const hget = (cur, date) => { const e = db.fx.hist[date] && db.fx.hist[date][cur]; return e && e.r > 0 ? e : null; };
+function hput(cur, date, r, d, s, p) { (db.fx.hist[date] || (db.fx.hist[date] = {}))[cur] = p ? { r: r7(r), d, s, p: 1 } : { r: r7(r), d, s }; }
+const dayDiff = (a, b) => Math.abs(Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 864e5;
+function hnearest(cur, date) { // closest cached rate of this currency on another date (≤ 120 days away)
+  let best = null, bd = 1e9; for (const d in db.fx.hist) { const e = db.fx.hist[d][cur]; if (!(e && e.r > 0 && !e.p)) continue; const k = dayDiff(d, date); if (k < bd) { bd = k; best = e; } }
+  return best && bd <= 120 ? best : null;
+}
+const MISS_TTL = 3 * 864e5;
+const fxMissed = (date, cur) => { const t = db.fx.miss[date + '|' + (pegged(cur) ? 'EUR' : cur)]; return !!t && Date.now() - t < MISS_TTL; };
+
+/* ---------- best rate known right now (no network) ---------- */
+function fxFor(cur, date) {
+  if (cur === 'USD') return { rate: 1, src: 'fixed', status: 'final', rateDate: date || null };
+  if (db.fx.manual[cur]) return { rate: usdPer(cur), src: 'manual', status: 'manual', rateDate: null };
+  const future = isoOK(date) && date > todayISO(), key = pegged(cur) ? 'EUR' : cur, div = pegged(cur) ? CFA_PEG[cur] : 1;
+  if (isoOK(date) && !future) { const e = hget(key, date); if (e) return { rate: e.r / div, src: (pegged(cur) ? 'peg · ' : '') + e.s, status: e.p ? 'pending' : 'final', rateDate: e.d }; }
+  const status = !isoOK(date) ? 'fallback' : future ? 'pending' : fxMissed(date, cur) ? 'fallback' : 'pending';
+  const n = isoOK(date) ? hnearest(key, date) : null;
+  if (n) return { rate: n.r / div, src: (pegged(cur) ? 'peg · ' : '') + 'nearest cached', status, rateDate: n.d };
+  if (pegged(cur)) return { rate: usdPer('EUR') / div, src: 'peg · latest', status, rateDate: null };
+  return { rate: usdPer(cur), src: 'latest', status, rateDate: null };
+}
+const fxStatusOf = o => !o ? null : o.fxStatus ? o.fxStatus : !(o.fxRate > 0) ? null : (o.fxManual || o.fxSrc === 'manual' ? 'manual' : /^(hist|peg$|fixed)/.test(String(o.fxSrc || '')) ? 'final' : 'pending');
+const fxRec = o => ({ rate: o.fxRate || null, rateDate: o.fxRateDate || null, source: o.fxSrc || null, status: fxStatusOf(o), date: o.fxDate || null, currency: o.fxCur || null });
+const FXKEYS = ['fxRate', 'fxSrc', 'fxDate', 'fxCur', 'fxRateDate', 'fxStatus', 'fxManual'];
+/* Store the best-known rate on an item. Final and manual rates are kept while the item's date and currency are unchanged. */
+function stampFx(o, cur, date) {
+  if (!o) return false;
+  const before = FXKEYS.map(k => o[k]).join('|');
+  const legacy = !o.fxStatus && o.fxRate > 0; if (legacy) { o.fxStatus = fxStatusOf(o); o.fxCur = o.fxCur || cur; o.fxRateDate = o.fxRateDate || (o.fxStatus === 'final' ? o.fxDate || null : null); o.fxSrc = String(o.fxSrc || '').replace(/^hist · /, ''); }
+  const manual = o.fxManual === true && o.fxRate > 0 && (!o.fxCur || o.fxCur === cur);
+  if (manual) { o.fxManual = true; o.fxCur = cur; o.fxDate = date || null; o.fxSrc = 'manual'; return FXKEYS.map(k => o[k]).join('|') !== before; }
+  if (o.fxStatus === 'final' && o.fxRate > 0 && o.fxCur === cur && o.fxDate === (date || null)) return FXKEYS.map(k => o[k]).join('|') !== before;
+  const f = fxFor(cur, date);
+  if (!(f.rate > 0)) { Object.assign(o, { fxRate: null, fxSrc: null, fxDate: date || null, fxCur: cur, fxRateDate: null, fxStatus: f.status === 'pending' && !(isoOK(date) && date > todayISO()) && fxMissed(date, cur) ? 'fallback' : f.status, fxManual: false }); return FXKEYS.map(k => o[k]).join('|') !== before; } // currency unknown to every source
+  Object.assign(o, { fxRate: r7(f.rate), fxSrc: f.src, fxDate: date || null, fxCur: cur, fxRateDate: f.rateDate || null, fxStatus: f.status, fxManual: false });
+  return FXKEYS.map(k => o[k]).join('|') !== before;
+}
+/* Amount of an item converted with ITS stored rate (falls back to today's rate). */
+function econv(o, amount = o.amount, cur = o.currency, to = base()) {
+  if (amount == null || isNaN(amount)) return null; if (cur === to) return +amount;
+  const r = o && o.fxRate > 0 ? o.fxRate : usdPer(cur); const b = usdPer(to); if (!r || !b) return null; return amount * r / b;
+}
+const fxFmtDay = d => fmtD(d, { day: 'numeric', month: 'short', year: 'numeric' });
+function fxSrcLabel(o) {
+  const st = fxStatusOf(o); if (!st) return '';
+  if (st === 'manual') return 'your rate';
+  if (st === 'final') { const rd = o.fxRateDate || o.fxDate; return `rate of ${rd ? fxFmtDay(rd) : '—'}` + (o.fxRateDate && o.fxDate && o.fxRateDate < o.fxDate ? ' (last published before ' + fmtD(o.fxDate, { day: 'numeric', month: 'short' }) + ')' : '') + (String(o.fxSrc).startsWith('peg') ? ' · fixed EUR peg' : ''); }
+  if (st === 'fallback') return 'no market rate found for this date — estimate; tap to enter your own';
+  return o.fxDate && o.fxDate > todayISO() ? 'estimate — exact rate once the date has passed' : 'rate pending — estimate until online';
+}
+/* tiny marker for lists */
+const fxMark = o => { const st = o && o.fxCur && o.fxCur !== base() ? fxStatusOf(o) : null; return st === 'pending' ? ' <span class="fxp" title="Exchange rate pending — updates automatically when online">rate pending</span>' : st === 'fallback' ? ` <span class="fxp est" title="No market rate found — tap the item to enter one">${o.fxRate > 0 ? 'est. rate' : 'no rate'}</span>` : ''; };
+/* "1 USD = 655.96 XOF" for an item */
+function rateText(rate, cur, b = base()) { if (!(rate > 0)) return '—'; const x = usdPer(b) / rate; return `1 ${b} = ${x >= 100 ? x.toFixed(2) : x >= 1 ? x.toFixed(4) : x.toPrecision(4)} ${cur}`; }
+const perBase = (rate, b = base()) => rate > 0 ? +(usdPer(b) / rate).toPrecision(6) : '';
+
+/* ---------- every priced item ---------- */
+function fxItems() {
+  const F = db.finance || {}; const out = [];
+  for (const e of db.expenses) out.push([e, e.currency, e.date]);
+  for (const l of F.living || []) {
+    out.push([l, l.currency, l.due]);
+    if (l.payFx) for (const d in l.payFx) if (!l.paid[d]) delete l.payFx[d];             // payment un-ticked
+    for (const d in l.paid) { l.payFx = l.payFx || {}; out.push([l.payFx[d] || (l.payFx[d] = {}), l.currency, l.paid[d]]); } // each payment: rate of the day it was paid
+  }
+  for (const c of F.contracts || []) out.push([c, c.currency, c.start]);
+  for (const i of F.invoices || []) { out.push([i, i.currency, i.date]); for (const p of i.payments || []) out.push([p, i.currency, p.date]); }
+  return out;
+}
+const fxPending = () => fxItems().filter(([o, c]) => c !== 'USD' && fxStatusOf(o) === 'pending');
+const fxDuePending = () => fxPending().filter(([o, c, d]) => isoOK(d) && d <= todayISO());
+const fxFallbacks = () => fxItems().filter(([o, c]) => c !== 'USD' && fxStatusOf(o) === 'fallback');
+function fxStampAll() { let ch = false; for (const [o, cur, date] of fxItems()) if (cur && stampFx(o, cur, date)) ch = true; return ch; }
+
+/* ---------- network ---------- */
+const FX_SOURCES = [
+  { name: 'currency-api', since: '2024-03-02', back: 4, // fawazahmed0, one JSON per calendar day, ~340 currencies incl. all African ones
+    urls: d => [`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${d}/v1/currencies/usd.json`, `https://${d}.currency-api.pages.dev/v1/currencies/usd.json`],
+    pick: j => j && j.usd && { date: j.date, map: j.usd } },
+  { name: 'frankfurter (ECB)', since: '1999-01-04', back: 0, // ECB reference rates, ~30 currencies, returns the last business day on or before the date
+    urls: d => [`https://api.frankfurter.dev/v1/${d}?base=USD`],
+    pick: j => j && j.rates && { date: j.date, map: Object.fromEntries(Object.entries(j.rates).map(([k, v]) => [k.toLowerCase(), v])) } }];
+async function fxGetJSON(url, ms = 8000) { // null = the file does not exist (404); throws on network trouble
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
+  try { const r = await fetch(url, { signal: ac.signal, cache: 'no-store' }); if (r.status === 404) return null; if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); } finally { clearTimeout(t); }
+}
+/* Look up the rates of one date for some currencies, trying every source. Fills the cache.
+   → { found: [cur], missed: [cur], net: true if a source could not be reached (so "missed" is not final) } */
+const fxDown = {}; // source → time until which it is considered unreachable (circuit breaker: don't hammer a dead network)
+async function fxLookupDate(date, curs) {
+  const need = new Set([...curs].filter(c => c && c !== 'USD').map(c => pegged(c) ? 'EUR' : c)); const found = new Set(); let net = false;
+  const today = todayISO();
+  for (const src of FX_SOURCES) {
+    const left = [...need].filter(c => !found.has(c)); if (!left.length || date < src.since) continue;
+    if ((fxDown[src.name] || 0) > Date.now()) { net = true; continue; }
+    for (let k = 0; k <= src.back; k++) {
+      const d = k ? addDays(date, -k) : date; let j, reached = false;
+      for (const u of src.urls(d)) { try { j = await fxGetJSON(u); reached = true; break; } catch (e) { /* next mirror */ } }
+      if (!reached) { net = true; fxDown[src.name] = Date.now() + 20000; break; }
+      if (!j) continue;                                  // no file for that day → try the previous day
+      const m = src.pick(j); if (!m || !m.map) continue;
+      for (const c of left) { const v = m.map[c.toLowerCase()]; if (v > 0) { hput(c, date, 1 / v, m.date || d, src.name, date >= today && (m.date || d) < date); found.add(c); } }
+      break;
+    }
+  }
+  const missed = [...need].filter(c => !found.has(c));
+  for (const c of found) delete db.fx.miss[date + '|' + c];
+  if (!net) for (const c of missed) db.fx.miss[date + '|' + c] = Date.now();
+  return { found: [...found], missed, net };
+}
+
+/* ---------- the queue: stamp everything, then fetch what is pending ---------- */
+let fxBusy = false, fxTimer = null, fxSaving = false;
+const FX_BACKOFF = [30, 60, 120, 300, 900, 1800]; // seconds
+const fxOnline = () => navigator.onLine !== false;
+async function ensureRates(opt = {}) {
+  if (!db || fxBusy) return false;
+  let changed = fxStampAll();                       // offline-safe: every item gets its best-known rate + status right away
+  if (!(db.settings.autoFx || opt.force) || !fxOnline()) { if (changed) { fxSaving = true; try { save(); } finally { fxSaving = false; } } fxUpdateUI(); return changed; }
+  fxBusy = true; const S = db.fx.sync; S.lastTry = new Date().toISOString(); let reached = false, failed = false;
+  try {
+    const today = todayISO(), need = new Map();
+    for (const [o, cur, date] of fxItems()) {
+      if (!cur || cur === 'USD' || !isoOK(date) || date > today) continue;
+      const st = fxStatusOf(o); if (st === 'final' || st === 'manual') continue;
+      if (st === 'fallback' && !opt.force && fxMissed(date, cur)) continue;
+      if (opt.force) delete db.fx.miss[date + '|' + (pegged(cur) ? 'EUR' : cur)];
+      (need.get(date) || need.set(date, new Set()).get(date)).add(cur);
+    }
+    for (const k in fxDown) if (opt.force) delete fxDown[k];
+    const dates = [...need.keys()].sort().reverse().slice(0, opt.max || 60);
+    for (let i = 0; i < dates.length; i += 4) await Promise.all(dates.slice(i, i + 4).map(async d => { const r = await fxLookupDate(d, need.get(d)); if (r.net) failed = true; if (r.found.length || !r.net) reached = true; }));
+    if (dates.length && fxStampAll()) changed = true;
+    if (failed) { S.fails++; S.err = 'offline or rate service unreachable'; } else { S.fails = 0; S.err = ''; }
+    if (reached && !failed) S.last = new Date().toISOString();
+    if (dates.length) changed = true;               // cache and sync state changed
+  } catch (e) { console.warn('FX', e); S.fails++; } finally { fxBusy = false; }
+  S.next = fxDuePending().length && db.settings.autoFx ? Date.now() + 1000 * FX_BACKOFF[Math.min(S.fails, FX_BACKOFF.length - 1)] : 0;
+  if (changed) { fxSaving = true; try { save(); } finally { fxSaving = false; } }
+  fxUpdateUI();
+  return changed;
+}
+/* Run the queue soon; keeps retrying with growing delays while anything is still pending. */
+const fxSaveHook = () => { if (!fxBusy && !fxSaving && !fxTimer) scheduleRates(900); };
+function scheduleRates(delay = 600) {
+  clearTimeout(fxTimer);
+  fxTimer = setTimeout(async () => {
+    fxTimer = null; await ensureRates();
+    if (db && db.settings.autoFx && fxDuePending().length) { const S = db.fx.sync; scheduleRates(1000 * FX_BACKOFF[Math.min(Math.max(S.fails, 0), FX_BACKOFF.length - 1)]); }
+  }, delay);
+}
+function fxKick() { if (!db) return; for (const k in fxDown) delete fxDown[k]; if (db.fx.sync) db.fx.sync.fails = 0; scheduleRates(400); }
+async function updateRatesNow() {
+  if (!fxOnline()) { toast('You are offline — rates will update when you are back online', 'warn'); fxUpdateUI(); return false; }
+  const n0 = fxPending().length + fxFallbacks().length;
+  await refreshRates(false); await ensureRates({ force: true });
+  const n1 = fxPending().length, f1 = fxFallbacks().length;
+  toast(n1 ? `${n1} rate${n1 > 1 ? 's' : ''} still pending — will retry` : f1 ? `Rates updated — ${f1} item${f1 > 1 ? 's' : ''} without a market rate` : n0 ? 'All exchange rates are up to date' : 'Exchange rates are up to date', n1 || f1 ? 'warn' : undefined);
+  fxUpdateUI(); return true;
+}
+
+/* ---------- Settings: "Exchange rates" status ---------- */
+const lastSync = () => [db.fx.sync && db.fx.sync.last, db.fx.updatedAt].filter(Boolean).sort().pop() || null;
+function fxSyncText() {
+  const S = db.fx.sync || {}; const p = fxPending().length, f = fxFallbacks().length, due = fxDuePending().length;
+  return { pending: p, due, fallback: f, last: lastSync() ? new Date(lastSync()).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never', offline: !fxOnline() };
+}
+function fxUpdateUI() {
+  const el = document.getElementById('fx-status'); if (!el || !db) return; const s = fxSyncText();
+  el.innerHTML = `<div class="row"><span class="body"><div class="t">Rates pending</div><div class="st" id="fx-pend-sub">${s.pending ? (s.due ? (s.offline ? 'Waiting for a connection' : 'Updating automatically') : 'Waiting for the item date to pass') : 'All items have their exact rate'}</div></span><span class="amt" id="fx-pend">${s.pending}</span></div>`
+    + (s.fallback ? `<div class="row"><span class="body"><div class="t">No market rate found</div><div class="st">Estimated — open the item to enter the rate yourself</div></span><span class="amt" id="fx-fb">${s.fallback}</span></div>` : '')
+    + `<div class="row"><span class="body"><div class="t">Last sync</div><div class="st" id="fx-last">${esc(s.last)}${db.fx.sync.err && s.pending ? ' · ' + esc(db.fx.sync.err) : ''}</div></span></div>`;
+}
+window.addEventListener('online', () => { fxKick(); fxUpdateUI(); });
+window.addEventListener('offline', () => fxUpdateUI());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && db && fxDuePending().length) fxKick(); });
+
 /* ===================== VeriTrip app ===================== */
 'use strict';
 const P = window.VTParse;
@@ -1410,7 +1616,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '3.4';
+const APP_VERSION = '3.5';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -1473,7 +1679,7 @@ function migrateExpense(e) {
     createdAt: e.createdAt || new Date().toISOString() };
   if (e.previewDataUrl) x.previewDataUrl = e.previewDataUrl;
   if (e.oorOk) x.oorOk = e.oorOk;
-  for (const k of ['fxRate', 'fxSrc', 'fxDate', 'fxManual']) if (e[k] != null) x[k] = e[k]; // keep the per-item rate across reloads // "Keep as is" for an expense outside its trip dates (v3.4)
+  for (const k of ['fxRate', 'fxSrc', 'fxDate', 'fxManual', 'fxCur', 'fxRateDate', 'fxStatus']) if (e[k] != null) x[k] = e[k]; // keep the per-item rate across reloads // "Keep as is" for an expense outside its trip dates (v3.4)
   syncExpense(x);
   return x;
 }
@@ -1518,7 +1724,7 @@ function load() {
   normalizeDB(); save();
 }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(db)); refreshSoon(); return true; }
+  try { localStorage.setItem(KEY, JSON.stringify(db)); refreshSoon(); if (typeof fxSaveHook === 'function') fxSaveHook(); return true; }
   catch (e) { toast('Storage is full — export a backup and delete old receipts', 'warn'); console.warn(e); return false; }
 }
 
@@ -1780,12 +1986,12 @@ function expenseRow(e, opts = {}) {
   if (opts.simple) {
     const ss = e.paidBy === 'company' ? 'Company paid' : (e.description && e.description !== c.label ? e.description : c.label);
     return `<button class="row tap has-icon" data-exp="${esc(e.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(e.merchant || c.label)}</div><div class="st">${esc(ss)}</div></span>
-    <span class="amt"><span style="${e.paidBy === 'company' ? 'color:var(--label2)' : ''}">${e.paidBy === 'company' && !(+e.amount) ? 'Prepaid' : esc(fmt(e.amount, e.currency))}</span>${e.paidBy === 'me' && e.currency !== base() && v != null ? `<span class="sub">≈ ${esc(fmtBase(v))}</span>` : ''}</span></button>`;
+    <span class="amt"><span style="${e.paidBy === 'company' ? 'color:var(--label2)' : ''}">${e.paidBy === 'company' && !(+e.amount) ? 'Prepaid' : esc(fmt(e.amount, e.currency))}</span>${e.paidBy === 'me' && e.currency !== base() && v != null ? `<span class="sub">≈ ${esc(fmtBase(v))}${fxMark(e)}</span>` : e.currency !== base() && v == null && fxMark(e) ? `<span class="sub">${fxMark(e)}</span>` : ''}</span></button>`;
   }
   const tags = (e.paidBy === 'company' ? `<span class="pill company">Company</span> ` : '') + (!t ? `<span class="pill warn">No trip</span> ` : '') + (e.paidBy === 'me' && !e.hasFile && !e.previewDataUrl ? `<span class="pill">No receipt</span>` : '');
   return `<button class="row tap has-icon" data-exp="${esc(e.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span>
     <span class="body"><div class="t">${esc(e.merchant || c.label)}</div><div class="st">${esc(sub)}</div>${tags ? `<div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${tags}</div>` : ''}</span>
-    <span class="amt"><span style="${e.paidBy === 'company' ? 'color:var(--label2)' : ''}">${e.paidBy === 'company' && !(+e.amount) ? 'Prepaid' : esc(fmt(e.amount, e.currency))}</span>${e.currency !== base() && v != null && (+e.amount || e.paidBy !== 'company') ? `<span class="sub">≈ ${esc(fmtBase(v))}</span>` : ''}</span></button>`;
+    <span class="amt"><span style="${e.paidBy === 'company' ? 'color:var(--label2)' : ''}">${e.paidBy === 'company' && !(+e.amount) ? 'Prepaid' : esc(fmt(e.amount, e.currency))}</span>${e.currency !== base() && v != null && (+e.amount || e.paidBy !== 'company') ? `<span class="sub">≈ ${esc(fmtBase(v))}${fxMark(e)}</span>` : e.currency !== base() && v == null && fxMark(e) ? `<span class="sub">${fxMark(e)}</span>` : ''}</span></button>`;
 }
 function tripRow(t) {
   const st = tripStatus(t); const tot = tripTotals(t); const miss = missingDays(t).length;
@@ -2034,9 +2240,12 @@ function renderSettings() {
     <div class="ghead">Currency</div><div class="group">
       <div class="field"><label>Report currency</label><select id="s-base">${curOptions(base())}</select></div>
       <div class="field"><label>Travel-day buffer</label><select id="s-buf">${[0, 1, 2].map(n => `<option value="${n}"${+s.travelBuffer === n ? ' selected' : ''}>${n ? n + ' day' + (n > 1 ? 's' : '') : 'Off'}</option>`).join('')}</select></div>
-      <div class="row"><span class="body"><div class="t">Live exchange rates</div><div class="st">${db.fx.updatedAt ? 'Updated ' + esc(new Date(db.fx.updatedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + ' · ' + esc(db.fx.source) : 'Using built-in rates'}</div></span><label class="switch"><input type="checkbox" id="s-autofx"${s.autoFx ? ' checked' : ''}><span></span></label></div>
+    </div><div class="foot">Expenses just outside a trip (the buffer) are treated as travel days of that trip. Reports and Finance are in this currency (USD by default).</div>
+    <div class="ghead">Exchange rates</div><div class="group">
+      <div class="row"><span class="body"><div class="t">Update rates automatically</div><div class="st">${db.fx.updatedAt ? 'Updated ' + esc(new Date(db.fx.updatedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + ' · ' + esc(db.fx.source) : 'Using built-in rates'}</div></span><label class="switch"><input type="checkbox" id="s-autofx"${s.autoFx ? ' checked' : ''}><span></span></label></div>
+      <div id="fx-status"></div>
       <button class="row tap" id="s-fxnow"><span class="body" style="color:var(--blue)">Update rates now</span></button>
-    </div><div class="foot">Expenses just outside a trip (the buffer) are treated as travel days of that trip. Reports and Finance are in this currency (USD by default). Each item keeps its own currency and the rate of its own date — looked up online when you save it, editable on the item. XOF and XAF use the fixed peg of 655.957 per EUR.</div>
+    </div><div class="foot">Every item keeps its own currency and the market rate of <b>its own date</b>. Receipts saved offline use an estimate marked “rate pending” and are corrected automatically when you are back online. Weekend dates use the last published rate. Sources: currency-api (daily, all African currencies) and ECB via Frankfurter. XOF and XAF use the fixed peg of 655.957 per EUR. A rate you type on an item is never overwritten.</div>
     <div class="ghead">Today's rates (1 ${esc(base())} = …)</div><div class="group" id="s-rates">${usedCurs.filter(c => c !== base()).map(c => `<div class="field"><label>${c}${db.fx.manual[c] ? ' <span class="pill" style="font-size:10px">manual</span>' : ''}</label><input type="number" step="any" inputmode="decimal" data-rate="${c}" value="${+(conv(1, base(), c) || 0).toPrecision(6)}"></div>`).join('')}</div>
     <div class="foot">Used for new items until the rate of their date is found. Edit a rate to lock it for every item in that currency. <button class="linkbtn small" id="s-unlock">Unlock all</button></div>
     <div class="ghead">AI extraction (optional)</div><div class="group">
@@ -2062,8 +2271,8 @@ function renderSettings() {
   $$('[data-theme]', v).forEach(b => b.onclick = () => { s.theme = b.dataset.theme; save(); applyTheme(); renderSettings(); });
   $('#s-base', v).onchange = e => { s.baseCurrency = e.target.value; save(); renderSettings(); };
   $('#s-buf', v).onchange = e => { s.travelBuffer = +e.target.value; save(); };
-  $('#s-autofx', v).onchange = e => { s.autoFx = e.target.checked; save(); if (s.autoFx) refreshRates(true).then(renderSettings); };
-  $('#s-fxnow', v).onclick = () => refreshRates(true).then(renderSettings);
+  $('#s-autofx', v).onchange = e => { s.autoFx = e.target.checked; save(); if (s.autoFx) { fxKick(); refreshRates(true).then(renderSettings); } };
+  $('#s-fxnow', v).onclick = () => updateRatesNow().then(renderSettings); fxUpdateUI();
   $$('[data-rate]', v).forEach(inp => inp.onchange = () => { const c = inp.dataset.rate; const x = parseFloat(inp.value); if (!(x > 0)) return; db.fx.rates[c] = usdPer(base()) / x; db.fx.manual[c] = true; save(); toast(`${c} rate locked`); renderSettings(); });
   $('#s-unlock', v).onclick = () => { db.fx.manual = {}; save(); refreshRates(true).then(renderSettings); };
   $('#s-ai', v).onchange = e => { ai.provider = e.target.value; save(); renderSettings(); };
@@ -2588,7 +2797,7 @@ function exportCSV(list, name) {
   for (const e of list.slice().sort((a, b) => a.date.localeCompare(b.date))) {
     const t = tripById(e.tripId); const v = econv(e);
     rows.push([t ? tripName(t) : '', t ? t.startDate : '', t ? t.endDate : '', e.date, e.merchant, e.description, catOf(e.category).label, e.paidBy === 'company' ? 'Company' : 'Employee', e.paymentMethod, e.refCode,
-      e.amount, e.currency, v != null ? (e.currency === base() ? 1 : perBase(e.fxRate || usdPer(e.currency))) : '', e.fxDate || '', e.currency === base() ? '' : fxSrcLabel(e), v != null ? v.toFixed(2) : '', e.paidBy === 'me' ? 'Yes' : 'No', e.hasFile || e.previewDataUrl ? (e.fileName || 'Yes') : 'No']);
+      e.amount, e.currency, v != null ? (e.currency === base() ? 1 : perBase(e.fxRate || usdPer(e.currency))) : '', e.fxRateDate || e.fxDate || '', e.currency === base() ? '' : fxSrcLabel(e), v != null ? v.toFixed(2) : '', e.paidBy === 'me' ? 'Yes' : 'No', e.hasFile || e.previewDataUrl ? (e.fileName || 'Yes') : 'No']);
   }
   download(name, '\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
 }
@@ -3038,95 +3247,6 @@ function renderTrip() {
 
 /* ===================== VeriTrip 3.3 — USD reporting · historical FX · Finance ===================== */
 
-/* ---------- FX: per-item rates, historical look-ups, CFA peg ---------- */
-const CFA_PEG = { XOF: 655.957, XAF: 655.957, KMF: 491.96775 }; // fixed parity: units per 1 EUR
-const pegged = c => !!CFA_PEG[c];
-function applyPeg(rates, manual = {}) { const eur = rates.EUR; if (!(eur > 0)) return; for (const c in CFA_PEG) if (P.CURRENCIES[c] && !manual[c]) rates[c] = eur / CFA_PEG[c]; }
-const r7 = x => +(+x).toPrecision(7);
-/* Best rate known right now (USD per 1 unit) for a currency on a date — no network. */
-function fxFor(cur, date) {
-  if (cur === 'USD') return { rate: 1, src: 'fixed' };
-  if (db.fx.manual[cur]) return { rate: usdPer(cur), src: 'manual' };
-  const h = date && db.fx.hist && db.fx.hist[date];
-  if (pegged(cur)) { if (h && h.r.EUR > 0) return { rate: h.r.EUR / CFA_PEG[cur], src: 'peg', via: h.src }; return { rate: usdPer('EUR') / CFA_PEG[cur], src: 'peg-latest' }; }
-  if (h && h.r[cur] > 0) return { rate: h.r[cur], src: 'hist', via: h.src };
-  return { rate: usdPer(cur), src: 'latest' };
-}
-const fxGood = s => ['hist', 'peg', 'fixed'].includes(String(s || '').split(' ')[0]);
-/* Store the rate on an item (unless the user locked it). Returns true if it changed. */
-function stampFx(o, cur, date) {
-  if (!o || o.fxManual) return false;
-  const f = fxFor(cur, date); if (!(f.rate > 0)) return false;
-  if (fxGood(o.fxSrc) && o.fxDate === date && o.fxRate > 0 && !fxGood(f.src)) return false; // keep a historical rate we already had
-  const rate = r7(f.rate), src = f.src === 'hist' ? 'hist · ' + (f.via || '') : f.src;
-  if (o.fxRate === rate && o.fxSrc === src && o.fxDate === date) return false;
-  o.fxRate = rate; o.fxSrc = src; o.fxDate = date || null; return true;
-}
-/* Amount of an item converted with ITS stored rate (falls back to today's rate). */
-function econv(o, amount = o.amount, cur = o.currency, to = base()) {
-  if (amount == null || isNaN(amount)) return null; if (cur === to) return +amount;
-  const r = o && o.fxRate > 0 ? o.fxRate : usdPer(cur); const b = usdPer(to); if (!r || !b) return null; return amount * r / b;
-}
-function fxSrcLabel(o) {
-  if (!o || !o.fxSrc) return ''; const s = String(o.fxSrc); const d = o.fxDate ? fmtD(o.fxDate, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-  if (s === 'manual' || o.fxManual) return 'your rate';
-  if (s.startsWith('hist')) return `rate of ${d}`;
-  if (s === 'peg') return `fixed EUR peg · ${d}`;
-  if (s === 'peg-latest') return 'fixed EUR peg';
-  return "today's rate";
-}
-/* "1 USD = 655.96 XOF" for an item */
-function rateText(rate, cur, b = base()) { if (!(rate > 0)) return '—'; const x = usdPer(b) / rate; return `1 ${b} = ${x >= 100 ? x.toFixed(2) : x >= 1 ? x.toFixed(4) : x.toPrecision(4)} ${cur}`; }
-const perBase = (rate, b = base()) => rate > 0 ? +(usdPer(b) / rate).toPrecision(6) : '';
-
-function fxItems() {
-  const F = db.finance || {}; const out = [];
-  for (const e of db.expenses) out.push([e, e.currency, e.date]);
-  for (const l of F.living || []) out.push([l, l.currency, l.due]);
-  for (const c of F.contracts || []) out.push([c, c.currency, c.start]);
-  for (const i of F.invoices || []) { out.push([i, i.currency, i.date]); for (const p of i.payments || []) out.push([p, i.currency, p.date]); }
-  return out;
-}
-let fxBusy = false; const fxFailed = new Set();
-async function fetchHist(date, curs) {
-  const want = new Set([...curs, 'EUR']);
-  const tries = [
-    [`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/usd.json`, j => j && j.usd, 'currency-api'],
-    [`https://${date}.currency-api.pages.dev/v1/currencies/usd.json`, j => j && j.usd, 'currency-api'],
-    [`https://api.frankfurter.app/${date}?from=USD`, j => j && j.rates && Object.fromEntries(Object.entries(j.rates).map(([k, v]) => [k.toLowerCase(), v])), 'frankfurter (ECB)']];
-  for (const [url, pick, src] of tries) {
-    try {
-      const m = pick(await fetchJSON(url, 7000)); if (!m) continue;
-      const r = {}; for (const c of want) { const v = m[c.toLowerCase()]; if (v > 0) r[c] = r7(1 / v); }
-      if (!Object.keys(r).length) continue;
-      const h = db.fx.hist[date] || (db.fx.hist[date] = { src, r: {} }); Object.assign(h.r, r);
-      return true;
-    } catch (e) { /* next provider */ }
-  }
-  return false;
-}
-/* Fill in transaction-date rates for every item that only has today's rate. */
-async function ensureRates(max = 24) {
-  if (fxBusy || !db.settings.autoFx || (navigator.onLine === false)) return false;
-  fxBusy = true; let changed = false;
-  try {
-    const today = todayISO(); const need = new Map();
-    for (const [o, cur, date] of fxItems()) {
-      if (cur === 'USD' || o.fxManual) continue;
-      if (stampFx(o, cur, date)) changed = true;
-      if (!date || date > today || fxGood(o.fxSrc) || fxFailed.has(date)) continue;
-      if (!need.has(date)) need.set(date, new Set()); need.get(date).add(cur);
-    }
-    const dates = [...need.keys()].sort().reverse().slice(0, max);
-    await Promise.all(dates.map(async d => { if (!(await fetchHist(d, need.get(d)))) fxFailed.add(d); }));
-    if (dates.length) for (const [o, cur, date] of fxItems()) if (cur !== 'USD' && stampFx(o, cur, date)) changed = true;
-  } catch (e) { console.warn('FX', e); } finally { fxBusy = false; }
-  if (changed) save();
-  return changed;
-}
-let fxTimer = null;
-function scheduleRates() { clearTimeout(fxTimer); fxTimer = setTimeout(() => ensureRates().then(ch => { if (ch && !sheetOpen()) render(); }), 600); }
-
 /* ---------- Migration to 3.3 ---------- */
 function migrateV33() {
   const F = db.finance = Object.assign({ living: [], clients: [], contracts: [], invoices: [], tripOOP: false }, db.finance || {});
@@ -3135,13 +3255,13 @@ function migrateV33() {
   F.contracts.forEach(c => { c.id = c.id || uid('CON'); c.freq = c.freq || 'month'; c.currency = c.currency || 'USD'; c.amount = +c.amount || 0; });
   F.invoices.forEach(i => { i.id = i.id || uid('INV'); i.payments = (i.payments || []).map(p => ({ id: p.id || uid('PAY'), ...p, amount: +p.amount || 0, atts: p.atts || [] })); i.atts = i.atts || []; i.currency = i.currency || 'USD'; i.amount = +i.amount || 0; });
   F.clients.forEach(c => { c.id = c.id || uid('CLI'); });
-  db.fx.hist = db.fx.hist || {};
+  fxInitStore();
   applyPeg(db.fx.rates, db.fx.manual);
   if (!db.v33) {
     const was = db.settings.baseCurrency; db.settings.baseCurrency = 'USD'; db.v33 = true;
     if (was && was !== 'USD' && (db.expenses.length || db.trips.length)) pendingToast = 'Reports are now in USD — every item keeps its own currency and rate';
   }
-  for (const [o, cur, date] of fxItems()) if (!(o.fxRate > 0)) stampFx(o, cur, date);
+  fxStampAll();
 }
 
 /* ---------- Finance model ---------- */
@@ -3165,7 +3285,7 @@ function occurrences(anchor, freq, from, to, end) {
 }
 const yRange = Y => [`${Y}-01-01`, `${Y}-12-31`];
 const FIN = () => db.finance;
-function livOcc(l, Y) { const [a, b] = yRange(Y); return occurrences(l.due, l.freq, a, b, l.end).map(d => ({ item: l, date: d, paid: !!l.paid[d], paidOn: l.paid[d] || null, usd: econv(l) })); }
+function livOcc(l, Y) { const [a, b] = yRange(Y); return occurrences(l.due, l.freq, a, b, l.end).map(d => ({ item: l, date: d, paid: !!l.paid[d], paidOn: l.paid[d] || null, rec: l.paid[d] && l.payFx && l.payFx[d] && l.payFx[d].fxRate > 0 ? l.payFx[d] : l, usd: econv(l.paid[d] && l.payFx && l.payFx[d] && l.payFx[d].fxRate > 0 ? l.payFx[d] : l, l.amount, l.currency) })); }
 /* Unpaid instalments from the last year up to `days` ahead. */
 function livDue(days = 60) {
   const today = todayISO(), to = addDays(today, days), from = addDays(today, -365); const out = [];
@@ -3210,33 +3330,34 @@ function financeYears() {
 /* ---------- Shared bits: amount parsing, rate row, attachments ---------- */
 function parseAmtStr(str, cur) { const s = String(str || '').trim(); if (!s) return null; const r = P.parseNumberToken(s.replace(/\s+/g, ' ').replace(/[^\d., ]/g, '').trim(), cur); return r != null ? r : (parseFloat(s.replace(/\s/g, '').replace(',', '.')) || null); }
 const curSel = (id, sel) => `<select id="${id}" aria-label="Currency">${Object.keys(P.CURRENCIES).map(c => `<option${c === sel ? ' selected' : ''}>${c}</option>`).join('')}</select>`;
-function fxRowHTML(id) { return `<div class="fx-row" id="${id}"><span class="fx-l">1 ${esc(base())} =</span><input type="text" inputmode="decimal" class="fx-in" aria-label="Exchange rate"><span class="fx-c"></span><span class="fx-s"></span><button type="button" class="linkbtn small fx-reset hidden">Reset</button></div>`; }
-/* Editable exchange-rate control. get() → { cur, date } */
+function fxRowHTML(id) { return `<div class="fx-row" id="${id}"><span class="fx-l">1 ${esc(base())} =</span><input type="text" inputmode="decimal" class="fx-in" aria-label="Exchange rate"><span class="fx-c"></span><span class="fx-s"></span><button type="button" class="linkbtn small fx-reset hidden">Reset to market rate</button></div>`; }
+/* Editable exchange-rate control. get() → { cur, date }. The rate follows the item's date and currency; a typed rate is "manual" and kept. */
 function rateCtl(el, o, get, onUpd) {
-  let manual = o.fxManual && o.fxRate > 0 ? o.fxRate : null; const inp = $('.fx-in', el); const asked = new Set();
-  const origCur = o.currency; let tmp = {};
+  const { cur: origCur } = get(); const manualCur = origCur;
+  let manual = o.fxManual === true && o.fxRate > 0 ? o.fxRate : null; const inp = $('.fx-in', el); const asked = new Set(); let tmp = {};
   const calc = () => {
     const { cur, date } = get();
-    tmp = cur === origCur ? { fxRate: o.fxRate, fxSrc: o.fxSrc, fxDate: o.fxDate } : {};
-    if (manual) tmp = { fxRate: manual, fxSrc: 'manual', fxDate: date, fxManual: true }; else stampFx(tmp, cur, date);
+    if (manual && cur !== manualCur) manual = null;   // a rate typed for another currency makes no sense here
+    tmp = manual ? { fxRate: manual, fxSrc: 'manual', fxDate: date, fxCur: cur, fxStatus: 'manual', fxManual: true } : Object.assign(cur === origCur ? Object.fromEntries(FXKEYS.map(k => [k, o[k]])) : {}, { fxManual: false });
+    if (!manual) stampFx(tmp, cur, date);
     return { cur, date };
   };
   const upd = () => {
     const { cur, date } = calc(); el.classList.toggle('hidden', cur === base());
     if (document.activeElement !== inp) inp.value = perBase(tmp.fxRate);
-    $('.fx-c', el).textContent = cur; $('.fx-s', el).textContent = manual ? '· your rate' : '· ' + fxSrcLabel(tmp); $('.fx-reset', el).classList.toggle('hidden', !manual);
+    const st = fxStatusOf(tmp); $('.fx-c', el).textContent = cur; $('.fx-s', el).textContent = '· ' + fxSrcLabel(tmp); el.dataset.status = st || ''; $('.fx-s', el).classList.toggle('pend', st === 'pending' || st === 'fallback'); $('.fx-reset', el).classList.toggle('hidden', !manual);
     const key = cur + date;
-    if (!manual && cur !== 'USD' && date && date <= todayISO() && !fxGood(tmp.fxSrc) && db.settings.autoFx && !asked.has(key) && !fxFailed.has(date)) {
+    if (!manual && cur !== 'USD' && isoOK(date) && date <= todayISO() && st !== 'final' && db.settings.autoFx && !asked.has(key) && fxOnline()) {
       asked.add(key); $('.fx-s', el).textContent = '· looking up rate of ' + fmtD(date, { day: 'numeric', month: 'short' }) + '…';
-      fetchHist(date, [cur]).then(ok => { if (!ok) fxFailed.add(date); save(); upd(); });
+      fxLookupDate(date, [cur]).then(() => { save(); upd(); });
     }
     onUpd && onUpd();
   };
   inp.oninput = () => { const x = parseFloat(String(inp.value).replace(/\s/g, '').replace(',', '.')); manual = x > 0 ? usdPer(base()) / x : null; calc(); $('.fx-reset', el).classList.toggle('hidden', !manual); $('.fx-s', el).textContent = manual ? '· your rate' : ''; onUpd && onUpd(); };
   inp.onchange = upd;
-  $('.fx-reset', el).onclick = () => { manual = null; upd(); };
+  $('.fx-reset', el).onclick = () => { manual = null; asked.clear(); inp.value = ''; upd(); };
   upd();
-  return { upd, rate: () => tmp.fxRate, result: () => { calc(); return manual ? { fxRate: r7(manual), fxSrc: 'manual', fxDate: get().date, fxManual: true } : { fxRate: tmp.fxRate, fxSrc: tmp.fxSrc, fxDate: tmp.fxDate, fxManual: false }; } };
+  return { upd, rate: () => tmp.fxRate, result: () => { calc(); const r = {}; for (const k of FXKEYS) r[k] = tmp[k] == null ? (k === 'fxManual' ? false : null) : tmp[k]; if (manual) r.fxRate = r7(manual); return r; } };
 }
 /* Attachment list (invoice PDF, receipt, payment proof) stored in IndexedDB */
 function attsHTML(list, id) {
@@ -3362,15 +3483,15 @@ function renderFinance() {
 function livRow(l, Y) {
   const c = livCat(l.category); const occ = livOcc(l, Y); const paidN = occ.filter(o => o.paid).length; const today = todayISO();
   const next = occurrences(l.due, l.freq, addDays(today, -365), addDays(today, 800), l.end).find(d => !l.paid[d]);
-  const yr = occ.length * (econv(l) || 0);
+  const yr = occ.reduce((t, o) => t + (o.usd || 0), 0);
   const st = `${FREQS[l.freq].label}${next ? ` · ${next < today ? 'overdue ' : 'next '}${fdate(next)}` : occ.length ? ' · all paid' : ''}${l.atts.length ? ' · 📎' : ''}`;
   const pill = occ.length && paidN === occ.length ? '<span class="pill ok">Paid</span>' : paidN ? `<span class="pill warn">${paidN}/${occ.length}</span>` : '';
-  return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(st)}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${occ.length > 1 ? `${esc(fmtBase(yr, true))} / yr` : l.currency !== base() ? '≈ ' + esc(fmtBase(econv(l))) : ''} ${pill}</span></span></button>`;
+  return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(st)}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${occ.length > 1 ? `${esc(fmtBase(yr, true))} / yr` : l.currency !== base() ? '≈ ' + esc(fmtBase(econv(l))) + fxMark(l) : ''} ${pill}</span></span></button>`;
 }
 function invRow(i) {
   const s = invStatus(i); const col = { overdue: '#ff3b30', sent: '#5856d6', draft: '#8e8e93', paid: '#34c759' }[s]; const got = invReceived(i);
   const st = s === 'paid' ? `Paid ${fdate((i.payments.slice(-1)[0] || {}).date || i.date)}` : s === 'draft' ? `Draft · ${fdate(i.date)}` : `${s === 'overdue' ? 'Overdue · due ' : 'Due '}${fdate(i.due || i.date)}${got ? ` · ${fmt(got, i.currency)} received` : ''}`;
-  return `<button class="row tap has-icon" data-inv="${esc(i.id)}"><span class="ico" style="background:${col}">${icon('doc')}</span><span class="body"><div class="t">${esc(i.number || 'Invoice')} · ${esc(clientName(i.clientId))}</div><div class="st"${s === 'overdue' ? ' style="color:var(--red)"' : ''}>${esc(st)}</div></span><span class="amt">${esc(fmt(i.amount, i.currency))}<span class="sub">${invPill(i)}</span></span></button>`;
+  return `<button class="row tap has-icon" data-inv="${esc(i.id)}"><span class="ico" style="background:${col}">${icon('doc')}</span><span class="body"><div class="t">${esc(i.number || 'Invoice')} · ${esc(clientName(i.clientId))}</div><div class="st"${s === 'overdue' ? ' style="color:var(--red)"' : ''}>${esc(st)}</div></span><span class="amt">${esc(fmt(i.amount, i.currency))}<span class="sub">${invPill(i)}${fxMark(i)}</span></span></button>`;
 }
 function conRow(c, Y) {
   const active = (!c.end || c.end >= todayISO());
@@ -3480,7 +3601,7 @@ function openInvoiceEditor(src, preset = {}) {
       <div class="ghead">Status</div><div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="iv-st"><button type="button" data-d="1" class="${draft ? 'on' : ''}">Draft</button><button type="button" data-d="0" class="${draft ? '' : 'on'}">Sent</button></div></div>
         <div class="row"><span class="body st" id="iv-stx" style="color:var(--label2)"></span></div></div>
       <div class="foot">Overdue is set automatically when the due date passes.</div>
-      ${!isNew ? `<div class="ghead">Payments</div><div class="group" id="iv-pays">${x.payments.length ? x.payments.map((p, k) => `<div class="row has-icon"><span class="ico" style="background:#34c759">${icon('check')}</span><span class="body"><div class="t">${esc(fmt(p.amount, x.currency))}</div><div class="st">${esc(fdate(p.date, true))}${x.currency !== base() ? ' · ≈ ' + esc(fmtBase(payUsd(x, p))) + ' · ' + esc(rateText(p.fxRate, x.currency)) : ''}${(p.atts || []).length ? ' · proof' : ''}</div></span>${(p.atts || []).length ? `<button type="button" class="btn sm gray" data-pview="${k}">View</button>` : ''}<button type="button" class="navbtn" data-pdel="${k}" aria-label="Remove payment">${icon('x', 's')}</button></div>`).join('') : `<div class="row"><span class="body st" style="color:var(--label2)">No payment yet</span></div>`}</div>
+      ${!isNew ? `<div class="ghead">Payments</div><div class="group" id="iv-pays">${x.payments.length ? x.payments.map((p, k) => `<div class="row has-icon"><span class="ico" style="background:#34c759">${icon('check')}</span><span class="body"><div class="t">${esc(fmt(p.amount, x.currency))}</div><div class="st">${esc(fdate(p.date, true))}${x.currency !== base() ? ' · ≈ ' + esc(fmtBase(payUsd(x, p))) + ' · ' + esc(rateText(p.fxRate, x.currency)) + fxMark(p) : ''}${(p.atts || []).length ? ' · proof' : ''}</div></span>${(p.atts || []).length ? `<button type="button" class="btn sm gray" data-pview="${k}">View</button>` : ''}<button type="button" class="navbtn" data-pdel="${k}" aria-label="Remove payment">${icon('x', 's')}</button></div>`).join('') : `<div class="row"><span class="body st" style="color:var(--label2)">No payment yet</span></div>`}</div>
         <div class="inv-acts">${st !== 'paid' ? `<button class="btn tinted" id="iv-pay">${icon('plus', 's')} Record payment</button><button class="btn" id="iv-full">${icon('check', 's')} Mark paid in full</button>` : ''}</div>` : ''}
       <div class="group" style="margin-top:14px"><div class="field"><label>Note</label><input id="iv-note" value="${esc(x.note || '')}" placeholder="Optional"></div></div>
       ${!isNew ? `<div class="group" style="margin-top:24px"><button class="row tap" id="iv-del"><span class="body" style="color:var(--red);text-align:center">Delete invoice</span></button></div>` : ''}`,
@@ -3623,7 +3744,7 @@ function bindFinanceCards(v) {
 /* ---------- Finance CSV & printable yearly report ---------- */
 function financeRows(Y) {
   const F = FIN(); const [a, b] = yRange(Y); const rows = [];
-  for (const l of F.living) for (const o of livOcc(l, Y)) rows.push({ type: 'Living expense', date: o.date, name: l.name, party: livCat(l.category).label, status: o.paid ? 'Paid' : (o.date < todayISO() ? 'Overdue' : 'Unpaid'), amount: l.amount, currency: l.currency, o: l, paidOn: o.paidOn || '', freq: FREQS[l.freq].label });
+  for (const l of F.living) for (const o of livOcc(l, Y)) rows.push({ type: 'Living expense', date: o.date, name: l.name, party: livCat(l.category).label, status: o.paid ? 'Paid' : (o.date < todayISO() ? 'Overdue' : 'Unpaid'), amount: l.amount, currency: l.currency, o: o.rec, paidOn: o.paidOn || '', freq: FREQS[l.freq].label });
   for (const i of F.invoices) {
     if (String(i.date) >= a && String(i.date) <= b) rows.push({ type: 'Invoice', date: i.date, name: i.number, party: clientName(i.clientId), status: STATUS[invStatus(i)].label + (invReceived(i) && invStatus(i) !== 'paid' ? ' (partial)' : ''), amount: i.amount, currency: i.currency, o: i, due: i.due || '', received: invReceived(i) });
     for (const p of i.payments) if (p.date >= a && p.date <= b) rows.push({ type: 'Payment received', date: p.date, name: i.number, party: clientName(i.clientId), status: 'Received', amount: p.amount, currency: i.currency, o: p, note: p.note || '' });
@@ -3635,7 +3756,7 @@ function exportFinanceCSV(Y) {
   const q = v => { const s = String(v ?? ''); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const B = base();
   const out = [['Type', 'Date', 'Name / Invoice no.', 'Category / Client', 'Status', 'Frequency', 'Due', 'Paid on', 'Amount', 'Currency', `Rate (1 ${B} = … currency)`, 'Rate date', 'Rate source', `Amount ${B}`, 'Note']];
-  for (const r of rows) { const v = econv(r.o, r.amount, r.currency); out.push([r.type, r.date, r.name, r.party, r.status, r.freq || '', r.due || '', r.paidOn || '', r.amount, r.currency, r.currency === B ? 1 : perBase(r.o.fxRate || usdPer(r.currency)), r.o.fxDate || '', r.currency === B ? '' : fxSrcLabel(r.o), v != null ? v.toFixed(2) : '', r.note || '']); }
+  for (const r of rows) { const v = econv(r.o, r.amount, r.currency); out.push([r.type, r.date, r.name, r.party, r.status, r.freq || '', r.due || '', r.paidOn || '', r.amount, r.currency, r.currency === B ? 1 : perBase(r.o.fxRate || usdPer(r.currency)), r.o.fxRateDate || r.o.fxDate || '', r.currency === B ? '' : fxSrcLabel(r.o), v != null ? v.toFixed(2) : '', r.note || '']); }
   const S = financeYear(Y);
   out.push([]); out.push(['Summary ' + Y, '', '', '', '', '', '', '', '', '', '', '', '', '']);
   out.push(['Income received', '', '', '', '', '', '', '', '', '', '', '', '', S.income.toFixed(2)]);
@@ -3648,7 +3769,7 @@ function exportFinanceCSV(Y) {
 function printFinance(Y) {
   const s = db.settings; const S = financeYear(Y); const F = FIN(); const B = base();
   const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const liv = F.living.map(l => { const occ = livOcc(l, Y); return { l, occ, total: occ.length * (econv(l) || 0), paid: occ.filter(o => o.paid).length * (econv(l) || 0) }; }).filter(x => x.occ.length);
+  const liv = F.living.map(l => { const occ = livOcc(l, Y); return { l, occ, total: occ.reduce((t, o) => t + (o.usd || 0), 0), paid: occ.filter(o => o.paid).reduce((t, o) => t + (o.usd || 0), 0) }; }).filter(x => x.occ.length);
   const inv = F.invoices.filter(i => String(i.date).startsWith(String(Y)) || i.payments.some(p => p.date.startsWith(String(Y))) || invStatus(i) === 'overdue').sort((a, b) => String(a.date).localeCompare(String(b.date)));
   const rate = (o, c) => c === B ? '' : esc(rateText(o.fxRate || usdPer(c), c));
   $('#print-root').innerHTML = `<h1>Finance report ${Y}</h1><div class="sub">${esc(s.name || '')}${s.name ? ' · ' : ''}All amounts in ${esc(B)} · each item at the rate of its own date</div>
@@ -3666,7 +3787,6 @@ function printFinance(Y) {
 function financeFileIds() { const F = FIN(); return [...F.living.flatMap(l => l.atts || []), ...F.invoices.flatMap(i => [...(i.atts || []), ...i.payments.flatMap(p => p.atts || [])])].map(a => a.id); }
 
 /* ---------- Start-up ---------- */
-window.addEventListener('online', () => scheduleRates());
 document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
 setTimeout(() => { if (db) scheduleRates(); }, 1200);
 
