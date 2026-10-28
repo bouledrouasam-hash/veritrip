@@ -1522,6 +1522,7 @@ function fxItems() {
   const F = db.finance || {}; const out = [];
   for (const e of db.expenses) out.push([e, e.currency, e.date]);
   for (const l of F.living || []) {
+    if (l.srcExp) continue;   // v3.9: mirrored from its local expense (rate comes from there) — never queued twice
     out.push([l, l.currency, l.due]);
     if (l.payFx) for (const d in l.payFx) if (!l.paid[d]) delete l.payFx[d];             // payment un-ticked
     for (const d in l.paid) { l.payFx = l.payFx || {}; out.push([l.payFx[d] || (l.payFx[d] = {}), l.currency, l.paid[d]]); } // each payment: rate of the day it was paid
@@ -1653,7 +1654,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '3.8';
+const APP_VERSION = '3.9';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -1678,8 +1679,13 @@ const CATS = [
   { k: 'Fuel', label: 'Fuel', icon: 'car', color: '#ff6b00' },
   { k: 'Car maintenance', label: 'Car maintenance', icon: 'wrench', color: '#8e6e53' },
   { k: 'Parking / Toll', label: 'Parking / Toll', icon: 'pin', color: '#0a84ff' },
+  { k: 'Tolls', label: 'Tolls', icon: 'pin', color: '#0a84ff' },            // v3.9: Local-expense categories are exactly Fuel / Tolls / Maintenance / Other
+  { k: 'Maintenance', label: 'Maintenance', icon: 'wrench', color: '#8e6e53' },
   { k: 'Other', label: 'Other', icon: 'tag', color: '#8e8e93' }
 ];
+const LOCAL_CATS = ['Fuel', 'Tolls', 'Maintenance', 'Other'];
+const localCatKey = k => k === 'Fuel' || k === 'Tolls' || k === 'Maintenance' ? k : k === 'Parking / Toll' ? 'Tolls' : k === 'Car maintenance' ? 'Maintenance' : 'Other';
+const TRIP_HIDDEN_CATS = ['Tolls', 'Maintenance'];   // only offered for Local expenses
 const catOf = k => CATS.find(c => c.k === k) || { k, label: k || 'Other', icon: 'tag', color: '#8e8e93' };
 const PAY_ME = ['Cash', 'Personal Card', 'Mobile Money', 'Out-of-Pocket'];
 const PAY_CO = ['Company Paid', 'Corporate Card', 'Expedia (Company Paid)', 'Travel Agency'];
@@ -1721,7 +1727,7 @@ function migrateExpense(e) {
     createdAt: e.createdAt || new Date().toISOString() };
   if (e.previewDataUrl) x.previewDataUrl = e.previewDataUrl;
   if (e.oorOk) x.oorOk = e.oorOk;
-  if (e.local) { x.local = true; x.tripId = null; if (e.claim) x.claim = true; } // v3.8: Local expense (home country, no trip)
+  if (e.local) { x.local = true; x.tripId = null; if (e.claim) x.claim = true; x.category = localCatKey(x.category); } // v3.8: Local expense (home country, no trip)
   for (const k of ['fxRate', 'fxSrc', 'fxDate', 'fxManual', 'fxCur', 'fxRateDate', 'fxStatus']) if (e[k] != null) x[k] = e[k]; // keep the per-item rate across reloads // "Keep as is" for an expense outside its trip dates (v3.4)
   syncExpense(x);
   return x;
@@ -1744,6 +1750,7 @@ function normalizeDB() {
   migrateV32();
   migrateV33();
   migrateV36();
+  syncLocalLiving();   // v3.9: every local expense is in Finance → Living (also migrates 3.8 data)
 }
 /* Re-render the visible screen shortly after any data change so derived lists (Today's "Needs attention", badges)
    are always recomputed from the current data. Skipped while a sheet is open; closeSheet() re-renders instead. */
@@ -1768,7 +1775,7 @@ function load() {
   normalizeDB(); save();
 }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(db)); refreshSoon(); if (typeof fxSaveHook === 'function') fxSaveHook(); return true; }
+  try { if (typeof syncLocalLiving === 'function') syncLocalLiving(); localStorage.setItem(KEY, JSON.stringify(db)); refreshSoon(); if (typeof fxSaveHook === 'function') fxSaveHook(); return true; }
   catch (e) { toast('Storage is full — export a backup and delete old receipts', 'warn'); console.warn(e); return false; }
 }
 
@@ -1867,7 +1874,7 @@ function tripStatus(t, today = todayISO()) { return today < t.startDate ? 'upcom
 function tripDays(t) { const out = []; for (let d = t.startDate, i = 0; d <= t.endDate && i < 400; d = addDays(d, 1), i++) out.push(d); return out; }
 const expensesOf = t => db.expenses.filter(e => e.tripId === t.id);
 /* Local expenses (v3.8): fuel, car, parking … at home. Stored as ordinary expenses with local:true and no tripId — they never
-   join a trip, a trip report, "not linked" warnings or date checks. Personal by default; claim:true marks one as reimbursable. */
+   join a trip, a trip report, "not linked" warnings or date checks. Personal living cost by default (v3.9: mirrored into Finance → Living, see app6); claim:true = claim it from the company instead. */
 const homeCountry = () => (db.settings.homeCountry || "Côte d'Ivoire");
 const homeCur = () => (db.settings.homeCurrency && P.CURRENCIES[db.settings.homeCurrency] ? db.settings.homeCurrency : 'XOF');
 const localExps = () => db.expenses.filter(e => e.local);
@@ -2035,11 +2042,11 @@ function expenseRow(e, opts = {}) {
   const v = econv(e);
   const sub = [opts.showDate !== false ? fmtD(e.date, { day: 'numeric', month: 'short' }) : null, opts.showTrip !== false ? (t ? tripName(t) : e.local ? 'Local · ' + homeCountry() : null) : null, e.description && e.description !== c.label ? e.description : null].filter(Boolean).join(' · ');
   if (opts.simple) {
-    const ss = e.paidBy === 'company' ? 'Company paid' : e.local && !e.claim ? 'Personal' : (e.description && e.description !== c.label ? e.description : c.label);
+    const ss = e.paidBy === 'company' ? 'Company paid' : e.local && !e.claim ? 'In Living expenses' : (e.description && e.description !== c.label ? e.description : c.label);
     return `<button class="row tap has-icon" data-exp="${esc(e.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(e.merchant || c.label)}</div><div class="st">${esc(ss)}</div></span>
     <span class="amt"><span style="${e.paidBy === 'company' ? 'color:var(--label2)' : ''}">${e.paidBy === 'company' && !(+e.amount) ? 'Prepaid' : esc(fmt(e.amount, e.currency))}</span>${e.paidBy === 'me' && e.currency !== base() && v != null ? `<span class="sub">≈ ${esc(fmtBase(v))}${fxMark(e)}</span>` : e.currency !== base() && v == null && fxMark(e) ? `<span class="sub">${fxMark(e)}</span>` : ''}</span></button>`;
   }
-  const tags = (e.paidBy === 'company' ? `<span class="pill company">Company</span> ` : '') + (e.local ? `<span class="pill">Local${e.paidBy === 'me' ? (e.claim ? ' · to claim' : ' · personal') : ''}</span> ` : !t ? `<span class="pill warn">No trip</span> ` : '') + (claimable(e) && !e.hasFile && !e.previewDataUrl ? `<span class="pill">No receipt</span>` : '');
+  const tags = (e.paidBy === 'company' ? `<span class="pill company">Company</span> ` : '') + (e.local ? `<span class="pill">Local${e.paidBy === 'me' ? (e.claim ? ' · to claim' : ' · living cost') : ''}</span> ` : !t ? `<span class="pill warn">No trip</span> ` : '') + (claimable(e) && !e.hasFile && !e.previewDataUrl ? `<span class="pill">No receipt</span>` : '');
   return `<button class="row tap has-icon" data-exp="${esc(e.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span>
     <span class="body"><div class="t">${esc(e.merchant || c.label)}</div><div class="st">${esc(sub)}</div>${tags ? `<div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${tags}</div>` : ''}</span>
     <span class="amt"><span style="${e.paidBy === 'company' ? 'color:var(--label2)' : ''}">${e.paidBy === 'company' && !(+e.amount) ? 'Prepaid' : esc(fmt(e.amount, e.currency))}</span>${e.currency !== base() && v != null && (+e.amount || e.paidBy !== 'company') ? `<span class="sub">≈ ${esc(fmtBase(v))}${fxMark(e)}</span>` : e.currency !== base() && v == null && fxMark(e) ? `<span class="sub">${fxMark(e)}</span>` : ''}</span></button>`;
@@ -2174,9 +2181,8 @@ function renderCalendar() {
 }
 
 /* ---------------- Trips (main page: former Today + Trips, v3.8) ---------------- */
-const quickHTML = () => `<div class="quick q4">${Object.entries(FILE_KINDS).map(([k, x]) => `<label id="q-${k}" data-fk="${k}"><span class="ico" style="background:${x.color}">${icon(x.icon)}</span>${k === 'camera' ? 'Scan' : esc(x.short)}${fileInput(k)}</label>`).join('')}
-      <button id="q-manual"><span class="ico" style="background:#8e8e93">${icon('pencil')}</span>Manual</button></div>`;
-/** Local expense entry (fuel, car, parking … at home). Same Scan / Photos / File / Manual choices as everywhere else. */
+const quickHTML = () => `<button class="btn addr" id="q-add">${icon('camera')} Add receipt</button>`;
+/** Local expense entry (fuel, car, parking … at home). Same Add receipt menu (Take photo / Choose photo or file / Type it in) as everywhere else. */
 function localExpenseSheet() { receiptSheet({ local: true }, 'Local expense'); }
 function renderTrips() {
   const v = $('#v-trips');
@@ -2197,11 +2203,11 @@ function renderTrips() {
       + (cur.length > 1 ? `<div class="foot">Also active: ${cur.slice(1).map(x => esc(tripName(x))).join(', ')}. New expenses go to the trip matching the receipt's currency.</div>` : '');
     localLink = `<div class="loclink"><button class="linkbtn" id="loc-link">${icon('pin', 's')} Local expense in ${esc(homeCountry())}</button></div>`;
   } else {
-    const mk = today.slice(0, 7); const lm = localExps().filter(e => e.date.startsWith(mk)); const sum = lm.reduce((s, e) => s + (econv(e) || 0), 0);
+    const mk = today.slice(0, 7); const lm = localExps().filter(e => e.date.startsWith(mk) && e.paidBy === 'me'); const sum = lm.reduce((s, e) => s + (econv(e) || 0), 0);
     const fb = flagBG({ country: homeCountry() }); const nx = upcoming[0];
     hero = `<div class="hero${fb ? ' flagged' : ''}" id="hero-local" style="${fb ? `--tint:${fb.tint}` : ''}">${fb ? fb.html : ''}
       <div class="k">${icon('pin', 's')} Local</div><div class="city">${esc(homeCountry())}</div>
-      <div class="dates muted">${lm.length ? `${esc(D(mk + '-01').toLocaleDateString('en-GB', { month: 'long' }))} · ${lm.length} expense${lm.length > 1 ? 's' : ''} · ${esc(fmtBase(sum))}` : 'Fuel, car, parking — log local expenses here'}</div>
+      <div class="dates muted">${lm.length ? `${esc(D(mk + '-01').toLocaleDateString('en-GB', { month: 'long' }))} · ${lm.length} expense${lm.length > 1 ? 's' : ''} · ${esc(fmtBase(sum))} · in Living expenses` : 'Snap a fuel, car or parking receipt — it goes straight to Living expenses'}</div>
       ${nx ? `<div class="dates muted" style="margin-top:4px;font-size:13px">Next trip: ${esc(tripName(nx))} · ${esc(relDays(nx.startDate))}</div>` : ''}</div>`;
   }
   const att = todayAttention(today);
@@ -2220,8 +2226,7 @@ function renderTrips() {
     ${past.length ? `<div class="group" style="margin-top:22px"><button class="row tap has-icon" id="prev-trips"><span class="ico" style="background:#8e8e93">${icon('clock')}</span><span class="body"><div class="t">Previous trips</div><div class="st">${past.length} trip${past.length > 1 ? 's' : ''} · ${[...new Set(past.map(t => t.startDate.slice(0, 4)))].sort().reverse().join(', ')}</div></span><span class="num muted" style="margin-right:6px">${past.length}</span>${icon('chevR', 's chev')}</button></div>` : ''}`;
   bindRows(v);
   $('#nav-add', v).onclick = () => newTripWizard();
-  bindFileInputs($('.quick', v), (fs, kind) => { pickCtx = cur.length ? {} : { local: true }; pickHint = kind === 'camera' ? 'RECEIPT' : null; handleFiles(fs, pickHint); });
-  $('#q-manual', v).onclick = () => newExpense(cur.length ? {} : { local: true });
+  $('#q-add', v).onclick = () => receiptSheet(cur.length ? {} : { local: true });
   bindMe(v); bindFinanceCards(v);
   $('#loc-link', v) && ($('#loc-link', v).onclick = localExpenseSheet);
   $('#loc-all', v) && ($('#loc-all', v).onclick = () => go('expenses', { expFilter: 'local' }));
@@ -2268,6 +2273,7 @@ function renderExpenses() {
     <label class="search">${icon('search', 's')}<input id="exp-q" type="search" placeholder="Search merchant, trip, amount…" value="${esc(state.expQuery)}"></label>
     <div class="chips">${filters.map(([k, l]) => `<button class="chip${f === k ? ' on' : ''}" data-f="${k}">${l}</button>`).join('')}</div>
     <div class="foot" style="padding:0 4px 4px">${list.length} item${list.length === 1 ? '' : 's'} · <span class="num">${esc(fmtBase(total))}</span> out-of-pocket</div>
+    ${f === 'local' ? `<div class="foot" style="padding:0 4px 8px">Local expenses you paid yourself are recorded in Finance → Living expenses (Fuel / Tolls / Maintenance / Other).</div>` : ''}
     ${!list.length ? `<div class="card"><div class="empty">${icon('receipt')}Nothing here.</div></div>` : ''}
     ${Object.keys(months).sort().reverse().map(m => `<div class="ghead">${esc(D(m + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }))}</div><div class="group">${months[m].map(e => expenseRow(e)).join('')}</div>`).join('')}`;
   bindRows(v);
@@ -2382,6 +2388,11 @@ function newExpense(ctx = {}) {
   const r = ctx.tripId ? { trip: tripById(ctx.tripId), conf: 1, reason: 'Selected trip' } : resolveTrip(date);
   openExpenseEditor({ date, tripId: r.trip ? r.trip.id : null, currency: r.trip ? r.trip.defaultCurrency : base(), category: 'Ground Transport', paidBy: 'me', paymentMethod: 'Cash' }, { isNew: true, tripLocked: !!ctx.tripId });
 }
+/* Local expenses use exactly Fuel / Tolls / Maintenance / Other; trips keep the full list. */
+function edCatOpts(sel, local) {
+  const list = local ? LOCAL_CATS.map(catOf) : CATS.filter(c => !TRIP_HIDDEN_CATS.includes(c.k)); const cur = local ? localCatKey(sel) : sel;
+  return list.map(c => `<option value="${esc(c.k)}"${c.k === cur ? ' selected' : ''}>${esc(c.label)}</option>`).join('') + (!local && cur && !list.find(c => c.k === cur) ? `<option selected value="${esc(cur)}">${esc(catOf(cur).label)}</option>` : '');
+}
 function editExpense(id) { const e = db.expenses.find(x => x.id === id); if (e) openExpenseEditor({ ...e }, { isNew: false }); }
 function confCls(c) { return c == null ? '' : c >= 0.75 ? ' c-high' : c > 0 ? ' c-low' : ' c-none'; }
 function confTag(c) { return c == null ? '' : c >= 0.75 ? '' : c > 0 ? '<span class="cf" style="color:var(--orange)">check</span>' : '<span class="cf" style="color:var(--red)">not found</span>'; }
@@ -2400,13 +2411,13 @@ function openExpenseEditor(x, opt = {}) {
     <div class="group" style="margin-top:14px">
       <div class="field${confCls(conf.merchant)}">${confTag(conf.merchant)}<label>Merchant</label><input id="ed-mer" value="${esc(x.merchant || '')}" placeholder="e.g. Yango, Maquis…"></div>
       <div class="field${confCls(conf.date)}">${confTag(conf.date)}<label>Date</label><input id="ed-date" type="date" value="${esc(x.date || '')}"></div>
-      <div class="field${confCls(conf.category)}">${confTag(conf.category)}<label>Category</label><select id="ed-cat">${CATS.map(c => `<option value="${esc(c.k)}"${c.k === x.category ? ' selected' : ''}>${esc(c.label)}</option>`).join('')}${!CATS.find(c => c.k === x.category) && x.category ? `<option selected value="${esc(x.category)}">${esc(x.category)}</option>` : ''}</select></div>
+      <div class="field${confCls(conf.category)}">${confTag(conf.category)}<label>Category</label><select id="ed-cat">${edCatOpts(x.category, !!x.local)}</select></div>
       <div class="field" id="ed-tripf"><label>Trip</label><select id="ed-trip">${tripOpts(x.tripId)}</select></div>
     </div><div class="foot" id="ed-tripwhy"></div>
     <div class="ghead">Who paid</div>
     <div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="ed-paid"><button data-p="me" class="${x.paidBy !== 'company' ? 'on' : ''}">I paid (reimburse)</button><button data-p="company" class="${x.paidBy === 'company' ? 'on' : ''}">Company paid</button></div></div>
       <div class="field"><label>Method</label><select id="ed-pay">${payOpts(x.paymentMethod)}</select></div>
-      <div class="row" id="ed-claimrow" style="padding:10px 16px;display:none"><div class="seg" style="flex:1" id="ed-claim"><button data-c="0" class="${x.claim ? '' : 'on'}">Personal</button><button data-c="1" class="${x.claim ? 'on' : ''}">Claim from company</button></div></div></div>
+      <div class="row" id="ed-claimrow" style="padding:10px 16px;display:none"><div class="seg" style="flex:1" id="ed-claim"><button data-c="0" class="${x.claim ? '' : 'on'}">Personal · Living expense</button><button data-c="1" class="${x.claim ? 'on' : ''}">Claim from company</button></div></div></div>
     <div class="group" style="margin-top:14px">
       <div class="field"><label>Note</label><input id="ed-desc" value="${esc(x.description || '')}" placeholder="What was it for?"></div>
       <div class="field"><label>Reference</label><input id="ed-ref" value="${esc(x.refCode || '')}" placeholder="Receipt / invoice no."></div></div>
@@ -2419,9 +2430,10 @@ function openExpenseEditor(x, opt = {}) {
       const amt = $('#ed-amt', b), cur = $('#ed-cur', b), date = $('#ed-date', b), trip = $('#ed-trip', b), why = $('#ed-tripwhy', b), pay = $('#ed-pay', b);
       let paidBy = x.paidBy === 'company' ? 'company' : 'me'; let claim = !!x.claim;
       const isLocal = () => trip.value === '__local';
-      const syncClaim = () => { $('#ed-claimrow', b).style.display = isLocal() && paidBy === 'me' ? '' : 'none'; };
+      let catLocal = !!x.local;
+      const syncClaim = () => { const pm = $('#ed-paid [data-p=me]', b); if (pm) pm.textContent = isLocal() ? 'I paid' : 'I paid (reimburse)'; $('#ed-claimrow', b).style.display = isLocal() && paidBy === 'me' ? '' : 'none'; if (isLocal() !== catLocal) { catLocal = isLocal(); const cs = $('#ed-cat', b); cs.innerHTML = edCatOpts(cs.value, catLocal); } };
       const parseAmt = () => { const r = P.parseNumberToken(amt.value.replace(/\s+/g, ' ').replace(/[^\d., ]/g, '').trim(), cur.value); return r != null ? r : parseFloat(amt.value.replace(',', '.')); };
-      let fxc = null; const updConv = () => { const a = parseAmt(); const c = cur.value === base() ? a : a * (fxc ? fxc.rate() : usdPer(cur.value)) / usdPer(base()); $('#ed-conv', b).textContent = !(a > 0) ? ' ' : cur.value === base() ? (paidBy === 'me' ? (isLocal() && !claim ? 'Local · personal, not reimbursed' : 'Reimbursable') : 'Company paid — not reimbursed') : `≈ ${fmtBase(c)}${paidBy === 'company' ? ' · not reimbursed' : isLocal() && !claim ? ' · personal' : ''}`; };
+      let fxc = null; const updConv = () => { const a = parseAmt(); const c = cur.value === base() ? a : a * (fxc ? fxc.rate() : usdPer(cur.value)) / usdPer(base()); $('#ed-conv', b).textContent = !(a > 0) ? ' ' : cur.value === base() ? (paidBy === 'me' ? (isLocal() ? (claim ? 'Local · claim from company' : 'Local · goes to Living expenses') : 'Reimbursable') : 'Company paid — not reimbursed') : `≈ ${fmtBase(c)}${paidBy === 'company' ? ' · not reimbursed' : isLocal() ? (claim ? ' · to claim' : ' · in Living expenses') : ''}`; };
       fxc = rateCtl($('#ed-fx', b), x, () => ({ cur: cur.value, date: date.value }), () => fxc && updConv());
       const updTrip = () => {
         syncClaim();
@@ -2454,7 +2466,7 @@ function openExpenseEditor(x, opt = {}) {
         if (!(a > 0)) { amt.focus(); amt.parentElement.classList.add('c-none'); toast('Enter the amount', 'warn'); return; }
         if (!date.value) { toast('Enter the date', 'warn'); return; }
         const rec = Object.assign(opt.isNew ? { id: uid('EXP'), createdAt: new Date().toISOString(), source: ex ? ex.method : 'manual' } : db.expenses.find(e => e.id === x.id), {
-          amount: Math.round(a * 1000) / 1000, currency: cur.value, merchant: $('#ed-mer', b).value.trim(), date: date.value, category: $('#ed-cat', b).value,
+          amount: Math.round(a * 1000) / 1000, currency: cur.value, merchant: $('#ed-mer', b).value.trim(), date: date.value, category: isLocal() ? localCatKey($('#ed-cat', b).value) : $('#ed-cat', b).value,
           tripId: isLocal() ? null : (trip.value || null), paidBy, paymentMethod: pay.value, description: $('#ed-desc', b).value.trim(), refCode: $('#ed-ref', b).value.trim() }, fxc.result());
         if (isLocal()) { rec.local = true; rec.tripId = null; if (paidBy === 'me' && claim) rec.claim = true; else delete rec.claim; } else { delete rec.local; delete rec.claim; }
         if (opt.isNew) {
@@ -2463,7 +2475,7 @@ function openExpenseEditor(x, opt = {}) {
         }
         syncExpense(rec); save(); closeSheet(); render(); scheduleRates();
         const t = tripById(rec.tripId);
-        toast(opt.isNew ? (rec.local ? `Added to Local · ${homeCountry()}` : `Added to ${t ? tripName(t) : 'expenses (no trip)'}`) : 'Saved');
+        toast(opt.isNew ? (rec.local ? (localInLiving(rec) ? `Added to Living expenses · ${livCat(localLivCat(rec)).label}` : `Added to Local · ${homeCountry()}`) : `Added to ${t ? tripName(t) : 'expenses (no trip)'}`) : 'Saved');
         if (opt.onDone) setTimeout(opt.onDone, 350);
       }
     } });
@@ -2787,7 +2799,7 @@ function reviewReceipt(res, o) {
   if (!currency) { currency = base(); cc = 0; }
   conf.currency = cc; conf.amount = F.amount.value ? F.amount.conf : 0; conf.merchant = F.merchant.value ? F.merchant.conf : 0; conf.category = F.category.conf || 0.4;
   let cat = F.category.value || 'Other';
-  if (isLoc) cat = /parking|p[ée]age|toll/i.test(res.text) ? 'Parking / Toll' : /garage|vidange|pneu|tyre|tire|batterie|battery|r[ée]paration|repair|entretien|mechanic|m[ée]canicien|lubrifiant|oil change|pi[èe]ces? auto/i.test(res.text) ? 'Car maintenance' : (cat === 'Ground Transport' || cat === 'Other') ? 'Fuel' : cat;
+  if (isLoc) cat = /parking|p[ée]age|toll|autoroute/i.test(res.text) ? 'Tolls' : /garage|vidange|pneu|tyre|tire|batterie|battery|r[ée]paration|repair|entretien|mechanic|m[ée]canicien|lubrifiant|oil change|pi[èe]ces? auto/i.test(res.text) ? 'Maintenance' : /station|carburant|gas-?oil|gazole|essence|diesel|petrol|super sans|sans plomb|fuel|litre|\bl\b\s*x|oilibya|total ?energies|\bshell\b|\bpompe\b/i.test(res.text) || cat === 'Fuel' ? 'Fuel' : 'Other';
   openExpenseEditor({ date, tripId: r.trip ? r.trip.id : null, local: isLoc || undefined, amount: F.amount.value || '', currency, merchant: F.merchant.value || '', category: cat,
     paidBy: res.companyPaid ? 'company' : 'me', paymentMethod: res.companyPaid ? 'Company Paid' : (/mobile money|orange money|wave|m-?pesa|mtn momo|moov money/i.test(res.text) ? 'Mobile Money' : /visa|mastercard|carte bancaire|card ending|\*{4}\s?\d{4}/i.test(res.text) ? 'Personal Card' : 'Cash'),
     description: res.aiDescription || '', refCode: (res.ref && res.ref.value) || '' },
@@ -3028,23 +3040,24 @@ function migrateV32() {
 
 /* ---------- file choosers (camera / photo library / file) ---------- */
 const FILE_KINDS = {
-  camera: { accept: 'image/*', capture: true, multiple: false, icon: 'camera', color: '#007aff', label: 'Scan with camera', short: 'Camera' },
+  camera: { accept: 'image/*', capture: true, multiple: false, icon: 'camera', color: '#007aff', label: 'Take photo', short: 'Camera' },
   photos: { accept: 'image/*', capture: false, multiple: true, icon: 'photo', color: '#34c759', label: 'Photo library', short: 'Photos' },
-  file: { accept: 'image/*,application/pdf,.pdf', capture: false, multiple: true, icon: 'doc', color: '#ff9500', label: 'File (PDF or image)', short: 'File' } };
+  file: { accept: 'image/*,application/pdf,.pdf', capture: false, multiple: true, icon: 'doc', color: '#ff9500', label: 'Choose photo or file', short: 'File' } };
 function fileInput(kind, single) { const k = FILE_KINDS[kind]; return `<input type="file" class="vh" tabindex="-1" data-fin="${kind}" accept="${k.accept}"${k.capture ? ' capture="environment"' : ''}${k.multiple && !single ? ' multiple' : ''}>`; }
 /* Rows for a sheet — each row is a <label> wrapping the input, so iOS opens the picker straight from the tap. */
-function fileRows(sub = {}, single) {
-  return Object.entries(FILE_KINDS).map(([kind, k]) => `<label class="row tap has-icon" data-fk="${kind}"><span class="ico" style="background:${k.color}">${icon(k.icon)}</span><span class="body"><div class="t">${esc(k.label)}</div>${sub[kind] ? `<div class="st">${esc(sub[kind])}</div>` : ''}</span>${fileInput(kind, single)}</label>`).join('');
+function fileRows(sub = {}, single, only) {
+  return Object.entries(FILE_KINDS).filter(([kind]) => !only || only.includes(kind)).map(([kind, k]) => `<label class="row tap has-icon" data-fk="${kind}"><span class="ico" style="background:${k.color}">${icon(k.icon)}</span><span class="body"><div class="t">${esc(k.label)}</div>${sub[kind] ? `<div class="st">${esc(sub[kind])}</div>` : ''}</span>${fileInput(kind, single)}</label>`).join('');
 }
 /* Compact chips — used inside the trip wizard and flight/hotel sheets */
 function fileChips(single) { return `<div class="chips3">${Object.entries(FILE_KINDS).map(([kind, k]) => `<label class="chip3" data-fk="${kind}">${icon(k.icon)}<span>${esc(k.short)}</span>${fileInput(kind, single)}</label>`).join('')}</div>`; }
 function bindFileInputs(root, onFiles) {
   $$('input[data-fin]', root).forEach(inp => inp.onchange = () => { const fs = [...(inp.files || [])]; const kind = inp.dataset.fin; inp.value = ''; if (fs.length) onFiles(fs, kind); });
 }
-const RECEIPT_SUBS = { camera: 'Take a photo — amount, date and currency are read for you', photos: 'Pick one or several photos', file: 'PDF (multi-page OK) or image from Files' };
+const RECEIPT_SUBS = { camera: 'Amount, date and currency are read for you', file: 'Photos, PDF (multi-page OK) or image from Files' };
+const RECEIPT_KINDS = ['camera', 'file'];
 function receiptSheet(ctx = {}, title = 'Add receipt') {
   openSheet({ title, left: { label: 'Cancel' },
-    body: `<div class="group">${fileRows(RECEIPT_SUBS)}</div><div class="group" style="margin-top:14px"><button class="row tap has-icon" id="rs-manual"><span class="ico" style="background:#8e8e93">${icon('pencil')}</span><span class="body"><div class="t">Enter manually</div><div class="st">No receipt, or add it later</div></span></button></div>`,
+    body: `<div class="group">${fileRows(RECEIPT_SUBS, false, RECEIPT_KINDS)}</div><div class="group" style="margin-top:14px"><button class="row tap has-icon" id="rs-manual"><span class="ico" style="background:#8e8e93">${icon('pencil')}</span><span class="body"><div class="t">Type it in</div><div class="st">No receipt, or add it later</div></span></button></div>`,
     onMount: b => {
       bindFileInputs(b, (fs, kind) => { pickCtx = ctx; pickHint = kind === 'camera' ? 'RECEIPT' : (ctx.tripId ? 'RECEIPT' : null); handleFiles(fs, pickHint); });
       $('#rs-manual', b).onclick = () => { closeSheet(); setTimeout(() => newExpense(ctx), 250); };
@@ -3052,7 +3065,7 @@ function receiptSheet(ctx = {}, title = 'Add receipt') {
 }
 function addMenu(ctx = {}) {
   openSheet({ title: 'Add', left: { label: 'Cancel' },
-    body: `<div class="ghead" style="margin-top:4px">Receipt</div><div class="group">${fileRows(RECEIPT_SUBS)}<button class="row tap has-icon" id="am-manual"><span class="ico" style="background:#8e8e93">${icon('pencil')}</span><span class="body"><div class="t">Enter expense manually</div></span></button></div>
+    body: `<div class="ghead" style="margin-top:4px">Receipt</div><div class="group">${fileRows(RECEIPT_SUBS, false, RECEIPT_KINDS)}<button class="row tap has-icon" id="am-manual"><span class="ico" style="background:#8e8e93">${icon('pencil')}</span><span class="body"><div class="t">Type it in</div></span></button></div>
       <div class="ghead">Trip</div><div class="group"><button class="row tap has-icon" id="am-trip"><span class="ico" style="background:#5856d6">${icon('suitcase')}</span><span class="body"><div class="t">New trip</div><div class="st">Travel or local · flight and hotel in 3 quick steps</div></span>${icon('chevR', 's chev')}</button>
       <button class="row tap has-icon" id="am-ics"><span class="ico" style="background:#ff2d55">${icon('calendar')}</span><span class="body"><div class="t">Import trips from calendar (.ics)</div></span></button></div>`,
     onMount: b => {
@@ -3375,6 +3388,9 @@ const LIV_CATS = [
   { k: 'medical', label: 'Medical insurance', icon: 'person', color: '#ff2d55', hint: 'Self & family' },
   { k: 'residency', label: 'Residency & visa', icon: 'id', color: '#5856d6', hint: 'Residence permit, visas' },
   { k: 'car', label: 'Car', icon: 'car', color: '#ff9500', hint: 'Insurance, fuel, maintenance, registration' },
+  { k: 'fuel', label: 'Car · Fuel', icon: 'car', color: '#ff9f0a', hint: 'Local fuel receipts' },
+  { k: 'tolls', label: 'Car · Tolls', icon: 'pin', color: '#0a84ff', hint: 'Tolls and parking' },
+  { k: 'maint', label: 'Car · Maintenance', icon: 'wrench', color: '#8e6e53', hint: 'Service, repairs, tyres' },
   { k: 'rent', label: 'Rent', icon: 'building', color: '#007aff', hint: 'Home' },
   { k: 'school', label: 'School fees', icon: 'sparkles', color: '#34c759', hint: 'Tuition, canteen, transport' },
   { k: 'other', label: 'Other', icon: 'wallet', color: '#8e8e93', hint: '' }];
@@ -3420,7 +3436,7 @@ function financeYear(Y) {
   let income = 0, livBudget = 0, livPaid = 0, tripOOP = 0;
   for (const i of F.invoices) for (const p of i.payments) if (p.date >= a && p.date <= b) { const v = payUsd(i, p) || 0; income += v; months[+p.date.slice(5, 7) - 1].inc += v; }
   for (const l of F.living) for (const o of livOcc(l, Y)) { const v = o.usd || 0; livBudget += v; if (o.paid) livPaid += v; months[+o.date.slice(5, 7) - 1].liv += v; }
-  for (const e of db.expenses) { if (e.paidBy !== 'me' || e.date < a || e.date > b) continue; const t = tripById(e.tripId); if (t && t.reimbursed) continue; const v = econv(e) || 0; tripOOP += v; months[+e.date.slice(5, 7) - 1].trip += v; }
+  for (const e of db.expenses) { if (e.paidBy !== 'me' || e.local || e.date < a || e.date > b) continue; const t = tripById(e.tripId); if (t && t.reimbursed) continue; const v = econv(e) || 0; tripOOP += v; months[+e.date.slice(5, 7) - 1].trip += v; }
   let outstanding = 0, overdue = 0, nOver = 0;
   for (const i of F.invoices) { const s = invStatus(i, today); if (s === 'paid' || s === 'draft') continue; const v = econv(i, invOpen(i)) || 0; outstanding += v; if (s === 'overdue') { overdue += v; nOver++; } }
   const spend = livBudget + (F.tripOOP ? tripOOP : 0);
@@ -3545,7 +3561,7 @@ function renderFinance() {
   let body = '';
   if (seg === 'living') {
     const due = livDue(60); const pct = S.livBudget ? clamp(S.livPaid / S.livBudget * 100, 0, 100) : 0;
-    const byCat = LIV_CATS.map(c => [c, F.living.filter(l => l.category === c.k)]).filter(([, l]) => l.length);
+    const byCat = LIV_CATS.map(c => [c, F.living.filter(l => l.category === c.k && (!l.srcExp || +l.due.slice(0, 4) === Y))]).filter(([, l]) => l.length);
     body = `<div class="card fin-kpi"><div><span>Year total</span><b>${esc(fmtBase(S.livBudget, true))}</b></div><div><span>Paid</span><b class="g">${esc(fmtBase(S.livPaid, true))}</b></div><div><span>Remaining</span><b>${esc(fmtBase(S.livLeft, true))}</b></div><div class="kbar"><i style="width:${pct.toFixed(1)}%"></i></div></div>
       ${due.length ? `<div class="section-h"><h2>Due soon</h2><span class="muted small">next 60 days</span></div><div class="group" id="liv-due">${due.slice(0, 8).map(o => { const c = livCat(o.item.category); return `<div class="row has-icon"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><button class="body tap-a" data-liv="${esc(o.item.id)}"><div class="t">${esc(o.item.name)}</div><div class="st" style="${o.overdue ? 'color:var(--red)' : ''}">${o.overdue ? 'Overdue since ' + esc(fdate(o.date)) : 'Due ' + esc(fdate(o.date)) + ' · ' + esc(relDays(o.date))}</div></button><span class="amt">${esc(fmt(o.item.amount, o.item.currency))}${o.item.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(o.usd))}</span>` : ''}</span><button class="paybtn" data-pay="${esc(o.item.id)}|${o.date}" aria-label="Mark paid">${icon('check', 's')}</button></div>`; }).join('')}</div>` : ''}
       <div class="section-h"><h2>Living expenses</h2><button id="liv-add">Add</button></div>
@@ -3576,7 +3592,7 @@ function renderFinance() {
   $('#fin-more', v).onclick = () => actionSheet(`Finance ${Y}`, [
     { icon: 'printer', color: '#007aff', label: `Print ${Y} report (${base()})`, sub: 'Summary, monthly table, living costs, invoices', fn: () => printFinance(Y) },
     { icon: 'download', color: '#34c759', label: `Export ${Y} (CSV)`, sub: `${base()} and original amounts with the rate used`, fn: () => exportFinanceCSV(Y) }]);
-  $$('[data-liv]', v).forEach(b => b.onclick = () => openLivingEditor(F.living.find(l => l.id === b.dataset.liv)));
+  $$('[data-liv]', v).forEach(b => b.onclick = () => { const l = F.living.find(x => x.id === b.dataset.liv); if (l && l.srcExp) localLivSheet(l); else openLivingEditor(l); });
   $$('[data-pay]', v).forEach(b => b.onclick = () => { const [id, d] = b.dataset.pay.split('|'); const l = F.living.find(x => x.id === id); if (!l) return; l.paid[d] = todayISO(); save(); renderFinance(); toast(`${l.name} marked paid`); });
   $$('[data-inv]', v).forEach(b => b.onclick = () => openInvoiceEditor(F.invoices.find(i => i.id === b.dataset.inv)));
   $$('[data-con]', v).forEach(b => b.onclick = () => openContractEditor(F.contracts.find(i => i.id === b.dataset.con)));
@@ -3587,6 +3603,7 @@ function renderFinance() {
   $('#cli-add', v) && ($('#cli-add', v).onclick = () => openClientEditor(null));
 }
 function livRow(l, Y) {
+  if (l.srcExp) { const c = livCat(l.category); const v = econv(l.payFx && l.payFx[l.due] && l.payFx[l.due].fxRate > 0 ? l.payFx[l.due] : l, l.amount, l.currency); return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(fdate(l.due))} · From receipt${l.hasReceipt ? ' · 📎' : ''}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${l.currency !== base() ? '≈ ' + esc(fmtBase(v)) + fxMark(l) : ''} <span class="pill ok">Paid</span></span></span></button>`; }
   const c = livCat(l.category); const occ = livOcc(l, Y); const paidN = occ.filter(o => o.paid).length; const today = todayISO();
   const next = occurrences(l.due, l.freq, addDays(today, -365), addDays(today, 800), l.end).find(d => !l.paid[d]);
   const yr = occ.reduce((t, o) => t + (o.usd || 0), 0);
@@ -3833,7 +3850,7 @@ function bindFinanceCards(v) {
 /* ---------- Finance CSV & printable yearly report ---------- */
 function financeRows(Y) {
   const F = FIN(); const [a, b] = yRange(Y); const rows = [];
-  for (const l of F.living) for (const o of livOcc(l, Y)) rows.push({ type: 'Living expense', date: o.date, name: l.name, party: livCat(l.category).label, status: o.paid ? 'Paid' : (o.date < todayISO() ? 'Overdue' : 'Unpaid'), amount: l.amount, currency: l.currency, o: o.rec, paidOn: o.paidOn || '', freq: FREQS[l.freq].label });
+  for (const l of F.living) for (const o of livOcc(l, Y)) rows.push({ type: 'Living expense', date: o.date, name: l.name, party: livCat(l.category).label, status: l.srcExp ? 'Paid · from receipt' : o.paid ? 'Paid' : (o.date < todayISO() ? 'Overdue' : 'Unpaid'), amount: l.amount, currency: l.currency, o: o.rec, paidOn: o.paidOn || '', freq: FREQS[l.freq].label });
   for (const i of F.invoices) {
     if (String(i.date) >= a && String(i.date) <= b) rows.push({ type: 'Invoice', date: i.date, name: i.number, party: clientName(i.clientId), status: STATUS[invStatus(i)].label + (invReceived(i) && invStatus(i) !== 'paid' ? ' (partial)' : ''), amount: i.amount, currency: i.currency, o: i, due: i.due || '', received: invReceived(i) });
     for (const p of i.payments) if (p.date >= a && p.date <= b) rows.push({ type: 'Payment received', date: p.date, name: i.number, party: clientName(i.clientId), status: 'Received', amount: p.amount, currency: i.currency, o: p, note: p.note || '' });
@@ -3851,7 +3868,7 @@ function exportFinanceCSV(Y) {
   out.push(['Income received', '', '', '', '', '', '', '', '', '', '', '', '', S.income.toFixed(2)]);
   out.push(['Living expenses (year)', '', '', '', '', '', '', '', '', '', '', '', '', S.livBudget.toFixed(2)]);
   out.push(['Living expenses paid', '', '', '', '', '', '', '', '', '', '', '', '', S.livPaid.toFixed(2)]);
-  out.push(['Trip expenses not reimbursed', '', '', '', FIN().tripOOP ? 'counted in net' : 'not counted', '', '', '', '', '', '', '', '', S.tripOOP.toFixed(2)]);
+    out.push(['Trip expenses not reimbursed', '', '', '', FIN().tripOOP ? 'counted in net' : 'not counted', '', '', '', '', '', '', '', '', S.tripOOP.toFixed(2)]);
   out.push(['Net', '', '', '', '', '', '', '', '', '', '', '', '', S.net.toFixed(2)]);
   download(`VeriTrip-finance-${Y}.csv`, '\ufeff' + out.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
 }
@@ -3878,6 +3895,34 @@ function financeFileIds() { const F = FIN(); return [...F.living.flatMap(l => l.
 /* ---------- Start-up ---------- */
 document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
 setTimeout(() => { if (db) scheduleRates(); }, 1200);
+
+/* ===================== VeriTrip 3.9 — Local expenses → Living expenses ===================== */
+/* Every Local expense you paid yourself (and did not mark "Claim from company") is MIRRORED as one paid, one-off Living expense:
+   id 'LIV-L-<expenseId>', srcExp = expense id. syncLocalLiving() runs on every save() and on load and rebuilds the mirror from the expenses,
+   so there is a single source of truth: edit or delete the expense and the Living item follows; nothing can be counted twice.
+   Fuel / Tolls / Maintenance go to the matching Car sub-category, everything else to Other. */
+const LOCAL_LIV = { 'Fuel': 'fuel', 'Tolls': 'tolls', 'Maintenance': 'maint' };
+const localLivCat = e => LOCAL_LIV[localCatKey(e.category)] || 'other';
+const localInLiving = e => !!(e.local && e.paidBy === 'me' && !e.claim);
+function syncLocalLiving() {
+  const F = db && db.finance; if (!F || !Array.isArray(F.living)) return;
+  const want = new Map(); for (const e of db.expenses) if (localInLiving(e)) want.set('LIV-L-' + e.id, e);
+  F.living = F.living.filter(l => !l.srcExp || want.has(l.id));
+  for (const [id, e] of want) {
+    let l = F.living.find(x => x.id === id); if (!l) { l = { id, atts: [] }; F.living.push(l); }
+    const fx = {}; for (const k of FXKEYS) if (e[k] != null) fx[k] = e[k];
+    Object.assign(l, { name: e.merchant || catOf(e.category).label, category: localLivCat(e), freq: 'once', due: e.date, end: null, currency: e.currency, amount: +e.amount || 0,
+      paid: { [e.date]: e.date }, payFx: { [e.date]: { ...fx } }, srcExp: e.id, hasReceipt: !!(e.hasFile || e.previewDataUrl), note: 'From receipt' }, fx);
+    for (const k of FXKEYS) if (!(k in fx)) delete l[k];
+  }
+}
+function localLivSheet(l) { // tap on a living item that comes from a local expense
+  const e = db.expenses.find(x => x.id === l.srcExp); if (!e) return;
+  actionSheet(`${l.name} · ${fmt(l.amount, l.currency)}`, [
+    ...(e.hasFile || e.previewDataUrl ? [{ icon: 'doc', color: '#5856d6', label: 'View receipt', fn: () => showFile(e) }] : []),
+    { icon: 'pencil', color: '#007aff', label: 'Edit expense', sub: 'Changes here update Finance → Living', fn: () => editExpense(e.id) },
+    { icon: 'trash', color: '#ff3b30', label: 'Delete expense', sub: 'Also removes it from Living expenses', fn: () => confirmSheet('Delete expense?', `${l.name} · ${fmt(l.amount, l.currency)}`, 'Delete', () => { Files.del(e.id).catch(() => {}); db.expenses = db.expenses.filter(x => x.id !== e.id); save(); render(); toast('Deleted'); }) }]);
+}
 
 /* ===================== VeriTrip 3.7 — Clients · Machines · Service reports (data + client/machine screens) ===================== */
 const MTYPES = [
