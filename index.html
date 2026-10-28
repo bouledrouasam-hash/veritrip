@@ -557,7 +557,7 @@ label.row{cursor:pointer}
   <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
   <symbol id="i-suitcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/></symbol>
   <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
-  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8l1.6.2.5 2.3a7.3 7.3 0 0 1 1.9 1.1l2.2-.8 1.6 2.7-1.7 1.6a7.4 7.4 0 0 1 0 2.2l1.7 1.6-1.6 2.7-2.2-.8a7.3 7.3 0 0 1-1.9 1.1l-.5 2.3-1.6.2-1.6-.2-.5-2.3a7.3 7.3 0 0 1-1.9-1.1l-2.2.8-1.6-2.7 1.7-1.6a7.4 7.4 0 0 1 0-2.2L4.2 8.3l1.6-2.7 2.2.8a7.3 7.3 0 0 1 1.9-1.1l.5-2.3z"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.8"/></symbol>
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
@@ -1428,6 +1428,8 @@ const COUNTRY_ISO = {
   tunisia: 'TN', tunisie: 'TN', egypt: 'EG', libya: 'LY', mauritania: 'MR', mauritanie: 'MR', nigeria: 'NG', ghana: 'GH', 'sierra leone': 'SL', liberia: 'LR', gambia: 'GM', 'the gambia': 'GM', 'cape verde': 'CV', 'cabo verde': 'CV',
   kenya: 'KE', uganda: 'UG', tanzania: 'TZ', rwanda: 'RW', burundi: 'BI', ethiopia: 'ET', eritrea: 'ER', djibouti: 'DJ', somalia: 'SO', sudan: 'SD', 'south sudan': 'SS', 'south africa': 'ZA', angola: 'AO', mozambique: 'MZ',
   zambia: 'ZM', zimbabwe: 'ZW', botswana: 'BW', namibia: 'NA', malawi: 'MW', madagascar: 'MG', mauritius: 'MU', seychelles: 'SC', comoros: 'KM', lesotho: 'LS', eswatini: 'SZ', swaziland: 'SZ',
+  rci: 'CI', rdc: 'CD', 'r.d. congo': 'CD', 'republique democratique du congo': 'CD', 'republique du congo': 'CG', 'republique centrafricaine': 'CF', centrafrique: 'CF', 'guinee equatoriale': 'GQ', 'guinee-bissau': 'GW',
+  ethiopie: 'ET', egypte: 'EG', libye: 'LY', gambie: 'GM', 'cap-vert': 'CV', 'cap vert': 'CV', tanzanie: 'TZ', ouganda: 'UG', soudan: 'SD', somalie: 'SO', maurice: 'MU', 'afrique du sud': 'ZA', mauritanie: 'MR', sénégal: 'SN',
   'sao tome and principe': 'ST', 'sao tome': 'ST', 'western sahara': 'EH',
   uae: 'AE', 'united arab emirates': 'AE', qatar: 'QA', turkiye: 'TR', turkey: 'TR', 'saudi arabia': 'SA', kuwait: 'KW', bahrain: 'BH', oman: 'OM', jordan: 'JO', lebanon: 'LB', israel: 'IL', india: 'IN', china: 'CN', japan: 'JP',
   france: 'FR', belgium: 'BE', germany: 'DE', netherlands: 'NL', 'the netherlands': 'NL', holland: 'NL', spain: 'ES', portugal: 'PT', italy: 'IT', ireland: 'IE', luxembourg: 'LU', austria: 'AT', switzerland: 'CH',
@@ -1732,7 +1734,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '4.1.1';
+const APP_VERSION = '4.2';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -2003,15 +2005,6 @@ function autoAssignInto(t) {
   for (const e of db.expenses) if (!e.tripId && !e.local && e.date >= t.startDate && e.date <= t.endDate) { const r = resolveTrip(e.date, { currency: e.currency }); if (r.trip && r.trip.id === t.id) { e.tripId = t.id; n++; } }
   return n;
 }
-function missingDays(t, today = todayISO()) {
-  if (t.type === 'LOCAL') return [];
-  // A day counts as covered by ANY expense logged on it for this trip (or not yet linked to a trip) — including
-  // company-paid flight/hotel items — and by the trip's flight days. Company bookings never create "missing" days.
-  const have = new Set(db.expenses.filter(e => e.tripId === t.id || (!e.tripId && !e.local)).map(e => e.date));
-  [t.flightOut, t.flightBack].forEach(d => d && have.add(d));
-  const skip = new Set(t.noExpenseDays || []);
-  return tripDays(t).filter(d => d <= today && !have.has(d) && !skip.has(d));
-}
 /** Allowed date window for an expense linked to trip t: trip ± travel-day buffer. Company-paid flights/hotels may also
  *  fall on the booked flight / check-in / check-out days (e.g. an overnight flight the day before). */
 function tripWindow(t, e) {
@@ -2096,7 +2089,7 @@ function applyTheme() {
 }
 
 /* ---------------- Router ---------------- */
-const state = { tab: 'trips', tripsMode: 'home', tripQuery: '', tripId: null, tripSeg: 'expenses', from: 'trips', calMonth: todayISO().slice(0, 7), calSel: todayISO(), expFilter: 'all', expQuery: '', tripFilter: 'all' };
+const state = { tab: 'trips', tripsMode: 'home', tripQuery: '', tripId: null, tripSeg: 'expenses', from: 'trips', calMonth: todayISO().slice(0, 7), calSel: todayISO(), expFilter: 'all', expQuery: '', tripFilter: 'all', setPage: null };
 // v3.8: the old Today tab is gone — 'today' (old links / saved state) lands on the merged Trips page.
 function go(tab, opts = {}) { if (tab === 'today') { tab = 'trips'; opts = { tripsMode: 'home', ...opts }; } if (state.from === 'today') state.from = 'trips'; state.tab = tab; Object.assign(state, opts); render(); window.scrollTo(0, 0); }
 function openTrip(id, seg) { if (state.tab !== 'trip') state.from = state.tab; state.tab = 'trip'; state.tripId = id; if (seg) state.tripSeg = seg; render(); window.scrollTo(0, 0); }
@@ -2110,11 +2103,7 @@ function render() {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshSoon(); });
 window.addEventListener('pageshow', () => refreshSoon());
 window.addEventListener('storage', ev => { if (ev.key === KEY && !sheetOpen()) { load(); render(); } });
-function updateBadges() {
-  const cur = db.trips.filter(t => tripStatus(t) !== 'upcoming' && daysBetween(t.endDate, todayISO()) <= 45);
-  const n = cur.reduce((s, t) => s + missingDays(t).length, 0);
-  const b = $('#badge-cal'); b.textContent = n; b.classList.toggle('hidden', !n);
-}
+function updateBadges() { const b = $('#badge-cal'); if (b) b.classList.add('hidden'); }
 function onScroll() { const nb = $('.view.active .navbar'); if (nb) nb.classList.toggle('scrolled', window.scrollY > 30); }
 function navbar(title, left = '', right = '') { return `<div class="navbar"><div>${left}</div><div class="mini">${esc(title)}</div><div style="display:flex;gap:8px">${right}</div></div>`; }
 const plusBtn = (id = 'nav-add') => `<button class="navbtn circle" id="${id}" aria-label="Add">${icon('plus')}</button>`;
@@ -2135,12 +2124,12 @@ function expenseRow(e, opts = {}) {
     <span class="amt"><span style="${e.paidBy === 'company' ? 'color:var(--label2)' : ''}">${e.paidBy === 'company' && !(+e.amount) ? 'Prepaid' : esc(fmt(e.amount, e.currency))}</span>${e.currency !== base() && v != null && (+e.amount || e.paidBy !== 'company') ? `<span class="sub">≈ ${esc(fmtBase(v))}${fxMark(e)}</span>` : e.currency !== base() && v == null && fxMark(e) ? `<span class="sub">${fxMark(e)}</span>` : ''}</span></button>`;
 }
 function tripRow(t, onToday) {
-  const st = tripStatus(t); const tot = tripTotals(t); const miss = onToday === true ? 0 : missingDays(t).length;
+  const st = tripStatus(t); const tot = tripTotals(t); 
   const right = st === 'current' ? `<span class="pill ok">Now</span>` : st === 'upcoming' ? `<span class="pill">${esc(relDays(t.startDate))}</span>` : '';
   return `<button class="row tap has-icon" data-trip="${esc(t.id)}"><span class="ico" style="background:${t.color}">${icon(t.type === 'LOCAL' ? 'pin' : 'plane')}</span>
    <span class="body"><div class="t">${esc(tripName(t))}${t.country ? `<span class="muted" style="font-size:15px">, ${esc(t.country)}</span>` : ''}</div>
    <div class="st">${esc(fmtRange(t.startDate, t.endDate))} · ${tripLen(t)} day${tripLen(t) > 1 ? 's' : ''}${t.purpose ? ' · ' + esc(t.purpose) : ''}</div>
-   <div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${right}<span class="pill">${esc(fmtBase(tot.reimb))} to claim</span>${miss ? `<span class="pill warn">${miss} day${miss > 1 ? 's' : ''} missing</span>` : ''}</div></span>
+   <div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${right}<span class="pill">${esc(fmtBase(tot.reimb))} to claim</span></div></span>
    ${icon('chevR', 's chev')}</button>`;
 }
 function bindRows(root) {
@@ -2156,28 +2145,12 @@ function pickFile(which, hint, ctx = {}) { pickHint = hint; pickCtx = ctx; const
 /** Items for Today's "Needs attention". Pure function of db — no cached state. */
 function todayAttention(today = todayISO()) {
   const att = [];
-  // 3.6: "days without expenses" is no longer shown on Today; the fix flow lives in the trip's Details (and the Calendar).
+  // 4.2: days without expenses are never flagged.
   const un = db.expenses.filter(e => !e.tripId && !e.local);
   if (un.length) att.push({ kind: 'unassigned', icon: 'tag', color: '#ff3b30', t: `${un.length} expense${un.length > 1 ? 's' : ''} not linked to a trip`, st: 'Tap to review', fn: () => go('expenses', { expFilter: 'unassigned' }) });
   const oor = outOfRange();
   if (oor.length) att.push({ kind: 'oor', icon: 'calendar', color: '#5856d6', t: `${oor.length} expense${oor.length > 1 ? 's' : ''} outside the trip dates`, st: 'Tap to move, change the date or keep', fn: () => outOfRangeSheet() });
   return att;
-}
-/** Days without expenses for one trip: per day "Add expense" or "No expenses that day" (persisted in t.noExpenseDays). */
-function missingDaysSheet(tripId) {
-  const t = tripById(tripId); if (!t) return;
-  const m = missingDays(t);
-  if (!m.length) { if (sheetOpen()) closeSheet(); toast('All days covered'); return; }
-  const body = `<p class="muted" style="margin:2px 4px 12px">${esc(tripName(t))} · ${esc(fmtRange(t.startDate, t.endDate))}. Add what you spent, or confirm you spent nothing that day.</p>
-    <div class="group">${m.map(d => `<div class="row attrow" data-day="${d}"><span class="body"><div class="t">${esc(fmtD(d, { weekday: 'long', day: 'numeric', month: 'short' }))}</div><div class="st">Day ${daysBetween(t.startDate, d) + 1} of ${tripLen(t)}</div>
-      <div class="attbtns"><button class="btn sm" data-md-add="${d}">${icon('plus', 's')} Add expense</button><button class="btn sm gray" data-md-none="${d}">No expenses that day</button></div></span></div>`).join('')}</div>
-    ${m.length > 1 ? `<div style="margin-top:14px"><button class="btn gray" id="md-all">No expenses on any of these ${m.length} days</button></div>` : ''}`;
-  openSheet({ title: 'Days without expenses', left: { label: 'Done' }, body, onMount: b => {
-    const none = days => { const tt = tripById(tripId); tt.noExpenseDays = tt.noExpenseDays || []; days.forEach(d => { if (!tt.noExpenseDays.includes(d)) tt.noExpenseDays.push(d); }); save(); render(); toast(days.length > 1 ? `${days.length} days marked as no expenses` : 'Marked as a day without expenses'); missingDaysSheet(tripId); };
-    $$('[data-md-none]', b).forEach(x => x.onclick = () => none([x.dataset.mdNone]));
-    $$('[data-md-add]', b).forEach(x => x.onclick = () => { const d = x.dataset.mdAdd; closeSheet(); setTimeout(() => newExpense({ date: d, tripId }), 280); });
-    $('#md-all', b) && ($('#md-all', b).onclick = () => none(m));
-  } });
 }
 /** Expenses outside their trip: per item "Move to <trip>", "Change date" or "Keep as is" (persisted as e.oorOk). */
 function outOfRangeSheet() {
@@ -2211,7 +2184,6 @@ function renderCalendar() {
   const gridStart = isoOf(new Date(Y, M - 1, 1 - offset));
   const monthName = first.toLocaleDateString('en-GB', { month: 'long' });
   const expByDay = {}; for (const e of db.expenses) (expByDay[e.date] = expByDay[e.date] || []).push(e);
-  const missSet = new Set(); db.trips.forEach(t => missingDays(t).forEach(d => missSet.add(d)));
   const weeks = []; let d = gridStart;
   for (let w = 0; w < 6; w++) { const days = []; for (let i = 0; i < 7; i++) { days.push(d); d = addDays(d, 1); } if (w >= 4 && days[0].slice(0, 7) !== state.calMonth) break; weeks.push(days); }
   const trips = db.trips.slice().sort((a, b) => a.startDate.localeCompare(b.startDate) || tripLen(b) - tripLen(a));
@@ -2227,7 +2199,7 @@ function renderCalendar() {
     const h = Math.max(74, 50 + lanes.length * 17 + 4);
     return `<div class="week" style="min-height:${h}px">${days.map((day, i) => {
       const ex = expByDay[day] || []; const cls = ['day', day.slice(0, 7) !== state.calMonth ? 'out' : '', day === today ? 'today' : '', day === state.calSel ? 'sel' : '', i >= 5 ? 'wknd' : ''].join(' ');
-      return `<div class="${cls}" data-day="${day}" style="min-height:${h}px"><div class="n">${+day.slice(8)}</div><div class="marks" style="top:37px;bottom:auto">${ex.length ? '<i class="exp"></i>'.repeat(Math.min(3, ex.length)) : ''}${missSet.has(day) ? '<i class="miss" title="No expenses logged"></i>' : ''}</div></div>`;
+      return `<div class="${cls}" data-day="${day}" style="min-height:${h}px"><div class="n">${+day.slice(8)}</div><div class="marks" style="top:37px;bottom:auto">${ex.length ? '<i class="exp"></i>'.repeat(Math.min(3, ex.length)) : ''}</div></div>`;
     }).join('')}${bars.join('')}</div>`;
   }).join('');
   // selected day panel
@@ -2237,15 +2209,14 @@ function renderCalendar() {
   const panel = `<div class="section-h"><h2>${esc(fmtD(sel, { weekday: 'long', day: 'numeric', month: 'long' }))}</h2>${meTotal ? `<span class="muted num">${esc(fmtBase(meTotal))}</span>` : ''}</div>
     ${selTrips.length ? `<div class="group">${selTrips.map(t => `<button class="row tap" data-trip="${esc(t.id)}"><span class="dot" style="background:${t.color}"></span><span class="body"><div class="t">${esc(tripName(t))}</div><div class="st">Day ${daysBetween(t.startDate, sel) + 1} of ${tripLen(t)}${sel === t.startDate ? ' · travel day (arrival)' : sel === t.endDate ? ' · travel day (departure)' : ''}</div></span>${icon('chevR', 's chev')}</button>`).join('')}</div>`
       : r.trip ? `<div class="foot" style="padding-top:0">Not inside a trip. Expenses added here go to <b>${esc(tripName(r.trip))}</b> as a travel day.</div>` : `<div class="foot" style="padding-top:0">No trip on this day.</div>`}
-    ${missSet.has(sel) ? `<div class="notice warn">${icon('warn')}<div>No out-of-pocket expenses logged for this trip day. Missing a taxi or meal receipt?<div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" id="day-add">${icon('plus', 's')} Add expense</button><button class="btn sm gray" id="day-none">No expenses this day</button></div></div></div>` : ''}
-    ${selExp.length ? `<div class="group" style="margin-top:10px">${selExp.map(e => expenseRow(e, { showDate: false })).join('')}</div>` : (!missSet.has(sel) ? `<div class="card" style="margin-top:10px"><div class="empty" style="padding:22px">No expenses on this day.</div></div>` : '')}
-    ${!missSet.has(sel) ? `<div style="margin-top:12px"><button class="btn tinted" id="day-add2">${icon('plus', 's')} Add expense on this day</button></div>` : ''}`;
+    ${selExp.length ? `<div class="group" style="margin-top:10px">${selExp.map(e => expenseRow(e, { showDate: false })).join('')}</div>` : `<div class="card" style="margin-top:10px"><div class="empty" style="padding:22px">No expenses on this day.</div></div>`}
+    <div style="margin-top:12px"><button class="btn tinted" id="day-add2">${icon('plus', 's')} Add expense on this day</button></div>`;
   v.innerHTML = navbar(monthName + ' ' + Y, '', `<button class="navbtn circle" id="cal-share" aria-label="Export calendar">${icon('share')}</button>` + plusBtn()) +
     `<div class="ltitle">Calendar</div>
     <div class="cal-head"><div class="m">${esc(monthName)} <span>${Y}</span></div><div class="cal-nav"><button class="btn sm gray" id="cal-today">Today</button><button class="navbtn circle" id="cal-prev" aria-label="Previous month">${icon('chevL')}</button><button class="navbtn circle" id="cal-next" aria-label="Next month">${icon('chevR')}</button></div></div>
     <div class="cal-wd">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(x => `<div>${x}</div>`).join('')}</div>
     <div class="cal-grid" id="cal-grid">${weekHtml}</div>
-    <div class="legend"><span><i class="dot" style="background:var(--red);width:8px;height:8px"></i>Today</span><span><i class="dot" style="background:var(--label2);width:6px;height:6px"></i>Expense</span><span><i class="dot" style="background:var(--orange);width:7px;height:7px"></i>Trip day without expenses</span></div>
+    <div class="legend"><span><i class="dot" style="background:var(--red);width:8px;height:8px"></i>Today</span><span><i class="dot" style="background:var(--label2);width:6px;height:6px"></i>Expense</span></div>
     ${panel}`;
   bindRows(v);
   const shift = n => { const dt = new Date(Y, M - 1 + n, 1); state.calMonth = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}`; renderCalendar(); };
@@ -2255,8 +2226,7 @@ function renderCalendar() {
   $('#nav-add', v).onclick = () => addMenu({ date: sel });
   $('#cal-share', v).onclick = () => exportICS(db.trips, 'VeriTrip-trips.ics');
   const add = () => receiptSheet({ date: sel });
-  $('#day-add', v) && ($('#day-add', v).onclick = add); $('#day-add2', v) && ($('#day-add2', v).onclick = add);
-  $('#day-none', v) && ($('#day-none', v).onclick = () => { selTrips.forEach(t => { if (!t.noExpenseDays.includes(sel)) t.noExpenseDays.push(sel); }); save(); render(); toast('Marked as a day without expenses'); });
+  $('#day-add2', v) && ($('#day-add2', v).onclick = add);
   // swipe months
   const g = $('#cal-grid', v); let sx = null, sy = null;
   g.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
@@ -2441,12 +2411,16 @@ function rateRuleSheet(rule) {
 
 /* ---------------- Settings ---------------- */
 function curOptions(sel) { return Object.entries(P.CURRENCIES).map(([c, x]) => `<option value="${c}"${c === sel ? ' selected' : ''}>${c} — ${esc(x.name)}</option>`).join(''); }
-function renderSettings() {
+const SET_PAGES = { profile: 'Profile', currency: 'Currency & rates', trips: 'Trips', data: 'Data & backup', about: 'About' };
+function renderSettings() { return renderSettingsPage(state.setPage in SET_PAGES ? state.setPage : null, (q, r) => $(q, r) || {}); }
+/* 4.2 · grouped Settings: a short main list, each group opens its own sub-screen (iOS style). `$` is shadowed so a control
+   that lives on another sub-screen is simply skipped when binding. */
+function renderSettingsPage(page, $) {
   const v = $('#v-settings'); const s = db.settings; const ai = s.ai;
   const usedCurs = [...new Set([base(), ...db.expenses.map(e => e.currency), ...db.trips.map(t => t.defaultCurrency), 'EUR', 'USD', 'XOF', 'XAF'])].filter(c => P.CURRENCIES[c]);
-  const backL = { calendar: 'Calendar', trips: 'Trips', expenses: 'Expenses', finance: 'Finance' }[state.from] || 'Back';
-  v.innerHTML = navbar('Settings', `<button class="navbtn" id="set-back">${icon('chevL')}${esc(backL)}</button>`) + `<div class="ltitle">Settings</div>
-    <div class="ghead">Report</div><div class="group">
+  const backL = page ? 'Settings' : ({ calendar: 'Calendar', trips: 'Trips', expenses: 'Expenses', finance: 'Finance' }[state.from] || 'Back');
+  const PG = {
+    profile: () => `    <div class="ghead">Report</div><div class="group">
       <div class="field"><label>Name</label><input id="s-name" value="${esc(s.name)}" placeholder="Your name" autocomplete="name"></div>
       <div class="field"><label>Company</label><input id="s-company" value="${esc(s.company)}" placeholder="Company"></div>
       <div class="field"><label>Employee ID</label><input id="s-emp" value="${esc(s.employeeId)}" placeholder="Optional"></div>
@@ -2467,10 +2441,10 @@ function renderSettings() {
       <button class="row tap" id="s-esig"><span class="body">Engineer signature</span>${s.engineerSign ? `<img class="sigprev" src="${s.engineerSign}" alt="">` : '<span class="muted">Not set</span>'}</button>
     </div><div class="foot">Clients and their machines are added from trips and reports, or here. The service report header (company, subtitle, logo) and your job title appear on every PDF.</div>
     <div class="ghead">Appearance</div><div class="group"><div class="row"><span class="body">Theme</span><div class="seg" style="width:200px">${[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button data-theme="${k}" class="${s.theme === k ? 'on' : ''}">${l}</button>`).join('')}</div></div></div>
-    <div class="ghead">Currency</div><div class="group">
+`,
+    currency: () => `    <div class="ghead">Currency</div><div class="group">
       <div class="field"><label>Report currency</label><select id="s-base">${curOptions(base())}</select></div>
-      <div class="field"><label>Travel-day buffer</label><select id="s-buf">${[0, 1, 2].map(n => `<option value="${n}"${+s.travelBuffer === n ? ' selected' : ''}>${n ? n + ' day' + (n > 1 ? 's' : '') : 'Off'}</option>`).join('')}</select></div>
-    </div><div class="foot">Expenses just outside a trip (the buffer) are treated as travel days of that trip. Reports and Finance are in this currency (USD by default).</div>
+    </div><div class="foot">Reports and Finance are in this currency (USD by default).</div>
     <div class="ghead">My exchange rates</div><div class="group" id="s-myrates">${rateRulesHTML()}</div>
     <div class="foot">Your card is in FCFA, so your bank's rate decides what you really pay. Add the rate it gave you (1 ETB = 5 FCFA) and the dates it applied: every expense in that currency on those dates is recalculated in USD, everywhere in the app and in reports. Delete the rate to go back to the market rate. A rate typed on one expense still wins.</div>
     <div class="ghead">Exchange rates</div><div class="group">
@@ -2480,25 +2454,51 @@ function renderSettings() {
     </div><div class="foot">Every item keeps its own currency and the market rate of <b>its own date</b>. Receipts saved offline use an estimate marked “rate pending” and are corrected automatically when you are back online. Weekend dates use the last published rate. Sources: currency-api (daily, all African currencies) and ECB via Frankfurter. XOF and XAF use the fixed peg of 655.957 per EUR. A rate you type on an item is never overwritten.</div>
     <div class="ghead">Today's rates (1 ${esc(base())} = …)</div><div class="group" id="s-rates">${usedCurs.filter(c => c !== base()).map(c => `<div class="field"><label>${c}${db.fx.manual[c] ? ' <span class="pill" style="font-size:10px">manual</span>' : ''}</label><input type="number" step="any" inputmode="decimal" data-rate="${c}" value="${+(conv(1, base(), c) || 0).toPrecision(6)}"></div>`).join('')}</div>
     <div class="foot">Used for new items until the rate of their date is found. Edit a rate to lock it for every item in that currency. <button class="linkbtn small" id="s-unlock">Unlock all</button></div>
+`,
+    trips: () => `    <div class="ghead">Travel days</div><div class="group">
+      <div class="field"><label>Travel-day buffer</label><select id="s-buf">${[0, 1, 2].map(n => `<option value="${n}"${+s.travelBuffer === n ? ' selected' : ''}>${n ? n + ' day' + (n > 1 ? 's' : '') : 'Off'}</option>`).join('')}</select></div>
+    </div><div class="foot">Expenses just outside a trip (the buffer) are treated as travel days of that trip.</div>
     <div class="ghead">AI extraction (optional)</div><div class="group">
       <div class="field"><label>Provider</label><select id="s-ai">${[['none', 'Off — on-device OCR'], ['gemini', 'Google Gemini'], ['openai', 'OpenAI']].map(([k, l]) => `<option value="${k}"${ai.provider === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field${ai.provider === 'none' ? ' hidden' : ''}" data-aif><label>API key</label><input id="s-key" type="password" autocomplete="off" value="${esc(ai.key)}" placeholder="Paste your key"></div>
       <div class="field${ai.provider === 'none' ? ' hidden' : ''}" data-aif><label>Model</label><input id="s-model" value="${esc(ai.model)}" placeholder="${esc(AI_DEFAULT_MODEL[ai.provider] || '')}"></div>
       <button class="row tap${ai.provider === 'none' ? ' hidden' : ''}" data-aif id="s-aitest"><span class="body" style="color:var(--blue)">Test key</span></button>
     </div><div class="foot">Much better on crumpled or handwritten receipts. Your key stays in this browser only and the receipt image is sent to the provider you choose. Leave Off to keep everything on the device.</div>
-    <div class="ghead">Data</div><div class="group">
+`,
+    data: () => `    <div class="ghead">Data</div><div class="group">
       <button class="row tap has-icon" id="s-backup"><span class="ico" style="background:#34c759">${icon('download')}</span><span class="body"><div class="t">Back up all data</div><div class="st">JSON file incl. receipt images</div></span></button>
       <button class="row tap has-icon" id="s-restore"><span class="ico" style="background:#007aff">${icon('upload')}</span><span class="body"><div class="t">Restore from backup</div></span></button>
       <button class="row tap has-icon" id="s-csv"><span class="ico" style="background:#30b0c7">${icon('receipt')}</span><span class="body"><div class="t">Export all expenses (CSV)</div></span></button>
       <button class="row tap has-icon" id="s-ics"><span class="ico" style="background:#ff2d55">${icon('calendar')}</span><span class="body"><div class="t">Import trips from calendar (.ics)</div></span></button>
       <button class="row tap has-icon" id="s-sample"><span class="ico" style="background:#af52de">${icon('sparkles')}</span><span class="body"><div class="t">Load sample data</div></span></button>
     </div>
-    ${window.PWA ? PWA.settingsHTML() : ''}
+    <div class="ghead">Storage</div><div class="group"><div class="row"><span class="body">Used on this device</span><span class="muted" id="s-storage">…</span></div></div>
+    <div class="foot">Receipts and trips are kept only on this device. Back up before changing phone.</div>
     <div class="group" style="margin-top:24px"><button class="row tap" id="s-reset"><span class="body" style="color:var(--red);text-align:center">Erase all data</span></button></div>
-    <div class="foot" style="text-align:center;margin:18px 0">VeriTrip ${APP_VERSION} · data is stored only on this device${db.migratedFrom ? ' · migrated from v2' : ''}</div>`;
+`,
+    about: () => `${window.PWA ? PWA.settingsHTML() : ''}    <div class="ghead">Help</div><div class="group">
+      <div class="row"><span class="body"><div class="t">Add an expense</div><div class="st">On a trip, tap Add expense. Take a photo, choose a file, or type it in.</div></span></div>
+      <div class="row"><span class="body"><div class="t">Local expenses</div><div class="st">When no trip is active, Add receipt puts fuel, tolls and car costs under Finance.</div></span></div>
+      <div class="row"><span class="body"><div class="t">Technical report</div><div class="st">Open a trip and tap Submit report.</div></span></div>
+    </div>
+    <div class="foot" style="text-align:center;margin:18px 0">VeriTrip ${APP_VERSION} · data is stored only on this device${db.migratedFrom ? ' · migrated from v2' : ''}</div>
+`
+  };
+  const srow = (k, color, ic, t, st) => `<button class="row tap has-icon" data-setpage="${k}"><span class="ico" style="background:${color}">${icon(ic)}</span><span class="body"><div class="t">${t}</div><div class="st">${esc(st)}</div></span>${icon('chevR', 's chev')}</button>`;
+  const rules = fxRules().length;
+  const main = `<div class="group" id="set-main">
+      ${srow('profile', '#007aff', 'person', 'Profile', [s.name || 'Name', s.company].filter(Boolean).join(' · '))}
+      ${srow('currency', '#34c759', 'coin', 'Currency &amp; rates', `${base()} reports${rules ? ` · ${rules} of my rate${rules === 1 ? '' : 's'}` : ''}`)}
+      ${srow('trips', '#ff9500', 'suitcase', 'Trips', `Travel-day buffer ${+s.travelBuffer ? s.travelBuffer + ' day' + (+s.travelBuffer > 1 ? 's' : '') : 'off'}`)}
+      ${srow('data', '#8e8e93', 'download', 'Data &amp; backup', 'Backup, export, restore')}
+      ${srow('about', '#5856d6', 'info', 'About', 'VeriTrip ' + APP_VERSION)}
+    </div>`;
+  v.innerHTML = navbar(page ? SET_PAGES[page] : 'Settings', `<button class="navbtn" id="set-back">${icon('chevL')}${esc(backL)}</button>`) + `<div class="ltitle">${esc(page ? SET_PAGES[page] : 'Settings')}</div>` + (page ? PG[page]() : main);
   const bindText = (id, key, fn) => { $(id, v).onchange = e => { s[key] = fn ? fn(e.target.value) : e.target.value.trim(); save(); }; };
   window.PWA && PWA.bindSettings(v);
-  $('#set-back', v).onclick = () => go(state.from && state.from !== 'settings' ? state.from : 'trips');
+  $('#set-back', v).onclick = () => { if (page) { state.setPage = null; renderSettings(); window.scrollTo(0, 0); } else go(state.from && state.from !== 'settings' ? state.from : 'trips'); };
+  $$('[data-setpage]', v).forEach(b => b.onclick = () => { state.setPage = b.dataset.setpage; renderSettings(); window.scrollTo(0, 0); });
+  if ($('#s-storage', v).nodeType) { try { navigator.storage.estimate().then(x => { const el = document.getElementById('s-storage'); if (el) el.textContent = x && x.usage != null ? (x.usage > 1048576 ? (x.usage / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(x.usage / 1024)) + ' KB') : 'n/a'; }).catch(() => {}); } catch (e) { const el = document.getElementById('s-storage'); if (el) el.textContent = 'n/a'; } }
   $('#s-clients', v).onclick = () => svcOpen('clients'); $('#s-reports', v).onclick = () => svcOpen('reports'); $('#s-parts', v).onclick = partsSheet;
   $('#s-rlang', v).onchange = e => { s.reportLang = e.target.value; save(); };
   $('#s-esig', v).onclick = async () => { const x = await sigPad('Engineer signature', s.name); if (x === null) return; s.engineerSign = x; save(); renderSettings(); };
@@ -3454,7 +3454,7 @@ function bookingTile(t, kind) {
 function renderTrip() {
   const v = $('#v-trip'); const t = tripById(state.tripId);
   if (!t) { go('trips'); return; }
-  const tot = tripTotals(t); const miss = missingDays(t); const L = tripLen(t);
+  const tot = tripTotals(t); const L = tripLen(t);
   const fe = flightExp(t), he = hotelExp(t);
   const list = expensesOf(t).filter(e => e !== fe && e !== he).sort((a, b) => (a.date + a.createdAt).localeCompare(b.date + b.createdAt));
   const mine = list.filter(e => e.paidBy === 'me');
@@ -3466,10 +3466,9 @@ function renderTrip() {
   const byDay = {}; list.forEach(e => (byDay[e.date] = byDay[e.date] || []).push(e));
   const dayLabel = d => `${fmtD(d, { weekday: 'short', day: 'numeric', month: 'short' })}${d >= t.startDate && d <= t.endDate ? ` · Day ${daysBetween(t.startDate, d) + 1}` : ''}`;
   const listHTML = list.length ? Object.keys(byDay).sort().map(d => `<div class="dayh"><span>${esc(dayLabel(d))}</span><span class="num">${esc(fmtBase(byDay[d].filter(e => e.paidBy === 'me').reduce((s, e) => s + (econv(e) || 0), 0)))}</span></div><div class="group">${byDay[d].map(e => expenseRow(e, { showDate: false, showTrip: false, simple: true })).join('')}</div>`).join('')
-    : `<div class="card"><div class="empty">${icon('receipt')}No receipts yet.<br>Tap <b>Add receipt</b> after each purchase.</div></div>`;
+    : `<div class="card"><div class="empty">${icon('receipt')}No expenses yet.</div></div>`;
   const catEntries = Object.entries(tot.byCat).sort((a, b) => b[1] - a[1]); const curs = Object.entries(tot.byCur);
-  const details = `<details class="tdetails" id="tr-details"${state.tripDetailsOpen ? ' open' : ''}><summary>Details${miss.length ? ` <span class="dnote">${miss.length} day${miss.length > 1 ? 's' : ''} without receipts</span>` : ''}</summary>
-    <div class="ghead" style="display:flex;justify-content:space-between;align-items:center"><span>Days without receipts</span>${miss.length ? '<button class="linkbtn" id="tr-fixmiss" style="text-transform:none;font-size:15px">Fix…</button>' : ''}</div><div class="group">${miss.length ? miss.map(d => `<button class="row tap" data-cal="${d}"><span class="body"><div class="t">${esc(fmtD(d, { weekday: 'long', day: 'numeric', month: 'short' }))}</div><div class="st">Day ${daysBetween(t.startDate, d) + 1} · tap to add or mark “no spend”</div></span>${icon('chevR', 's chev')}</button>`).join('') : `<div class="row"><span class="body muted">None — every past day has a receipt or is marked</span></div>`}</div>
+  const details = `<details class="tdetails" id="tr-details"${state.tripDetailsOpen ? ' open' : ''}><summary>Details</summary>
     <div class="ghead">Summary</div><div class="group">
       <div class="row"><span class="body">Company paid</span><span class="num muted">${esc(fmtBase(tot.company, true))}</span></div>
       <div class="row"><span class="body">Average per day</span><span class="num muted">${esc(fmtBase(tot.reimb / clamp(daysBetween(t.startDate, todayISO()) + 1, 1, L), true))}</span></div>
@@ -3480,13 +3479,13 @@ function renderTrip() {
     <div class="foot">Rates: ${db.fx.updatedAt ? 'live, updated ' + esc(new Date(db.fx.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : 'built-in defaults'} · edit in Settings.${tot.unconverted ? ` ${tot.unconverted} item(s) need a rate.` : ''}</div>
     ${t.purpose || t.notes ? `<div class="ghead">Notes</div><div class="group"><div class="row"><span class="body" style="white-space:pre-wrap">${esc([t.purpose, t.notes].filter(Boolean).join('\n'))}</span></div></div>` : ''}
   </details>`;
-  v.innerHTML = navbar(`${flag ? flag + ' ' : ''}${tripName(t)}`, `<button class="navbtn" id="tr-back">${icon('chevL')}${esc(fromLabel)}</button>`, plusBtn('tr-addr') + `<button class="navbtn circle" id="tr-more" aria-label="More">${icon('more')}</button>`) +
+  v.innerHTML = navbar(`${flag ? flag + ' ' : ''}${tripName(t)}`, `<button class="navbtn" id="tr-back">${icon('chevL')}${esc(fromLabel)}</button>`, `<button class="navbtn circle" id="tr-more" aria-label="More">${icon('more')}</button>`) +
     `<div class="thero${tfb ? ' flagged' : ''}"${tfb ? ` style="--tint:${tfb.tint}"` : ''}>${tfb ? tfb.html : ''}<div class="ltitle">${flag && !tfb ? `<span class="flag">${flag}</span>` : ''}${esc(tripName(t))}</div>
       <div class="lsub" style="margin-bottom:14px">${esc(fmtRange(t.startDate, t.endDate))} · <b>${esc(tripDayText(t))}</b>${travel ? '' : ' · Local'}${t.clientId ? ' · ' + esc(clientName(t.clientId)) : ''}</div></div>
     ${remind}
     <div class="reimb"><div class="k">To reimburse</div><div class="v">${esc(fmtBase(tot.reimb))}</div><div class="s">${mine.length} receipt${mine.length === 1 ? '' : 's'}${tot.noReceipt ? ` · ${tot.noReceipt} without photo` : ''}</div></div>
     ${travel ? `<div class="btiles">${bookingTile(t, 'flight')}${bookingTile(t, 'hotel')}</div>` : ''}
-    <button class="btn tinted" id="tr-report" style="margin-top:10px">${icon('wrench', 's')} Submit technical report</button>
+    <div class="btnrow" style="margin-top:10px"><button class="btn tinted" id="tr-addr">${icon('plus', 's')} Add expense</button><button class="btn tinted" id="tr-report">${icon('wrench', 's')} Submit report</button></div>
     ${treps.length ? `<div class="section-h"><h2>Service reports</h2></div><div class="group" id="tr-reps">${treps.map(r => reportRow(r)).join('')}</div>` : ''}
     <div class="section-h"><h2>Expenses</h2></div>
     ${listHTML}
@@ -3496,13 +3495,11 @@ function renderTrip() {
   const ctxDate = tripStatus(t) === 'current' ? todayISO() : t.startDate;
   $('#tr-addr', v).onclick = () => receiptSheet({ tripId: t.id, date: ctxDate });
   $('#tr-report', v).onclick = () => openReportFlow({ tripId: t.id });
-  $('#tr-fixmiss', v) && ($('#tr-fixmiss', v).onclick = e => { e.preventDefault(); e.stopPropagation(); missingDaysSheet(t.id); });
   bindSvcRows(v);
   $('#tr-flight', v) && ($('#tr-flight', v).onclick = () => bookingSheet(t, 'flight'));
   $('#tr-hotel', v) && ($('#tr-hotel', v).onclick = () => bookingSheet(t, 'hotel'));
   $('#tr-remind', v) && ($('#tr-remind', v).onclick = () => bookingSheet(t, needF ? 'flight' : 'hotel'));
   $('#tr-details', v).ontoggle = e => { state.tripDetailsOpen = e.target.open; };
-  $$('[data-cal]', v).forEach(b => b.onclick = () => go('calendar', { calSel: b.dataset.cal, calMonth: b.dataset.cal.slice(0, 7) }));
   const slug = tripName(t).replace(/\W+/g, '_');
   $('#tr-more', v).onclick = () => actionSheet(tripName(t), [
     { icon: 'pencil', color: '#8e8e93', label: 'Edit trip', sub: 'City, dates, type, currency', fn: () => editTrip(t.id) },
@@ -3781,9 +3778,9 @@ function finAddMenu() {
     { icon: 'pencil', color: '#30b0c7', label: 'Contract', sub: 'Recurring billing for a client', fn: () => openContractEditor(null) },
     { icon: 'person', color: '#007aff', label: 'Client', fn: () => openClientEditor(null) }]);
 }
-const meBtn = () => `<button class="navbtn circle" id="nav-me" aria-label="Settings">${icon('person')}</button>`;
+const meBtn = () => `<button class="navbtn circle" id="nav-me" aria-label="Settings">${icon('gear')}</button>`;
 function bindMe(v) { const b = $('#nav-me', v); if (b) b.onclick = () => openSettings(); }
-function openSettings() { if (state.tab !== 'settings' && state.tab !== 'trip') state.from = state.tab; go('settings'); }
+function openSettings() { if (state.tab !== 'settings' && state.tab !== 'trip') state.from = state.tab; go('settings', { setPage: null }); }
 
 /* ---------- Living expense editor ---------- */
 function openLivingEditor(src, preset = {}) {
@@ -4141,6 +4138,30 @@ function clientStats(c) {
 function clientSearchText(c) {
   return [c.name, c.address, c.city, c.country, c.contact, c.phone, c.email, c.note, ...machinesOf(c.id).flatMap(m => [m.model, m.serial, mtype(m.type).label])].join(' ').toLowerCase();
 }
+
+/* ---------- 4.2 · Country of a client / machine / trip (for the pickers) ---------- */
+const countryNameOf = iso => Object.keys(ISO2).find(k => ISO2[k] === iso) || '';
+/** ISO-2 of a client: stored Country field first, else the end of the address ("…, Abidjan, Côte d'Ivoire"), else a known city. '' = unknown. */
+function clientCountryISO(c) {
+  if (!c) return '';
+  const own = String(c.country || '').trim(); if (own) { const i = countryISO(own, ''); if (i) return i; }
+  const parts = [c.address, c.city].filter(Boolean).join(', ').split(/[,;\n|]+|\s[-–—]\s/).map(x => x.trim().replace(/[.\s]*\d[\d\s-]*$/, '').trim()).filter(Boolean);
+  for (let k = parts.length - 1; k >= 0; k--) { const seg = parts[k]; const i = countryISO(seg, ''); if (i) return i;
+    const w = seg.split(/\s+/); for (let n = Math.min(3, w.length - 1); n >= 1; n--) { const tail = w.slice(-n).join(' '); if (COUNTRY_ISO[normCountry(tail)]) return COUNTRY_ISO[normCountry(tail)]; } }
+  for (const seg of parts) { const i = countryISO('', seg); if (i) return i; }
+  return own ? '' : (c.city ? countryISO('', c.city) : '');
+}
+const machineCountryISO = m => m ? clientCountryISO(clientById(m.clientId)) : '';
+const tripCountryISO = t => t ? countryISO(t.country, t.city) : '';
+/** Clients to offer for a trip: same country, plus clients whose country is unknown; `keep` ids are always kept. All when there is no trip country. */
+function clientsForTrip(t, opt = {}) {
+  const all = FIN().clients.slice().sort((a, b) => a.name.localeCompare(b.name)); const iso = tripCountryISO(t);
+  if (!iso || opt.all) return { list: all, iso, hidden: 0 };
+  const keep = new Set(opt.keep || []); const list = all.filter(c => { const k = clientCountryISO(c); return !k || k === iso || keep.has(c.id); });
+  return { list, iso, hidden: all.length - list.length };
+}
+const COUNTRY_LIST = () => Object.keys(ISO2).sort((a, b) => a.localeCompare(b));
+const countryOpts = (sel, none = '— Not set —') => `<option value="">${esc(none)}</option>` + COUNTRY_LIST().map(c => `<option${c === sel || (sel && ISO2[c] === countryISO(sel, '')) ? ' selected' : ''}>${esc(c)}</option>`).join('');
 function newClientRec(o) {
   const c = Object.assign({ id: uid('CLI'), name: '', address: '', city: '', country: '', contact: '', phone: '', email: '', note: '', currency: '', createdAt: new Date().toISOString() }, o);
   FIN().clients.push(c); return c;
@@ -4197,18 +4218,27 @@ function clientRow(c) {
   return `<button class="row tap has-icon" data-clipage="${esc(c.id)}"><span class="ico" style="background:#007aff">${icon('building')}</span><span class="body"><div class="t">${esc(c.name)}</div><div class="st">${esc(sub)}</div></span>${s.got ? `<span class="amt">${esc(fmtBase(s.got, true))}<span class="sub">received</span></span>` : icon('chevR', 's chev')}</button>`;
 }
 function clientsListHTML(q) {
-  q = (q || '').trim().toLowerCase();
-  const list = FIN().clients.filter(c => !q || clientSearchText(c).includes(q)).sort((a, b) => a.name.localeCompare(b.name));
+  q = (q || '').trim().toLowerCase(); const cf = state.svcCountry || '';
+  const list = FIN().clients.filter(c => (!q || clientSearchText(c).includes(q)) && (!cf || (cf === '-' ? !clientCountryISO(c) : clientCountryISO(c) === cf))).sort((a, b) => a.name.localeCompare(b.name));
   if (!list.length) return `<div class="card"><div class="empty">${icon('building')}${q ? 'No client matches.' : 'No clients yet.<br>Add the hospitals and centres you service.'}</div></div>`;
   return `<div class="group">${list.map(clientRow).join('')}</div>`;
+}
+/* Country chips: only when the clients span 2+ countries. */
+function clientChipsHTML() {
+  const cnt = {}; let none = 0; FIN().clients.forEach(c => { const k = clientCountryISO(c); if (k) cnt[k] = (cnt[k] || 0) + 1; else none++; });
+  const ks = Object.keys(cnt).sort((a, b) => countryNameOf(a).localeCompare(countryNameOf(b)));
+  if (ks.length + (none ? 1 : 0) < 2) { state.svcCountry = ''; return ''; }
+  const chip = (k, l) => `<button class="chip${(state.svcCountry || '') === k ? ' on' : ''}" data-ccountry="${k}">${l}</button>`;
+  return `<div class="chips" id="svc-chips">${chip('', 'All')}${ks.map(k => chip(k, `${flagOf(countryNameOf(k)) || ''} ${esc(countryNameOf(k))}`.trim())).join('')}${none ? chip('-', 'No country') : ''}</div>`;
 }
 function renderClients() {
   const v = $('#v-svc'); const n = FIN().clients.length;
   v.innerHTML = svcNav('Clients', plusBtn('svc-add')) + `<div class="ltitle">Clients</div><div class="lsub">${n} client${n === 1 ? '' : 's'} · ${db.machines.length} machine${db.machines.length === 1 ? '' : 's'}</div>
-    ${searchBox('svc-q', 'Search client, city, model or serial…', state.svcQ)}<div id="svc-list">${clientsListHTML(state.svcQ)}</div>`;
+    ${searchBox('svc-q', 'Search client, city, model or serial…', state.svcQ)}${clientChipsHTML()}<div id="svc-list">${clientsListHTML(state.svcQ)}</div>`;
   $('#svc-back', v).onclick = svcBack; $('#svc-add', v).onclick = () => openClientEditor(null);
   const draw = () => { $('#svc-list', v).innerHTML = clientsListHTML(state.svcQ); bindSvcRows(v); };
   $('#svc-q', v).oninput = e => { state.svcQ = e.target.value; draw(); }; bindSvcRows(v);
+  $$('[data-ccountry]', v).forEach(b => b.onclick = () => { state.svcCountry = b.dataset.ccountry; $$('[data-ccountry]', v).forEach(x => x.classList.toggle('on', x === b)); draw(); });
 }
 
 /* ---------- Client page ---------- */
@@ -4235,12 +4265,14 @@ function renderClientPage() {
 }
 
 /* ---------- Client editor ---------- */
+/** Contact Picker API (Chrome on Android, https). Hidden elsewhere, e.g. iOS Safari. */
+const contactPickerOK = () => { try { return !!(navigator.contacts && typeof navigator.contacts.select === 'function'); } catch (e) { return false; } };
 function openClientEditor(src, opt = {}) {
   const isNew = !src; const F = FIN(); const x = src ? { ...src } : { name: '', address: '', city: '', country: '', contact: '', phone: '', email: '', note: '' };
   const f = (id, label, val, extra = '') => `<div class="field"><label>${label}</label><input id="${id}" value="${esc(val || '')}" ${extra}></div>`;
   openSheet({ title: isNew ? 'New client' : 'Client', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
-    body: `<div class="group">${f('cl-name', 'Name', x.name, 'placeholder="Hospital or company"')}${f('cl-address', 'Address', x.address, 'placeholder="Street, area" autocomplete="street-address"')}${f('cl-city', 'City', x.city, 'placeholder="e.g. Nouakchott"')}${f('cl-country', 'Country', x.country, 'placeholder="e.g. Mauritania"')}</div>
-      <div class="group" style="margin-top:14px">${f('cl-contact', 'Contact', x.contact, 'placeholder="Person on site"')}${f('cl-phone', 'Phone', x.phone, 'type="tel" placeholder="Optional"')}${f('cl-email', 'Email', x.email, 'type="email" placeholder="Optional"')}</div>
+    body: `<div class="group">${f('cl-name', 'Name', x.name, 'placeholder="Hospital or company"')}${f('cl-address', 'Address', x.address, 'placeholder="Street, area" autocomplete="street-address"')}${f('cl-city', 'City', x.city, 'placeholder="e.g. Nouakchott"')}<div class="field"><label>Country</label><select id="cl-country">${countryOpts(x.country)}${x.country && !countryISO(x.country, '') ? `<option selected>${esc(x.country)}</option>` : ''}</select></div></div>
+      <div class="group" style="margin-top:14px">${contactPickerOK() ? `<button class="row tap has-icon" id="cl-pick" type="button"><span class="ico" style="background:var(--fill2);color:var(--blue)">${icon('person')}</span><span class="body" style="color:var(--blue)">Pick from contacts</span></button>` : ''}${f('cl-contact', 'Contact', x.contact, 'placeholder="Person on site"')}${f('cl-phone', 'Phone', x.phone, 'type="tel" placeholder="Optional"')}${f('cl-email', 'Email', x.email, 'type="email" placeholder="Optional"')}</div>
       <div class="group" style="margin-top:14px"><div class="field stack"><label>Notes</label><textarea id="cl-note" placeholder="Access, working hours, anything useful…">${esc(x.note || '')}</textarea></div></div>
       ${!isNew ? `<div style="margin-top:14px"><button class="btn tinted" id="cl-inv">${icon('doc', 's')} New invoice for ${esc(x.name)}</button></div><div class="group" style="margin-top:24px"><button class="row tap" id="cl-del"><span class="body" style="color:var(--red);text-align:center">Delete client</span></button></div>` : ''}`,
     onMount: b => {
@@ -4250,6 +4282,16 @@ function openClientEditor(src, opt = {}) {
         if (dup && isNew) { toast('This client already exists', 'warn'); return null; }
         const rec = isNew ? newClientRec(vals) : Object.assign(src, vals); save(); return rec; };
       $('#sheet-primary').onclick = () => { const r = collect(); if (!r) return; closeSheet(); toast(isNew ? 'Client added' : 'Saved'); if (opt.onDone) opt.onDone(r); else if (isNew && state.tab === 'svc' && state.svcMode === 'clients') svcOpen('client', r.id); else if (isNew && state.tab === 'finance') { state.finSeg = 'income'; render(); } else render(); };
+      const pick = $('#cl-pick', b); if (pick) pick.onclick = async () => {
+        try {
+          const r = await navigator.contacts.select(['name', 'email', 'tel'], { multiple: false });
+          if (!r || !r.length) return;                       // cancelled / nothing chosen: leave the fields as they are
+          const c = r[0] || {}; const first = a => (Array.isArray(a) ? a : []).map(v => String(v == null ? '' : v).trim()).find(Boolean) || '';
+          const nm = first(c.name), tel = first(c.tel), em = first(c.email);
+          if (nm) $('#cl-contact', b).value = nm; if (tel) $('#cl-phone', b).value = tel; if (em) $('#cl-email', b).value = em;
+          if (!nm && !tel && !em) toast('That contact has no name, phone or email', 'warn');
+        } catch (err) { /* user cancelled or the browser refused: no error shown */ }
+      };
       $('#cl-inv', b) && ($('#cl-inv', b).onclick = () => { const r = collect(); if (r) openInvoiceEditor(null, { clientId: r.id }); });
       $('#cl-del', b) && ($('#cl-del', b).onclick = () => {
         const nm = machinesOf(src.id).length, nr = db.reports.filter(r => r.clientId === src.id).length;
@@ -4405,13 +4447,17 @@ function srGrab() {
 }
 const num = v => { const s = String(v ?? '').replace(/[\s,]/g, ''); return s !== '' && isFinite(+s) ? +s : null; };
 
+const srSetCountryHTML = () => `<div class="field"><label>Country</label><select id="sr-setcountry">${countryOpts('', 'Set country…')}</select></div>`;
 function srStep1() {
   const t = tripById(SR.tripId);
-  const clients = FIN().clients.slice().sort((a, b) => a.name.localeCompare(b.name));
+  const cf = clientsForTrip(t, { all: SR.showAll, keep: [SR.clientId] }); const clients = cf.list; const tcName = countryNameOf(cf.iso);
+  const selCli = clientById(SR.clientId); const needCountry = selCli && !clientCountryISO(selCli);
   const newCli = SR.clientId === '__new';
   openSheet(Object.assign(srSheetCfg(`${srBar(1)}${t ? `<div class="foot" style="margin:0 4px 10px">${esc(tripShort(t))}</div>` : ''}
-    <div class="group"><div class="field"><label>Client</label><select id="sr-cli"><option value="">Select client…</option>${clients.map(c => `<option value="${esc(c.id)}"${c.id === SR.clientId ? ' selected' : ''}>${esc(c.name)}${c.city ? ' — ' + esc(c.city) : ''}</option>`).join('')}<option value="__new"${newCli ? ' selected' : ''}>＋ New client…</option></select></div>
-      <div id="sr-ncbox" class="${newCli ? '' : 'hidden'}"><div class="field"><label>Name</label><input id="sr-nc-name" placeholder="Hospital or company" value="${esc((SR.newClient || {}).name || '')}"></div><div class="field"><label>Address</label><input id="sr-nc-address" placeholder="Optional" value="${esc((SR.newClient || {}).address || '')}"></div><div class="field"><label>City</label><input id="sr-nc-city" placeholder="e.g. Nouakchott" value="${esc((SR.newClient || {}).city || '')}"></div><div class="field"><label>Country</label><input id="sr-nc-country" placeholder="e.g. Mauritania" value="${esc((SR.newClient || {}).country || '')}"></div></div></div>
+    <div class="group"><div class="field"><label>Client</label><select id="sr-cli"><option value="">Select client…</option>${clients.map(c => `<option value="${esc(c.id)}"${c.id === SR.clientId ? ' selected' : ''}>${esc(c.name)}${c.city ? ' — ' + esc(c.city) : ''}${clientCountryISO(c) ? '' : ' · Set country'}</option>`).join('')}<option value="__new"${newCli ? ' selected' : ''}>＋ New client…</option></select></div>
+      <div id="sr-cbox">${needCountry ? srSetCountryHTML() : ''}</div>
+      <div id="sr-ncbox" class="${newCli ? '' : 'hidden'}"><div class="field"><label>Name</label><input id="sr-nc-name" placeholder="Hospital or company" value="${esc((SR.newClient || {}).name || '')}"></div><div class="field"><label>Address</label><input id="sr-nc-address" placeholder="Optional" value="${esc((SR.newClient || {}).address || '')}"></div><div class="field"><label>City</label><input id="sr-nc-city" placeholder="e.g. Nouakchott" value="${esc((SR.newClient || {}).city || '')}"></div><div class="field"><label>Country</label><select id="sr-nc-country">${countryOpts((SR.newClient || {}).country || tcName, 'Select country…')}</select></div></div></div>
+    ${cf.iso && (cf.hidden || SR.showAll) ? `<div class="foot" style="margin:6px 4px 0"><button class="linkbtn" id="sr-showall">${SR.showAll ? 'Only ' + esc(tcName) : 'Show all countries'}</button></div>` : ''}
     <div id="sr-mbox"></div>`, srStep1Mount)));
 }
 function srStep1Mount(b) {
@@ -4449,7 +4495,10 @@ function srStep1Mount(b) {
     if (kind === 'helium') { if (v < 0 || v > 100) { el.className = 'foot warnline'; el.textContent = 'Helium level must be between 0 and 100 %.'; } else if (prev) { const d = v - prev.value; el.textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d)} % since the last visit.`; } return; }
     if (prev) { const d = v - prev.value; if (d < 0) { el.className = 'foot warnline'; el.textContent = `Lower than the previous counter (${nfmt(prev.value)}). Check the value.`; } else el.textContent = `${nfmt(d)} slices scanned since the last visit.`; }
   };
-  clientSel.onchange = () => { SR.clientId = clientSel.value; SR.machineId = ''; SR.ack = false; $('#sr-mbox', b).innerHTML = ''; paint(); };
+  const sa = $('#sr-showall', b); if (sa) sa.onclick = () => { srGrab(); SR.showAll = !SR.showAll; srDraw(); };
+  const bindCountry = () => { const sc = $('#sr-setcountry', b); if (sc) sc.onchange = () => { const c = clientById(SR.clientId); if (c && sc.value) { srGrab(); c.country = sc.value; save(); toast('Country set'); srDraw(); } }; };
+  bindCountry();
+  clientSel.onchange = () => { SR.clientId = clientSel.value; const cc = clientById(SR.clientId); $('#sr-cbox', b).innerHTML = cc && !clientCountryISO(cc) ? srSetCountryHTML() : ''; bindCountry(); SR.machineId = ''; SR.ack = false; $('#sr-mbox', b).innerHTML = ''; paint(); };
   ['sr-nc-name', 'sr-nc-address', 'sr-nc-city', 'sr-nc-country'].forEach(id => $('#' + id, b).addEventListener('input', () => { SR.newClient = { name: $('#sr-nc-name', b).value, address: $('#sr-nc-address', b).value, city: $('#sr-nc-city', b).value, country: $('#sr-nc-country', b).value }; }));
   paint();
   $('#sheet-primary').onclick = () => { srGrab(); const err = srValidate1(); if (err) return toast(err, 'warn'); SR.step = 2; srDraw(); };
