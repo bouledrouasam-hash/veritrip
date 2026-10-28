@@ -495,6 +495,38 @@ label.row{cursor:pointer}
 .fxp.est{color:var(--label2);background:var(--fill)}
 .fx-row .fx-s.pend{color:var(--orange)}
 
+/* ---------- 3.6 Clients · machines · service reports ---------- */
+.hero .stats.s2{grid-template-columns:repeat(2,1fr)}
+.ico.t{font-size:11px;font-weight:700;letter-spacing:.01em}
+.field+.row::before,.row+.field::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--sep)}
+.cstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.cstats>div{background:var(--card);border-radius:12px;padding:10px 8px;text-align:center;box-shadow:var(--shadow);min-width:0}
+.cstats b{display:block;font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cstats span{display:block;font-size:12px;color:var(--label2);margin-top:2px}
+.stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:2px 0 6px}
+.stepbar i{height:4px;border-radius:2px;background:var(--fill2)}
+.stepbar i.on{background:var(--blue)}
+.stepcap{font-size:13px;color:var(--label2);margin:0 2px 12px}
+.foot.warnline{color:var(--orange);font-weight:500}
+.rhead{display:flex;gap:6px;margin:2px 0 12px}
+.photos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.photos .ph{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--fill);display:grid;place-items:center;color:var(--blue)}
+.photos .ph img{width:100%;height:100%;object-fit:cover}
+.photos .ph button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center}
+.photos .ph button svg{width:12px;height:12px}
+.photos .ph.add{cursor:pointer}.photos .ph.add svg{width:26px;height:26px}
+.sigprev{height:34px;max-width:120px;object-fit:contain;filter:none}
+[data-theme=dark] .sigprev{background:#fff;border-radius:6px;padding:2px}
+#sigpad{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+#sigpad .sp-card{background:var(--bg);width:100%;max-width:640px;border-radius:16px 16px 0 0;padding:8px 16px calc(20px + env(safe-area-inset-bottom))}
+#sigpad .sp-h{display:flex;align-items:center;justify-content:space-between;min-height:48px}
+#sigpad .sp-h .tt{font-weight:600;font-size:17px}
+#sigpad .sp-h .navbtn{min-width:64px}#sigpad .sp-h .navbtn.r{justify-content:flex-end;font-weight:600}
+#sigpad .sp-sub{font-size:14px;color:var(--label2);text-align:center;margin-bottom:8px}
+#sigpad .sp-box{position:relative;height:210px;background:#fff;border-radius:14px;box-shadow:var(--shadow);overflow:hidden;touch-action:none}
+#sigpad canvas{width:100%;height:100%;display:block;touch-action:none}
+#sigpad .sp-line{position:absolute;left:18px;right:18px;bottom:46px;border-top:1px solid #d1d1d6;pointer-events:none}
+
 </style>
 </head>
 <body>
@@ -555,6 +587,7 @@ label.row{cursor:pointer}
   <section class="view" id="v-finance"></section>
   <section class="view" id="v-settings"></section>
   <section class="view" id="v-trip"></section>
+  <section class="view" id="v-svc"></section>
 </div>
 
 <nav class="tabbar" id="tabbar">
@@ -579,7 +612,7 @@ label.row{cursor:pointer}
 <script>
 window.VERITRIP_PWA = true;
 (function () { var u = function (p) { return new URL(p, document.baseURI).href; };
-  window.VERITRIP_LIB = { tess: u('vendor/tesseract/tesseract.min.js'), pdf: u('vendor/pdfjs/pdf.min.js'), pdfWorker: u('vendor/pdfjs/pdf.worker.min.js'),
+  window.VERITRIP_LIB = { tess: u('vendor/tesseract/tesseract.min.js'), pdf: u('vendor/pdfjs/pdf.min.js'), pdfWorker: u('vendor/pdfjs/pdf.worker.min.js'), jspdf: u('vendor/jspdf/jspdf.umd.min.js'),
     tessOpts: { workerPath: u('vendor/tesseract/worker.min.js'), corePath: u('vendor/tesseract-core/'), langPath: u('vendor/tessdata'), workerBlobURL: false } }; })();
 /* ===================== VeriTrip extraction parsers (pure, no DOM) ===================== */
 (function (root) {
@@ -1616,11 +1649,12 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '3.5';
+const APP_VERSION = '3.6';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
   pdfWorker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  jspdf: 'https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js',
   tessOpts: {}
 }, window.VERITRIP_LIB || {});
 const TESS_URL = LIB.tess, PDFJS_URL = LIB.pdf, PDFJS_WORKER = LIB.pdfWorker;
@@ -1653,7 +1687,7 @@ const OLD = { trips: 'veritrip_saved_trips_v2', exp: 'veritrip_saved_expenses_v2
 const DEFAULT_SETTINGS = () => {
   let tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
   return { baseCurrency: 'USD', theme: 'auto', name: '', company: '', employeeId: '', homeIata: TZ_HOME[tz] || '',
-    ai: { provider: 'none', key: '', model: '' }, travelBuffer: 1, autoFx: true, onboarded: false };
+    ai: { provider: 'none', key: '', model: '' }, travelBuffer: 1, autoFx: true, onboarded: false, engineerTitle: '', reportLang: 'en', engineerSign: '' };
 };
 let db, pendingToast = null;
 
@@ -1668,7 +1702,7 @@ function migrateTrip(t, i) {
   return { ...t, id: t.id || uid('TRIP'), type: t.type === 'LOCAL' ? 'LOCAL' : 'TRAVEL', city, country, location: loc || [city, country].filter(Boolean).join(', '),
     purpose: t.purpose || '', startDate: t.startDate, endDate: t.endDate || t.startDate, defaultCurrency: t.defaultCurrency || (P.detectPlace(loc) || {}).currency || 'USD',
     airlineInfo: t.airlineInfo || '', hotelInfo: t.hotelInfo || '', pnr: t.pnr || '', flights: t.flights || [], color: t.color || TRIP_COLORS[i % TRIP_COLORS.length],
-    noExpenseDays: t.noExpenseDays || [], notes: t.notes || '' };
+    noExpenseDays: t.noExpenseDays || [], notes: t.notes || '', clientId: t.clientId || '', site: t.site || '' };
 }
 function migrateExpense(e) {
   const pm = e.paymentMethod || 'Out-of-Pocket';
@@ -1700,6 +1734,7 @@ function normalizeDB() {
   db.fx.manual = db.fx.manual || {};
   migrateV32();
   migrateV33();
+  migrateV36();
 }
 /* Re-render the visible screen shortly after any data change so derived lists (Today's "Needs attention", badges)
    are always recomputed from the current data. Skipped while a sheet is open; closeSheet() re-renders instead. */
@@ -1961,8 +1996,8 @@ function go(tab, opts = {}) { state.tab = tab; Object.assign(state, opts); rende
 function openTrip(id, seg) { if (state.tab !== 'trip') state.from = state.tab; state.tab = 'trip'; state.tripId = id; if (seg) state.tripSeg = seg; render(); window.scrollTo(0, 0); }
 function render() {
   $$('.view').forEach(v => v.classList.toggle('active', v.id === 'v-' + state.tab));
-  $$('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === (state.tab === 'trip' || state.tab === 'settings' ? state.from : state.tab)));
-  ({ today: renderToday, calendar: renderCalendar, trips: renderTrips, expenses: renderExpenses, settings: renderSettings, trip: renderTrip, finance: renderFinance })[state.tab]();
+  $$('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === (['trip', 'settings', 'svc'].includes(state.tab) ? state.from : state.tab)));
+  ({ today: renderToday, calendar: renderCalendar, trips: renderTrips, expenses: renderExpenses, settings: renderSettings, trip: renderTrip, finance: renderFinance, svc: renderSvc })[state.tab]();
   updateBadges(); onScroll();
 }
 // Coming back to the app (installed PWA resumed, new day) or data changed in another window/tab: recompute from storage.
@@ -1993,8 +2028,8 @@ function expenseRow(e, opts = {}) {
     <span class="body"><div class="t">${esc(e.merchant || c.label)}</div><div class="st">${esc(sub)}</div>${tags ? `<div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${tags}</div>` : ''}</span>
     <span class="amt"><span style="${e.paidBy === 'company' ? 'color:var(--label2)' : ''}">${e.paidBy === 'company' && !(+e.amount) ? 'Prepaid' : esc(fmt(e.amount, e.currency))}</span>${e.currency !== base() && v != null && (+e.amount || e.paidBy !== 'company') ? `<span class="sub">≈ ${esc(fmtBase(v))}${fxMark(e)}</span>` : e.currency !== base() && v == null && fxMark(e) ? `<span class="sub">${fxMark(e)}</span>` : ''}</span></button>`;
 }
-function tripRow(t) {
-  const st = tripStatus(t); const tot = tripTotals(t); const miss = missingDays(t).length;
+function tripRow(t, onToday) {
+  const st = tripStatus(t); const tot = tripTotals(t); const miss = onToday === true ? 0 : missingDays(t).length;
   const right = st === 'current' ? `<span class="pill ok">Now</span>` : st === 'upcoming' ? `<span class="pill">${esc(relDays(t.startDate))}</span>` : '';
   return `<button class="row tap has-icon" data-trip="${esc(t.id)}"><span class="ico" style="background:${t.color}">${icon(t.type === 'LOCAL' ? 'pin' : 'plane')}</span>
    <span class="body"><div class="t">${esc(tripName(t))}${t.country ? `<span class="muted" style="font-size:15px">, ${esc(t.country)}</span>` : ''}</div>
@@ -2021,12 +2056,12 @@ function renderToday() {
   const todaySpend = todays.reduce((s, e) => s + (econv(e) || 0), 0);
   let hero;
   if (cur.length) {
-    const t = cur[0]; const tot = tripTotals(t); const dayN = daysBetween(t.startDate, today) + 1; const L = tripLen(t); const miss = missingDays(t).length;
+    const t = cur[0]; const tot = tripTotals(t); const dayN = daysBetween(t.startDate, today) + 1; const L = tripLen(t);
     const fb = flagBG(t);
     hero = `<button class="hero${fb ? ' flagged' : ''}" data-trip="${esc(t.id)}" style="${fb ? `--tint:${fb.tint}` : `--c1:${t.color};--c2:color-mix(in srgb, ${t.color} 55%, #1c1c1e)`};width:100%;text-align:left">${fb ? fb.html : ''}
       <div class="k">${icon('plane', 's')} On trip · Day ${dayN} of ${L}</div>
       <div class="city">${esc(tripName(t))}</div><div class="dates">${esc(fmtRange(t.startDate, t.endDate))}${t.purpose ? ' · ' + esc(t.purpose) : ''}</div>
-      <div class="stats"><div class="stat"><b>${esc(fmtBase(todaySpend, true))}</b><span>Today</span></div><div class="stat"><b>${esc(fmtBase(tot.reimb, true))}</b><span>To claim</span></div><div class="stat"><b>${miss}</b><span>Days missing</span></div></div>
+      <div class="stats s2"><div class="stat"><b>${esc(fmtBase(todaySpend, true))}</b><span>Today</span></div><div class="stat"><b>${esc(fmtBase(tot.reimb, true))}</b><span>To claim</span></div></div>
       <div class="progress"><i style="width:${clamp(dayN / L * 100, 4, 100)}%"></i></div></button>`
       + (cur.length > 1 ? `<div class="foot">Also active: ${cur.slice(1).map(x => esc(tripName(x))).join(', ')}. New expenses go to the trip matching the receipt's currency.</div>` : '');
   } else if (upcoming.length) {
@@ -2045,7 +2080,7 @@ function renderToday() {
       <button id="q-manual"><span class="ico" style="background:#8e8e93">${icon('pencil')}</span>Manual</button></div>
     ${financeCardsHTML()}
     ${att.length ? `<div class="section-h"><h2>Needs attention</h2></div><div class="group" id="att-list">${att.map((a, i) => `<button class="row tap has-icon" data-att="${i}" data-kind="${a.kind}"><span class="ico" style="background:${a.color}">${icon(a.icon)}</span><span class="body"><div class="t">${esc(a.t)}</div><div class="st">${esc(a.st)}</div></span>${icon('chevR', 's chev')}</button>`).join('')}</div>` : ''}
-    ${upcoming.length && cur.length ? `<div class="section-h"><h2>Upcoming</h2></div><div class="group">${upcoming.slice(0, 2).map(tripRow).join('')}</div>` : ''}`;
+    ${upcoming.length && cur.length ? `<div class="section-h"><h2>Upcoming</h2></div><div class="group">${upcoming.slice(0, 2).map(t => tripRow(t, true)).join('')}</div>` : ''}`;
   bindRows(v);
   $('#nav-add', v).onclick = () => addMenu();
   bindFileInputs($('.quick', v), (fs, kind) => { pickCtx = {}; pickHint = kind === 'camera' ? 'RECEIPT' : null; handleFiles(fs, pickHint); });
@@ -2059,11 +2094,7 @@ function renderToday() {
 /** Items for Today's "Needs attention". Pure function of db — no cached state. */
 function todayAttention(today = todayISO()) {
   const att = [];
-  const recentTrips = db.trips.filter(t => tripStatus(t, today) !== 'upcoming' && daysBetween(t.endDate, today) <= 45);
-  for (const t of recentTrips) {
-    const m = missingDays(t, today);
-    if (m.length) att.push({ kind: 'missing', tripId: t.id, icon: 'warn', color: '#ff9500', t: `${m.length} day${m.length > 1 ? 's' : ''} without expenses`, st: `${tripName(t)} · ${m.slice(0, 3).map(d => fmtD(d, { day: 'numeric', month: 'short' })).join(', ')}${m.length > 3 ? '…' : ''}`, fn: () => missingDaysSheet(t.id) });
-  }
+  // 3.6: "days without expenses" is no longer shown on Today; the fix flow lives in the trip's Details (and the Calendar).
   const un = db.expenses.filter(e => !e.tripId);
   if (un.length) att.push({ kind: 'unassigned', icon: 'tag', color: '#ff3b30', t: `${un.length} expense${un.length > 1 ? 's' : ''} not linked to a trip`, st: 'Tap to review', fn: () => go('expenses', { expFilter: 'unassigned' }) });
   const oor = outOfRange();
@@ -2236,6 +2267,14 @@ function renderSettings() {
       <div class="field"><label>Employee ID</label><input id="s-emp" value="${esc(s.employeeId)}" placeholder="Optional"></div>
       <div class="field"><label>Home airport</label><input id="s-home" value="${esc(s.homeIata)}" placeholder="e.g. ABJ" maxlength="3" style="text-transform:uppercase"></div>
     </div><div class="foot">Home airport helps VeriTrip find the destination on round-trip e-tickets.</div>
+    <div class="ghead">Profile parameters</div><div class="group">
+      <button class="row tap has-icon" id="s-clients"><span class="ico" style="background:#007aff">${icon('building')}</span><span class="body"><div class="t">Clients &amp; machines</div><div class="st">${FIN().clients.length} client${FIN().clients.length === 1 ? '' : 's'} · ${db.machines.length} machine${db.machines.length === 1 ? '' : 's'}</div></span>${icon('chevR', 's chev')}</button>
+      <button class="row tap has-icon" id="s-reports"><span class="ico" style="background:#34c759">${icon('doc')}</span><span class="body"><div class="t">Service reports</div><div class="st">${db.reports.length} report${db.reports.length === 1 ? '' : 's'}</div></span>${icon('chevR', 's chev')}</button>
+      <button class="row tap has-icon" id="s-parts"><span class="ico" style="background:#ff9500">${icon('wrench')}</span><span class="body"><div class="t">Parts to order</div><div class="st">${partsToOrder().length} waiting</div></span>${icon('chevR', 's chev')}</button>
+      <div class="field"><label>Job title</label><input id="s-title" value="${esc(s.engineerTitle)}" placeholder="e.g. Field Service Engineer CT/MR"></div>
+      <div class="field"><label>Report language</label><select id="s-rlang"><option value="en"${s.reportLang !== 'fr' ? ' selected' : ''}>English</option><option value="fr"${s.reportLang === 'fr' ? ' selected' : ''}>Français</option></select></div>
+      <button class="row tap" id="s-esig"><span class="body">Engineer signature</span>${s.engineerSign ? `<img class="sigprev" src="${s.engineerSign}" alt="">` : '<span class="muted">Not set</span>'}</button>
+    </div><div class="foot">Clients and their machines are added from trips and reports, or here. Name, company and job title appear on every service report.</div>
     <div class="ghead">Appearance</div><div class="group"><div class="row"><span class="body">Theme</span><div class="seg" style="width:200px">${[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button data-theme="${k}" class="${s.theme === k ? 'on' : ''}">${l}</button>`).join('')}</div></div></div>
     <div class="ghead">Currency</div><div class="group">
       <div class="field"><label>Report currency</label><select id="s-base">${curOptions(base())}</select></div>
@@ -2267,6 +2306,10 @@ function renderSettings() {
   const bindText = (id, key, fn) => { $(id, v).onchange = e => { s[key] = fn ? fn(e.target.value) : e.target.value.trim(); save(); }; };
   window.PWA && PWA.bindSettings(v);
   $('#set-back', v).onclick = () => go(state.from && state.from !== 'settings' ? state.from : 'today');
+  $('#s-clients', v).onclick = () => svcOpen('clients'); $('#s-reports', v).onclick = () => svcOpen('reports'); $('#s-parts', v).onclick = partsSheet;
+  $('#s-rlang', v).onchange = e => { s.reportLang = e.target.value; save(); };
+  $('#s-esig', v).onclick = async () => { const x = await sigPad('Engineer signature', s.name); if (x === null) return; s.engineerSign = x; save(); renderSettings(); };
+  bindText('#s-title', 'engineerTitle');
   bindText('#s-name', 'name'); bindText('#s-company', 'company'); bindText('#s-emp', 'employeeId'); bindText('#s-home', 'homeIata', x => x.trim().toUpperCase().slice(0, 3));
   $$('[data-theme]', v).forEach(b => b.onclick = () => { s.theme = b.dataset.theme; save(); applyTheme(); renderSettings(); });
   $('#s-base', v).onchange = e => { s.baseCurrency = e.target.value; save(); renderSettings(); };
@@ -2383,7 +2426,9 @@ function openTripEditor(x, opt = {}) {
     <div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="tp-type"><button data-v="TRAVEL" class="${x.type !== 'LOCAL' ? 'on' : ''}">Travel</button><button data-v="LOCAL" class="${x.type === 'LOCAL' ? 'on' : ''}">Local</button></div></div>
       ${f('tp-city', 'City', x.city, 'placeholder="e.g. Brazzaville" list="dl-cities"', 'city')}
       ${f('tp-country', 'Country', x.country, 'placeholder="Country"', 'country')}
-      ${f('tp-purpose', 'Purpose', x.purpose, 'placeholder="e.g. CT installation, PM visit"')}</div>
+      ${f('tp-purpose', 'Purpose', x.purpose, 'placeholder="e.g. CT installation, PM visit"')}
+      <div class="field"><label>Client</label><select id="tp-cli"><option value="">None</option>${FIN().clients.slice().sort((a, b) => a.name.localeCompare(b.name)).map(c => `<option value="${esc(c.id)}"${c.id === x.clientId ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
+      ${f('tp-site', 'Site', x.site, 'placeholder="Department or room (optional)"')}</div>
     <datalist id="dl-cities">${P.PLACES.map(p => `<option value="${esc(p[0])}">`).join('')}</datalist>
     <div class="group" style="margin-top:14px">
       <div class="field${confCls(conf.startDate)}">${confTag(conf.startDate)}<label>Start</label><input id="tp-start" type="date" value="${esc(x.startDate)}"></div>
@@ -2418,13 +2463,13 @@ function openTripEditor(x, opt = {}) {
         if (!s.value || !e.value || e.value < s.value) { toast('Check the dates', 'warn'); return; }
         const fl = $('#tp-flights', b).value.split(/[,;\s]+/).map(z => z.trim().toUpperCase()).filter(z => /^[A-Z0-9]{2}\d{1,4}$/.test(z));
         const vals = { type, city: city.value.trim(), country: country.value.trim(), purpose: $('#tp-purpose', b).value.trim(), startDate: s.value, endDate: e.value, defaultCurrency: cur.value,
-          pnr: $('#tp-pnr', b).value.trim().toUpperCase(), flights: fl, airlineInfo: fl.length ? fl.join(', ') : $('#tp-flights', b).value.trim(), hotelInfo: $('#tp-hotel', b).value.trim(), color, notes: $('#tp-notes', b).value };
+          pnr: $('#tp-pnr', b).value.trim().toUpperCase(), flights: fl, airlineInfo: fl.length ? fl.join(', ') : $('#tp-flights', b).value.trim(), hotelInfo: $('#tp-hotel', b).value.trim(), color, notes: $('#tp-notes', b).value, clientId: $('#tp-cli', b).value, site: $('#tp-site', b).value.trim() };
         vals.location = [vals.city, vals.country].filter(Boolean).join(', ');
         let t;
         if (match && target === 'update') {
-          t = match; const keep = { pnr: t.pnr, flights: t.flights, hotelInfo: t.hotelInfo, type: t.type };
+          t = match; const keep = { pnr: t.pnr, flights: t.flights, hotelInfo: t.hotelInfo, type: t.type, clientId: t.clientId, site: t.site };
           Object.assign(t, vals, { startDate: vals.startDate < t.startDate ? vals.startDate : t.startDate, endDate: vals.endDate > t.endDate ? vals.endDate : t.endDate, color: t.color,
-            pnr: vals.pnr || keep.pnr, flights: vals.flights.length ? vals.flights : keep.flights, hotelInfo: vals.hotelInfo || keep.hotelInfo, purpose: vals.purpose || match.purpose, type: 'TRAVEL' });
+            pnr: vals.pnr || keep.pnr, flights: vals.flights.length ? vals.flights : keep.flights, hotelInfo: vals.hotelInfo || keep.hotelInfo, purpose: vals.purpose || match.purpose, type: 'TRAVEL', clientId: vals.clientId || keep.clientId || '', site: vals.site || keep.site || '' });
           if (x.route) t.route = x.route; if (x.flightOut) { t.flightOut = x.flightOut; t.flightBack = x.flightBack || t.flightBack; } if (x.hotelIn) { t.hotelIn = x.hotelIn; t.hotelOut = x.hotelOut; }
         } else if (!opt.isNew) { t = tripById(x.id); Object.assign(t, vals); }
         else { t = Object.assign({ id: uid('TRIP'), noExpenseDays: [] }, vals); db.trips.push(t); }
@@ -2803,7 +2848,7 @@ function exportCSV(list, name) {
 }
 async function exportBackup() {
   const files = {};
-  const ids = [...db.expenses.filter(e => e.hasFile).map(e => e.id), ...financeFileIds()];
+  const ids = [...db.expenses.filter(e => e.hasFile).map(e => e.id), ...financeFileIds(), ...db.reports.flatMap(r => (r.photos || []).map(p => p.id))];
   for (const id of ids) { const r = await Files.get(id); if (r && r.blob) files[id] = { type: r.type, name: r.name, data: await blobToDataUrl(r.blob), thumb: r.thumb || null }; }
   const copy = JSON.parse(JSON.stringify(db)); copy.settings.ai.key = '';
   download(`VeriTrip-backup-${todayISO()}.json`, JSON.stringify({ app: 'VeriTrip', version: 3, exportedAt: new Date().toISOString(), db: copy, files }), 'application/json');
@@ -2816,7 +2861,7 @@ async function importBackup(file) {
     if (!j.db || !Array.isArray(j.db.trips)) throw new Error('Not a VeriTrip backup');
     const key = db.settings.ai.key; db = j.db; normalizeDB(); if (!db.settings.ai.key) db.settings.ai.key = key;
     for (const [id, f] of Object.entries(j.files || {})) await Files.put(id, { blob: dataUrlToBlob(f.data), type: f.type, name: f.name, thumb: f.thumb });
-    save(); applyTheme(); go('today'); toast(`Restored ${db.trips.length} trips, ${db.expenses.length} expenses${db.finance.living.length + db.finance.invoices.length ? `, ${db.finance.living.length} living costs, ${db.finance.invoices.length} invoices` : ''}`); scheduleRates();
+    save(); applyTheme(); go('today'); toast(`Restored ${db.trips.length} trips, ${db.expenses.length} expenses${db.reports.length ? `, ${db.machines.length} machines, ${db.reports.length} reports` : ''}${db.finance.living.length + db.finance.invoices.length ? `, ${db.finance.living.length} living costs, ${db.finance.invoices.length} invoices` : ''}`); scheduleRates();
   } catch (e) { toast('Restore failed: ' + e.message, 'warn'); }
 }
 
@@ -2889,7 +2934,7 @@ function init() {
   moveInlinePreviews();
   if (db.settings.autoFx && (!db.fx.updatedAt || Date.now() - Date.parse(db.fx.updatedAt) > 12 * 3600e3)) refreshRates(false).then(ok => ok && render());
   window.PWA && PWA.init();
-  window.VeriTrip = { db: () => db, resolveTrip, extractDocument, parseICS, icsToCandidates, render, go, financeYear, invStatus, ensureRates, fxFor, econv, livDue, readFinanceDoc };
+  window.VeriTrip = { db: () => db, resolveTrip, extractDocument, parseICS, icsToCandidates, render, go, financeYear, invStatus, ensureRates, fxFor, econv, livDue, readFinanceDoc, buildReportPdf, machineById, reportById, svcOpen, openReportFlow, reportSheet, exportReportsCSV, partsToOrder, SR_L, SR_STYLE, pdfTxt };
 }
 
 /* ================= v3.2 — trip wizard, flight & hotel, add-receipt options, simple trip screen ================= */
@@ -3196,6 +3241,7 @@ function renderTrip() {
   const mine = list.filter(e => e.paidBy === 'me');
   const fromLabel = { today: 'Today', calendar: 'Calendar', expenses: 'Expenses', settings: 'Settings' }[state.from] || 'Trips';
   const flag = flagOf(t.country); const travel = isTravel(t); const tfb = flagBG(t);
+  const treps = reportsSorted(db.reports.filter(r => r.tripId === t.id));
   const needF = travel && !hasFlight(t), needH = travel && !hasHotel(t);
   const remind = needF || needH ? `<button class="remind" id="tr-remind">${icon('info', 's')}<span>${needF && needH ? 'Add the flight and hotel the company booked' : needF ? 'Add the flight details' : 'Add the hotel details'} <b>— takes a few seconds</b></span>${icon('chevR', 's chev')}</button>` : '';
   const byDay = {}; list.forEach(e => (byDay[e.date] = byDay[e.date] || []).push(e));
@@ -3204,7 +3250,7 @@ function renderTrip() {
     : `<div class="card"><div class="empty">${icon('receipt')}No receipts yet.<br>Tap <b>Add receipt</b> after each purchase.</div></div>`;
   const catEntries = Object.entries(tot.byCat).sort((a, b) => b[1] - a[1]); const curs = Object.entries(tot.byCur);
   const details = `<details class="tdetails" id="tr-details"${state.tripDetailsOpen ? ' open' : ''}><summary>Details${miss.length ? ` <span class="dnote">${miss.length} day${miss.length > 1 ? 's' : ''} without receipts</span>` : ''}</summary>
-    <div class="ghead">Days without receipts</div><div class="group">${miss.length ? miss.map(d => `<button class="row tap" data-cal="${d}"><span class="body"><div class="t">${esc(fmtD(d, { weekday: 'long', day: 'numeric', month: 'short' }))}</div><div class="st">Day ${daysBetween(t.startDate, d) + 1} · tap to add or mark “no spend”</div></span>${icon('chevR', 's chev')}</button>`).join('') : `<div class="row"><span class="body muted">None — every past day has a receipt or is marked</span></div>`}</div>
+    <div class="ghead" style="display:flex;justify-content:space-between;align-items:center"><span>Days without receipts</span>${miss.length ? '<button class="linkbtn" id="tr-fixmiss" style="text-transform:none;font-size:15px">Fix…</button>' : ''}</div><div class="group">${miss.length ? miss.map(d => `<button class="row tap" data-cal="${d}"><span class="body"><div class="t">${esc(fmtD(d, { weekday: 'long', day: 'numeric', month: 'short' }))}</div><div class="st">Day ${daysBetween(t.startDate, d) + 1} · tap to add or mark “no spend”</div></span>${icon('chevR', 's chev')}</button>`).join('') : `<div class="row"><span class="body muted">None — every past day has a receipt or is marked</span></div>`}</div>
     <div class="ghead">Summary</div><div class="group">
       <div class="row"><span class="body">Company paid</span><span class="num muted">${esc(fmtBase(tot.company, true))}</span></div>
       <div class="row"><span class="body">Average per day</span><span class="num muted">${esc(fmtBase(tot.reimb / clamp(daysBetween(t.startDate, todayISO()) + 1, 1, L), true))}</span></div>
@@ -3217,11 +3263,13 @@ function renderTrip() {
   </details>`;
   v.innerHTML = navbar(`${flag ? flag + ' ' : ''}${tripName(t)}`, `<button class="navbtn" id="tr-back">${icon('chevL')}${esc(fromLabel)}</button>`, `<button class="navbtn circle" id="tr-more" aria-label="More">${icon('more')}</button>`) +
     `<div class="thero${tfb ? ' flagged' : ''}"${tfb ? ` style="--tint:${tfb.tint}"` : ''}>${tfb ? tfb.html : ''}<div class="ltitle">${flag && !tfb ? `<span class="flag">${flag}</span>` : ''}${esc(tripName(t))}</div>
-      <div class="lsub" style="margin-bottom:14px">${esc(fmtRange(t.startDate, t.endDate))} · <b>${esc(tripDayText(t))}</b>${travel ? '' : ' · Local'}</div></div>
+      <div class="lsub" style="margin-bottom:14px">${esc(fmtRange(t.startDate, t.endDate))} · <b>${esc(tripDayText(t))}</b>${travel ? '' : ' · Local'}${t.clientId ? ' · ' + esc(clientName(t.clientId)) : ''}</div></div>
     ${remind}
     <div class="reimb"><div class="k">To reimburse</div><div class="v">${esc(fmtBase(tot.reimb))}</div><div class="s">${mine.length} receipt${mine.length === 1 ? '' : 's'}${tot.noReceipt ? ` · ${tot.noReceipt} without photo` : ''}</div></div>
     ${travel ? `<div class="btiles">${bookingTile(t, 'flight')}${bookingTile(t, 'hotel')}</div>` : ''}
     <button class="btn addr" id="tr-addr">${icon('camera')} Add receipt</button>
+    <button class="btn tinted" id="tr-report" style="margin-top:10px">${icon('wrench', 's')} Submit technical report</button>
+    ${treps.length ? `<div class="section-h"><h2>Service reports</h2></div><div class="group" id="tr-reps">${treps.map(r => reportRow(r)).join('')}</div>` : ''}
     <div class="section-h"><h2>Expenses</h2></div>
     ${listHTML}
     ${details}`;
@@ -3229,6 +3277,9 @@ function renderTrip() {
   $('#tr-back', v).onclick = () => go(state.from || 'trips');
   const ctxDate = tripStatus(t) === 'current' ? todayISO() : t.startDate;
   $('#tr-addr', v).onclick = () => receiptSheet({ tripId: t.id, date: ctxDate });
+  $('#tr-report', v).onclick = () => openReportFlow({ tripId: t.id });
+  $('#tr-fixmiss', v) && ($('#tr-fixmiss', v).onclick = e => { e.preventDefault(); e.stopPropagation(); missingDaysSheet(t.id); });
+  bindSvcRows(v);
   $('#tr-flight', v) && ($('#tr-flight', v).onclick = () => bookingSheet(t, 'flight'));
   $('#tr-hotel', v) && ($('#tr-hotel', v).onclick = () => bookingSheet(t, 'hotel'));
   $('#tr-remind', v) && ($('#tr-remind', v).onclick = () => bookingSheet(t, needF ? 'flight' : 'hotel'));
@@ -3474,7 +3525,7 @@ function renderFinance() {
   $$('[data-pay]', v).forEach(b => b.onclick = () => { const [id, d] = b.dataset.pay.split('|'); const l = F.living.find(x => x.id === id); if (!l) return; l.paid[d] = todayISO(); save(); renderFinance(); toast(`${l.name} marked paid`); });
   $$('[data-inv]', v).forEach(b => b.onclick = () => openInvoiceEditor(F.invoices.find(i => i.id === b.dataset.inv)));
   $$('[data-con]', v).forEach(b => b.onclick = () => openContractEditor(F.contracts.find(i => i.id === b.dataset.con)));
-  $$('[data-cli]', v).forEach(b => b.onclick = () => openClientEditor(F.clients.find(i => i.id === b.dataset.cli)));
+  $$('[data-cli]', v).forEach(b => b.onclick = () => svcOpen('client', b.dataset.cli));
   ['liv-add', 'liv-add2'].forEach(id => $('#' + id, v) && ($('#' + id, v).onclick = () => openLivingEditor(null)));
   ['inv-add', 'inv-add2'].forEach(id => $('#' + id, v) && ($('#' + id, v).onclick = () => openInvoiceEditor(null)));
   $('#con-add', v) && ($('#con-add', v).onclick = () => openContractEditor(null));
@@ -3710,23 +3761,6 @@ function openContractEditor(src) {
       updConv(); if (isNew) setTimeout(() => amt.focus(), 350);
     } });
 }
-function openClientEditor(src) {
-  const isNew = !src; const F = FIN(); const x = src ? { ...src } : { id: uid('CLI'), name: '', email: '', phone: '', country: '', currency: '', note: '' };
-  const f = (id, label, val, extra = '') => `<div class="field"><label>${label}</label><input id="${id}" value="${esc(val || '')}" ${extra}></div>`;
-  openSheet({ title: isNew ? 'New client' : 'Client', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
-    body: `<div class="group">${f('cl-name', 'Name', x.name, 'placeholder="Company or person"')}${f('cl-email', 'Email', x.email, 'type="email" placeholder="Optional"')}${f('cl-phone', 'Phone', x.phone, 'type="tel" placeholder="Optional"')}${f('cl-country', 'Country', x.country, 'placeholder="Optional"')}${f('cl-note', 'Note', x.note, 'placeholder="Optional"')}</div>
-      ${!isNew ? `<div style="margin-top:14px"><button class="btn tinted" id="cl-inv">${icon('doc', 's')} New invoice for ${esc(x.name)}</button></div><div class="group" style="margin-top:24px"><button class="row tap" id="cl-del"><span class="body" style="color:var(--red);text-align:center">Delete client</span></button></div>` : ''}`,
-    onMount: b => {
-      const collect = () => { const name = $('#cl-name', b).value.trim(); if (!name) { $('#cl-name', b).focus(); toast('Enter the name', 'warn'); return null; }
-        const rec = Object.assign(src || { id: x.id, createdAt: new Date().toISOString() }, { name, email: $('#cl-email', b).value.trim(), phone: $('#cl-phone', b).value.trim(), country: $('#cl-country', b).value.trim(), note: $('#cl-note', b).value.trim() });
-        if (isNew) F.clients.push(rec); save(); return rec; };
-      $('#sheet-primary').onclick = () => { const r = collect(); if (!r) return; closeSheet(); state.finSeg = 'income'; render(); toast(isNew ? 'Client added' : 'Saved'); };
-      $('#cl-inv', b) && ($('#cl-inv', b).onclick = () => { const r = collect(); if (r) openInvoiceEditor(null, { clientId: r.id }); });
-      $('#cl-del', b) && ($('#cl-del', b).onclick = () => confirmSheet('Delete client?', 'Their invoices and contracts are kept without a client.', 'Delete', () => { F.clients = F.clients.filter(c => c.id !== src.id); save(); render(); toast('Client deleted'); }));
-      if (isNew) setTimeout(() => $('#cl-name', b).focus(), 350);
-    } });
-}
-
 /* ---------- Today cards ---------- */
 function financeCardsHTML() {
   const due = livDue(60); const over = FIN().invoices.filter(i => invStatus(i) === 'overdue');
@@ -3789,6 +3823,665 @@ function financeFileIds() { const F = FIN(); return [...F.living.flatMap(l => l.
 /* ---------- Start-up ---------- */
 document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
 setTimeout(() => { if (db) scheduleRates(); }, 1200);
+
+/* ===================== VeriTrip 3.6 — Clients · Machines · Service reports (data + client/machine screens) ===================== */
+const MTYPES = [
+  { k: 'CT', label: 'CT', color: '#007aff' }, { k: 'MR', label: 'MR', color: '#5856d6' }, { k: 'XR', label: 'X-ray', color: '#ff9500' },
+  { k: 'US', label: 'Ultrasound', color: '#30b0c7' }, { k: 'OT', label: 'Other', color: '#8e8e93' }];
+const mtype = k => MTYPES.find(x => x.k === k) || MTYPES[4];
+const JOB_TYPES = [['pm', 'Preventive maintenance'], ['cm', 'Corrective repair'], ['inst', 'Installation'], ['insp', 'Inspection'], ['other', 'Other']];
+const jobLabel = k => (JOB_TYPES.find(j => j[0] === k) || JOB_TYPES[4])[1];
+const MSTATUS = [['ok', 'Operational', 'ok'], ['limited', 'Limited', 'warn'], ['down', 'Down', 'red']];
+const mstatus = k => MSTATUS.find(s => s[0] === k) || MSTATUS[0];
+
+/* ---------- Migration (runs on every load; idempotent) ---------- */
+function migrateV36() {
+  db.machines = Array.isArray(db.machines) ? db.machines : [];
+  db.reports = Array.isArray(db.reports) ? db.reports : [];
+  db.svc = Object.assign({ seq: {} }, db.svc || {}); db.svc.seq = db.svc.seq || {};
+  FIN().clients.forEach(c => { for (const k of ['address', 'city', 'country', 'contact', 'phone', 'email', 'note']) c[k] = c[k] == null ? '' : String(c[k]); });
+  db.machines.forEach(m => {
+    m.id = m.id || uid('MCH'); m.type = MTYPES.some(x => x.k === m.type) ? m.type : 'OT'; m.model = m.model || ''; m.serial = m.serial || ''; m.notes = m.notes || '';
+    m.readings = (Array.isArray(m.readings) ? m.readings : []).map(r => ({ id: r.id || uid('RD'), kind: r.kind === 'helium' ? 'helium' : 'slice', value: +r.value, date: r.date || todayISO(), reportId: r.reportId || null, note: r.note || '', at: r.at || '' })).filter(r => isFinite(r.value));
+    m.createdAt = m.createdAt || new Date().toISOString(); machineRecalc(m);
+  });
+  db.reports.forEach(r => {
+    r.id = r.id || uid('SR'); r.parts = (r.parts || []).map(p => ({ id: p.id || uid('PT'), name: p.name || '', pn: p.pn || '', qty: +p.qty || 1, required: !!p.required, ordered: !!p.ordered }));
+    r.photos = r.photos || []; r.status = r.status || 'ok'; r.job = r.job || 'other'; r.work = r.work || ''; r.remarks = r.remarks || ''; r.snap = r.snap || {};
+    r.final = !!r.final; r.lang = r.lang === 'fr' ? 'fr' : 'en'; r.createdAt = r.createdAt || new Date().toISOString();
+  });
+}
+const machineById = id => db.machines.find(m => m.id === id);
+const reportById = id => db.reports.find(r => r.id === id);
+const machinesOf = cid => db.machines.filter(m => m.clientId === cid).sort((a, b) => (a.type + a.model).localeCompare(b.type + b.model));
+const reportsSorted = list => list.slice().sort((a, b) => ((b.date || '') + (b.createdAt || '')).localeCompare((a.date || '') + (a.createdAt || '')));
+const rdSort = (a, b) => (a.date || '').localeCompare(b.date || '') || (a.at || '').localeCompare(b.at || '');
+function machineRecalc(m) {
+  const last = k => m.readings.filter(r => r.kind === k).sort(rdSort).pop() || null;
+  const s = last('slice'), h = last('helium');
+  m.lastSlice = s ? s.value : null; m.lastSliceDate = s ? s.date : null; m.lastHelium = h ? h.value : null; m.lastHeliumDate = h ? h.date : null;
+}
+/** The reading just before `date` (excluding the report being edited). */
+function prevReading(m, kind, date, exceptReport) {
+  if (!m) return null;
+  return m.readings.filter(r => r.kind === kind && r.reportId !== exceptReport && (!date || r.date <= date)).sort(rdSort).pop() || null;
+}
+const readingKind = type => type === 'CT' ? 'slice' : type === 'MR' ? 'helium' : null;
+const nfmt = n => n == null || n === '' || !isFinite(n) ? '—' : Number(n).toLocaleString('en-US');
+function addReading(m, kind, value, date, reportId, note) {
+  m.readings.push({ id: uid('RD'), kind, value: +value, date, reportId: reportId || null, note: note || '', at: new Date().toISOString() }); machineRecalc(m);
+}
+function createMachine(o) {
+  const serial = String(o.serial || '').trim();
+  const ex = serial && db.machines.find(m => m.clientId === o.clientId && m.serial.toLowerCase() === serial.toLowerCase());
+  if (ex) return ex;
+  const m = { id: uid('MCH'), clientId: o.clientId, type: o.type || 'OT', model: String(o.model || '').trim(), serial, notes: String(o.notes || '').trim(), readings: [], createdAt: new Date().toISOString() };
+  machineRecalc(m); db.machines.push(m); return m;
+}
+const machineLabel = m => m ? [m.model || 'Machine', m.serial ? 'SN ' + m.serial : ''].filter(Boolean).join(' · ') : '';
+const cityLine = c => [c.city, c.country].filter(Boolean).join(', ');
+function clientStats(c) {
+  const inv = FIN().invoices.filter(i => i.clientId === c.id);
+  const got = inv.reduce((s, i) => s + i.payments.reduce((t, p) => t + (payUsd(i, p) || 0), 0), 0);
+  return { inv, got, open: inv.filter(i => ['sent', 'overdue'].includes(invStatus(i))).length, machines: machinesOf(c.id), reports: db.reports.filter(r => r.clientId === c.id) };
+}
+function clientSearchText(c) {
+  return [c.name, c.address, c.city, c.country, c.contact, c.phone, c.email, c.note, ...machinesOf(c.id).flatMap(m => [m.model, m.serial, mtype(m.type).label])].join(' ').toLowerCase();
+}
+function newClientRec(o) {
+  const c = Object.assign({ id: uid('CLI'), name: '', address: '', city: '', country: '', contact: '', phone: '', email: '', note: '', currency: '', createdAt: new Date().toISOString() }, o);
+  FIN().clients.push(c); return c;
+}
+
+/* ---------- Navigation: one view (#v-svc) with three modes ---------- */
+function svcOpen(mode, id) {
+  if (state.tab !== 'svc') { state.svcFrom = state.tab; state.svcStack = []; state.svcQ = ''; }
+  else { state.svcStack.push({ mode: state.svcMode, id: state.svcId, q: state.svcQ }); state.svcQ = ''; }
+  state.svcMode = mode; state.svcId = id || null; go('svc');
+}
+function svcBack() {
+  const s = (state.svcStack || []).pop();
+  if (s) { state.svcMode = s.mode; state.svcId = s.id; state.svcQ = s.q || ''; render(); window.scrollTo(0, 0); }
+  else go(state.svcFrom && state.svcFrom !== 'svc' ? state.svcFrom : 'settings');
+}
+function svcBackLabel() {
+  const s = (state.svcStack || [])[(state.svcStack || []).length - 1];
+  if (s) return { clients: 'Clients', client: 'Client', reports: 'Reports' }[s.mode] || 'Back';
+  return { today: 'Today', calendar: 'Calendar', trips: 'Trips', expenses: 'Expenses', finance: 'Finance', settings: 'Settings', trip: 'Trip' }[state.svcFrom] || 'Back';
+}
+function renderSvc() {
+  const m = state.svcMode || 'clients';
+  ({ clients: renderClients, client: renderClientPage, reports: renderReportsList })[m]();
+}
+function svcNav(title, right = '') { return navbar(title, `<button class="navbtn" id="svc-back">${icon('chevL')}${esc(svcBackLabel())}</button>`, right); }
+const searchBox = (id, ph, val) => `<label class="search">${icon('search', 's')}<input id="${id}" type="search" placeholder="${esc(ph)}" value="${esc(val || '')}" autocomplete="off"></label>`;
+const mBadge = m => `<span class="ico t" style="background:${mtype(m.type).color}">${esc(mtype(m.type).label.slice(0, 3))}</span>`;
+function readingText(m) {
+  if (m.type === 'CT' && m.lastSlice != null) return `${nfmt(m.lastSlice)} slices`;
+  if (m.type === 'MR' && m.lastHelium != null) return `He ${m.lastHelium}%`;
+  return '';
+}
+function machineRow(m) {
+  const rd = readingText(m);
+  return `<button class="row tap has-icon" data-mch="${esc(m.id)}">${mBadge(m)}<span class="body"><div class="t">${esc(m.model || 'Machine')}</div><div class="st">${esc([m.serial ? 'SN ' + m.serial : 'No serial', rd, m.notes].filter(Boolean).join(' · '))}</div></span>${icon('chevR', 's chev')}</button>`;
+}
+function reportRow(r, o = {}) {
+  const s = r.snap || {}; const st = mstatus(r.status);
+  const sub = [o.noClient ? null : s.client, s.model ? s.model : null, jobLabel(r.job), fmtD(r.date, { day: 'numeric', month: 'short', year: 'numeric' })].filter(Boolean).join(' · ');
+  return `<button class="row tap has-icon" data-rep="${esc(r.id)}"><span class="ico" style="background:${r.final ? '#34c759' : '#ff9500'}">${icon('doc')}</span><span class="body"><div class="t">${esc(r.no)}${o.noClient ? '' : ''}</div><div class="st">${esc(sub)}</div></span><span class="pill ${r.final ? 'ok' : 'warn'}">${r.final ? 'Final' : 'Draft'}</span></button>`;
+}
+function bindSvcRows(root) {
+  $$('[data-rep]', root).forEach(b => b.onclick = () => reportSheet(b.dataset.rep));
+  $$('[data-mch]', root).forEach(b => b.onclick = () => openMachineEditor(machineById(b.dataset.mch)));
+  $$('[data-clipage]', root).forEach(b => b.onclick = () => svcOpen('client', b.dataset.clipage));
+  $$('[data-inv]', root).forEach(b => b.onclick = () => { const i = FIN().invoices.find(x => x.id === b.dataset.inv); if (i) openInvoiceEditor(i); });
+}
+
+/* ---------- Clients list ---------- */
+function clientRow(c) {
+  const s = clientStats(c);
+  const sub = [cityLine(c), `${s.machines.length} machine${s.machines.length === 1 ? '' : 's'}`, s.reports.length ? `${s.reports.length} report${s.reports.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
+  return `<button class="row tap has-icon" data-clipage="${esc(c.id)}"><span class="ico" style="background:#007aff">${icon('building')}</span><span class="body"><div class="t">${esc(c.name)}</div><div class="st">${esc(sub)}</div></span>${s.got ? `<span class="amt">${esc(fmtBase(s.got, true))}<span class="sub">received</span></span>` : icon('chevR', 's chev')}</button>`;
+}
+function clientsListHTML(q) {
+  q = (q || '').trim().toLowerCase();
+  const list = FIN().clients.filter(c => !q || clientSearchText(c).includes(q)).sort((a, b) => a.name.localeCompare(b.name));
+  if (!list.length) return `<div class="card"><div class="empty">${icon('building')}${q ? 'No client matches.' : 'No clients yet.<br>Add the hospitals and centres you service.'}</div></div>`;
+  return `<div class="group">${list.map(clientRow).join('')}</div>`;
+}
+function renderClients() {
+  const v = $('#v-svc'); const n = FIN().clients.length;
+  v.innerHTML = svcNav('Clients', plusBtn('svc-add')) + `<div class="ltitle">Clients</div><div class="lsub">${n} client${n === 1 ? '' : 's'} · ${db.machines.length} machine${db.machines.length === 1 ? '' : 's'}</div>
+    ${searchBox('svc-q', 'Search client, city, model or serial…', state.svcQ)}<div id="svc-list">${clientsListHTML(state.svcQ)}</div>`;
+  $('#svc-back', v).onclick = svcBack; $('#svc-add', v).onclick = () => openClientEditor(null);
+  const draw = () => { $('#svc-list', v).innerHTML = clientsListHTML(state.svcQ); bindSvcRows(v); };
+  $('#svc-q', v).oninput = e => { state.svcQ = e.target.value; draw(); }; bindSvcRows(v);
+}
+
+/* ---------- Client page ---------- */
+function renderClientPage() {
+  const v = $('#v-svc'); const c = clientById(state.svcId);
+  if (!c) { state.svcMode = 'clients'; return renderClients(); }
+  const s = clientStats(c); const reps = reportsSorted(s.reports);
+  const info = [['Contact', c.contact], ['Phone', c.phone], ['Email', c.email], ['Notes', c.note]].filter(x => x[1]);
+  v.innerHTML = svcNav(c.name, `<button class="navbtn circle" id="svc-edit" aria-label="Edit client">${icon('pencil')}</button>`) +
+    `<div class="ltitle">${esc(c.name)}</div><div class="lsub">${esc([c.address, cityLine(c)].filter(Boolean).join(' · ') || 'No address yet')}</div>
+    ${info.length ? `<div class="group">${info.map(([k, val]) => `<div class="row"><span class="body"><div class="st" style="margin:0 0 2px">${k}</div><div style="white-space:pre-wrap">${esc(val)}</div></span></div>`).join('')}</div>` : ''}
+    <div class="cstats"><div><b>${s.machines.length}</b><span>Machines</span></div><div><b>${reps.length}</b><span>Reports</span></div><div><b class="num">${esc(fmtBase(s.got, true))}</b><span>Received (${esc(base())})</span></div></div>
+    <div class="section-h"><h2>Machines</h2></div>
+    <div class="group">${s.machines.map(machineRow).join('')}<button class="row tap has-icon" id="cp-addm"><span class="ico" style="background:var(--fill2);color:var(--blue)">${icon('plus')}</span><span class="body" style="color:var(--blue)">Add machine</span></button></div>
+    <div class="section-h"><h2>Service reports</h2></div>
+    ${reps.length ? `<div class="group">${reps.map(r => reportRow(r, { noClient: true })).join('')}</div>` : `<div class="card"><div class="empty">${icon('doc')}No reports yet.<br>Open a trip and tap <b>Submit technical report</b>.</div></div>`}
+    <div class="section-h"><h2>Invoices</h2><button id="cp-newinv">New</button></div>
+    ${s.inv.length ? `<div class="group">${s.inv.slice().sort((a, b) => String(b.date).localeCompare(String(a.date))).map(invRow).join('')}</div>` : `<div class="card"><div class="empty">${icon('wallet')}No invoices for this client.</div></div>`}
+    <div class="foot">Received is the sum of payments, each converted to USD at the rate of its payment date.</div>`;
+  $('#svc-back', v).onclick = svcBack; $('#svc-edit', v).onclick = () => openClientEditor(c);
+  $('#cp-addm', v).onclick = () => openMachineEditor(null, { clientId: c.id });
+  $('#cp-newinv', v).onclick = () => openInvoiceEditor(null, { clientId: c.id });
+  bindSvcRows(v);
+}
+
+/* ---------- Client editor ---------- */
+function openClientEditor(src, opt = {}) {
+  const isNew = !src; const F = FIN(); const x = src ? { ...src } : { name: '', address: '', city: '', country: '', contact: '', phone: '', email: '', note: '' };
+  const f = (id, label, val, extra = '') => `<div class="field"><label>${label}</label><input id="${id}" value="${esc(val || '')}" ${extra}></div>`;
+  openSheet({ title: isNew ? 'New client' : 'Client', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
+    body: `<div class="group">${f('cl-name', 'Name', x.name, 'placeholder="Hospital or company"')}${f('cl-address', 'Address', x.address, 'placeholder="Street, area" autocomplete="street-address"')}${f('cl-city', 'City', x.city, 'placeholder="e.g. Nouakchott"')}${f('cl-country', 'Country', x.country, 'placeholder="e.g. Mauritania"')}</div>
+      <div class="group" style="margin-top:14px">${f('cl-contact', 'Contact', x.contact, 'placeholder="Person on site"')}${f('cl-phone', 'Phone', x.phone, 'type="tel" placeholder="Optional"')}${f('cl-email', 'Email', x.email, 'type="email" placeholder="Optional"')}</div>
+      <div class="group" style="margin-top:14px"><div class="field stack"><label>Notes</label><textarea id="cl-note" placeholder="Access, working hours, anything useful…">${esc(x.note || '')}</textarea></div></div>
+      ${!isNew ? `<div style="margin-top:14px"><button class="btn tinted" id="cl-inv">${icon('doc', 's')} New invoice for ${esc(x.name)}</button></div><div class="group" style="margin-top:24px"><button class="row tap" id="cl-del"><span class="body" style="color:var(--red);text-align:center">Delete client</span></button></div>` : ''}`,
+    onMount: b => {
+      const collect = () => { const name = $('#cl-name', b).value.trim(); if (!name) { $('#cl-name', b).focus(); toast('Enter the name', 'warn'); return null; }
+        const vals = { name, address: $('#cl-address', b).value.trim(), city: $('#cl-city', b).value.trim(), country: $('#cl-country', b).value.trim(), contact: $('#cl-contact', b).value.trim(), phone: $('#cl-phone', b).value.trim(), email: $('#cl-email', b).value.trim(), note: $('#cl-note', b).value.trim() };
+        const dup = F.clients.find(c => c.name.toLowerCase() === name.toLowerCase() && c !== src);
+        if (dup && isNew) { toast('This client already exists', 'warn'); return null; }
+        const rec = isNew ? newClientRec(vals) : Object.assign(src, vals); save(); return rec; };
+      $('#sheet-primary').onclick = () => { const r = collect(); if (!r) return; closeSheet(); toast(isNew ? 'Client added' : 'Saved'); if (opt.onDone) opt.onDone(r); else if (isNew && state.tab === 'svc' && state.svcMode === 'clients') svcOpen('client', r.id); else if (isNew && state.tab === 'finance') { state.finSeg = 'income'; render(); } else render(); };
+      $('#cl-inv', b) && ($('#cl-inv', b).onclick = () => { const r = collect(); if (r) openInvoiceEditor(null, { clientId: r.id }); });
+      $('#cl-del', b) && ($('#cl-del', b).onclick = () => {
+        const nm = machinesOf(src.id).length, nr = db.reports.filter(r => r.clientId === src.id).length;
+        if (nm || nr) return toast(`Has ${nm} machine${nm === 1 ? '' : 's'} and ${nr} report${nr === 1 ? '' : 's'} — remove those first`, 'warn');
+        confirmSheet('Delete client?', 'Their invoices and contracts are kept without a client.', 'Delete', () => { F.clients = F.clients.filter(c => c.id !== src.id); db.trips.forEach(t => { if (t.clientId === src.id) t.clientId = ''; }); save(); if (state.tab === 'svc' && state.svcMode === 'client') svcBack(); else render(); toast('Client deleted'); });
+      });
+      if (isNew) setTimeout(() => $('#cl-name', b).focus(), 350);
+    } });
+}
+
+/* ---------- Machine editor + history ---------- */
+function openMachineEditor(src, opt = {}) {
+  const isNew = !src; const m0 = src || { clientId: opt.clientId, type: opt.type || 'CT', model: '', serial: '', notes: '', readings: [] };
+  let type = m0.type;
+  const client = clientById(m0.clientId);
+  const f = (id, label, val, extra = '') => `<div class="field"><label>${label}</label><input id="${id}" value="${esc(val || '')}" ${extra}></div>`;
+  const hist = () => {
+    if (isNew) return '';
+    const rs = src.readings.slice().sort(rdSort);
+    const rows = ['slice', 'helium'].map(k => {
+      const L = rs.filter(r => r.kind === k); if (!L.length) return '';
+      return `<div class="ghead">${k === 'slice' ? 'Slice counter history' : 'Helium level history'}</div><div class="group">${L.slice().reverse().map((r, i, arr) => { const prev = L[L.length - 2 - i]; const d = prev ? r.value - prev.value : null;
+        return `<div class="row"><span class="body"><div class="t num">${k === 'slice' ? esc(nfmt(r.value)) : r.value + ' %'}</div><div class="st">${esc(fmtD(r.date, { day: 'numeric', month: 'short', year: 'numeric' }))}${r.reportId ? ' · ' + esc((reportById(r.reportId) || {}).no || 'report') : ' · manual'}</div></span><span class="num muted">${d == null ? 'first' : (d >= 0 ? '+' : '−') + nfmt(Math.abs(d)) + (k === 'slice' ? ' slices' : ' %')}</span></div>`; }).join('')}</div>`; }).join('');
+    const reps = reportsSorted(db.reports.filter(r => r.machineId === src.id));
+    return rows + `<div class="ghead">Service history</div>${reps.length ? `<div class="group">${reps.map(r => reportRow(r, { noClient: true })).join('')}</div>` : `<div class="group"><div class="row"><span class="body muted">No reports for this machine yet</span></div></div>`}`;
+  };
+  openSheet({ title: isNew ? 'New machine' : 'Machine', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
+    body: `${client ? `<div class="foot" style="margin:0 4px 8px">${esc(client.name)}</div>` : ''}<div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="mc-type">${MTYPES.map(t => `<button data-k="${t.k}" class="${t.k === type ? 'on' : ''}">${t.label}</button>`).join('')}</div></div>
+      ${f('mc-model', 'Model', m0.model, 'placeholder="e.g. TSX-303A"')}${f('mc-serial', 'Serial no.', m0.serial, 'placeholder="Serial number" autocapitalize="characters"')}${f('mc-notes', 'Room / site', m0.notes, 'placeholder="e.g. Radiology, room 2"')}
+      <div class="field" id="mc-rd-f"><label id="mc-rd-l">Counter</label><input id="mc-rd" inputmode="decimal" placeholder=""></div></div>
+      <div class="foot" id="mc-rd-foot"></div>${hist()}
+      ${!isNew ? `<div class="group" style="margin-top:24px"><button class="row tap" id="mc-del"><span class="body" style="color:var(--red);text-align:center">Delete machine</span></button></div>` : ''}`,
+    onMount: b => {
+      const rdUI = () => {
+        const k = readingKind(type); $('#mc-rd-f', b).classList.toggle('hidden', !k);
+        const cur = k === 'slice' ? m0.lastSlice : k === 'helium' ? m0.lastHelium : null;
+        $('#mc-rd-l', b).textContent = k === 'helium' ? 'Helium level %' : 'Slice counter'; $('#mc-rd', b).value = cur == null ? '' : cur; $('#mc-rd', b).placeholder = k === 'helium' ? 'e.g. 62' : 'e.g. 1250000';
+        $('#mc-rd-foot', b).textContent = k ? (isNew ? 'Optional starting value. Reports update it on every visit.' : 'Changing it adds a manual entry to the history.') : '';
+      };
+      $$('#mc-type button', b).forEach(btn => btn.onclick = () => { type = btn.dataset.k; $$('#mc-type button', b).forEach(z => z.classList.toggle('on', z === btn)); rdUI(); }); rdUI();
+      bindSvcRows(b);
+      $$('[data-rep]', b).forEach(x => x.onclick = () => { closeSheet(); setTimeout(() => reportSheet(x.dataset.rep), 300); });
+      $('#sheet-primary').onclick = () => {
+        const model = $('#mc-model', b).value.trim(); if (!model) { $('#mc-model', b).focus(); return toast('Enter the model', 'warn'); }
+        const serial = $('#mc-serial', b).value.trim();
+        const dup = db.machines.find(x => x !== src && x.clientId === m0.clientId && serial && x.serial.toLowerCase() === serial.toLowerCase()); if (dup) return toast('This serial number already exists for this client', 'warn');
+        const m = isNew ? createMachine({ clientId: m0.clientId, type, model, serial, notes: $('#mc-notes', b).value }) : Object.assign(src, { type, model, serial, notes: $('#mc-notes', b).value.trim() });
+        const k = readingKind(type), raw = $('#mc-rd', b).value.replace(/[\s,]/g, '');
+        if (k && raw !== '' && isFinite(+raw) && +raw !== (k === 'slice' ? m.lastSlice : m.lastHelium)) addReading(m, k, +raw, todayISO(), null, 'Manual');
+        save(); closeSheet(); toast(isNew ? 'Machine added' : 'Saved'); if (opt.onDone) opt.onDone(m); else render();
+      };
+      $('#mc-del', b) && ($('#mc-del', b).onclick = () => {
+        const n = db.reports.filter(r => r.machineId === src.id).length;
+        if (n) return toast(`Has ${n} report${n === 1 ? '' : 's'} — delete those first`, 'warn');
+        confirmSheet('Delete machine?', 'Its reading history is removed.', 'Delete', () => { db.machines = db.machines.filter(x => x !== src); save(); render(); toast('Machine deleted'); });
+      });
+      if (isNew) setTimeout(() => $('#mc-model', b).focus(), 350);
+    } });
+}
+
+/* ===================== VeriTrip 3.6 — Service report flow, detail, lists, parts, CSV ===================== */
+let SR = null; // working state of the report flow
+
+const reportNo = (year, seq) => `SR-${year}-${String(seq).padStart(3, '0')}`;
+function nextReportSeq(year) {
+  const used = db.reports.filter(r => r.year === year).reduce((m, r) => Math.max(m, r.seq || 0), 0);
+  const n = Math.max(db.svc.seq[year] || 0, used) + 1; db.svc.seq[year] = n; return n;
+}
+function tripDefaultDate(t) {
+  const T = todayISO(); if (!t) return T;
+  return T >= t.startDate && T <= t.endDate ? T : (T < t.startDate ? t.startDate : t.endDate);
+}
+const tripShort = t => t ? tripName(t) : '';
+
+/* ---------- Photos & signatures ---------- */
+async function scaledPhoto(file, max = 1280) {
+  const im = await loadImage(file); const k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight));
+  const mk = (w, h, q) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height); return c; };
+  const big = mk(im.naturalWidth * k, im.naturalHeight * k); const blob = await canvasToBlob(big, 0.78);
+  const tk = Math.min(1, 160 / Math.max(im.naturalWidth, im.naturalHeight)); const thumb = mk(im.naturalWidth * tk, im.naturalHeight * tk).toDataURL('image/jpeg', 0.6);
+  return { blob, thumb, w: big.width, h: big.height };
+}
+function sigPad(title, name) {
+  return new Promise(res => {
+    const o = document.createElement('div'); o.id = 'sigpad';
+    o.innerHTML = `<div class="sp-card"><div class="sp-h"><button class="navbtn" id="sp-cancel">Cancel</button><div class="tt">${esc(title)}</div><button class="navbtn r" id="sp-done">Done</button></div>
+      <div class="sp-sub">${esc(name || 'Sign with your finger')}</div><div class="sp-box"><canvas id="sp-c"></canvas><div class="sp-line"></div></div><button class="linkbtn" id="sp-clear" style="margin:10px auto 4px;display:block">Clear</button></div>`;
+    document.body.appendChild(o);
+    const c = $('#sp-c', o); const box = c.parentElement; const W = box.clientWidth || 340, H = box.clientHeight || 200; c.width = W * 2; c.height = H * 2;
+    const x = c.getContext('2d'); x.scale(2, 2); x.lineWidth = 2.4; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#0a2a66';
+    let drawing = false, drawn = false, last = null;
+    const pos = e => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    c.addEventListener('pointerdown', e => { e.preventDefault(); drawing = true; last = pos(e); c.setPointerCapture && c.setPointerCapture(e.pointerId); x.beginPath(); x.arc(last.x, last.y, 1.1, 0, 7); x.fillStyle = '#0a2a66'; x.fill(); drawn = true; });
+    c.addEventListener('pointermove', e => { if (!drawing) return; e.preventDefault(); const p = pos(e); x.beginPath(); x.moveTo(last.x, last.y); x.lineTo(p.x, p.y); x.stroke(); last = p; });
+    const up = () => { drawing = false; }; c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+    const done = v => { o.remove(); res(v); };
+    $('#sp-cancel', o).onclick = () => done(null);
+    $('#sp-clear', o).onclick = () => { x.clearRect(0, 0, W, H); drawn = false; };
+    $('#sp-done', o).onclick = () => done(drawn ? c.toDataURL('image/png') : '');
+  });
+}
+
+/* ---------- Report flow (3 steps in one sheet) ---------- */
+function openReportFlow(opt = {}) {
+  const ed = opt.report ? reportById(opt.report) : null; const t = tripById(opt.tripId || (ed && ed.tripId));
+  const dflt = tripDefaultDate(t);
+  SR = ed ? { id: ed.id, step: 1, tripId: ed.tripId, clientId: ed.clientId, machineId: ed.machineId, newMachine: null, newClient: null, date: ed.date, timeIn: ed.timeIn || '', timeOut: ed.timeOut || '',
+      job: ed.job, work: ed.work, remarks: ed.remarks, parts: ed.parts.map(p => ({ ...p })), status: ed.status, readNew: ed.sliceAfter != null ? String(ed.sliceAfter) : ed.heliumAfter != null ? String(ed.heliumAfter) : '',
+      engineer: ed.engineer, title: ed.engineerTitle || '', photos: ed.photos.map(p => ({ ...p })), signClient: ed.signClient || '', signClientName: ed.signClientName || '', signEng: ed.signEng || '', lang: ed.lang, ack: false }
+    : { id: null, step: 1, tripId: t ? t.id : null, clientId: opt.clientId || (t && t.clientId) || '', machineId: opt.machineId || '', newMachine: null, newClient: null, date: dflt, timeIn: '', timeOut: '',
+      job: 'pm', work: '', remarks: '', parts: [], status: 'ok', readNew: '', engineer: db.settings.name || '', title: db.settings.engineerTitle || '', photos: [], signClient: '', signClientName: '', signEng: db.settings.engineerSign || '', lang: db.settings.reportLang || 'en', ack: false };
+  if (SR.machineId && !SR.clientId) { const m = machineById(SR.machineId); if (m) SR.clientId = m.clientId; }
+  srDraw();
+}
+const srMachine = () => SR.machineId && SR.machineId !== '__new' ? machineById(SR.machineId) : null;
+const srType = () => srMachine() ? srMachine().type : (SR.newMachine ? SR.newMachine.type : null);
+function srBar(step) { return `<div class="stepbar">${[1, 2, 3].map(i => `<i class="${i <= step ? 'on' : ''}"></i>`).join('')}</div><div class="stepcap">Step ${step} of 3 · ${['Client & machine', 'Work done', 'Sign-off'][step - 1]}</div>`; }
+function srSheetCfg(body, onMount) {
+  const s = SR.step;
+  return { title: SR.id && reportById(SR.id) ? 'Edit report' : 'Technical report', left: { label: s === 1 ? 'Cancel' : 'Back', fn: () => { if (s === 1) closeSheet(); else { srGrab(); SR.step--; srDraw(); } } },
+    right: { label: s === 3 ? 'Save' : 'Next', fn: () => {} }, body, onMount, onClose: () => { SR = SR && SR.keep ? SR : null; } };
+}
+function srDraw() { ({ 1: srStep1, 2: srStep2, 3: srStep3 })[SR.step](); }
+function srGrab() {
+  const b = $('#sheet-b'); const g = id => { const e = $('#' + id, b); return e ? e.value : undefined; };
+  if (SR.step === 1) {
+    SR.clientId = g('sr-cli') !== undefined ? g('sr-cli') : SR.clientId; SR.machineId = g('sr-mch') !== undefined ? g('sr-mch') : SR.machineId;
+    if (SR.clientId === '__new') SR.newClient = { name: g('sr-nc-name') || '', city: g('sr-nc-city') || '', country: g('sr-nc-country') || '' };
+    if (SR.machineId === '__new' || SR.clientId === '__new') SR.newMachine = Object.assign(SR.newMachine || { type: 'CT' }, { model: g('sr-nm-model') || '', serial: g('sr-nm-serial') || '', notes: g('sr-nm-notes') || '' });
+    if (g('sr-read') !== undefined) SR.readNew = g('sr-read'); if (g('sr-date') !== undefined) SR.date = g('sr-date') || SR.date;
+  } else if (SR.step === 2) {
+    SR.job = g('sr-job') || SR.job; SR.work = g('sr-work') ?? SR.work; SR.remarks = g('sr-rem') ?? SR.remarks;
+  } else {
+    SR.date = g('sr-d') || SR.date; SR.timeIn = g('sr-ti') ?? SR.timeIn; SR.timeOut = g('sr-to') ?? SR.timeOut; SR.engineer = g('sr-eng') ?? SR.engineer; SR.title = g('sr-title') ?? SR.title; SR.signClientName = g('sr-scn') ?? SR.signClientName; SR.lang = g('sr-lang') || SR.lang;
+  }
+}
+const num = v => { const s = String(v ?? '').replace(/[\s,]/g, ''); return s !== '' && isFinite(+s) ? +s : null; };
+
+function srStep1() {
+  const t = tripById(SR.tripId);
+  const clients = FIN().clients.slice().sort((a, b) => a.name.localeCompare(b.name));
+  const newCli = SR.clientId === '__new';
+  openSheet(Object.assign(srSheetCfg(`${srBar(1)}${t ? `<div class="foot" style="margin:0 4px 10px">${esc(tripShort(t))}</div>` : ''}
+    <div class="group"><div class="field"><label>Client</label><select id="sr-cli"><option value="">Select client…</option>${clients.map(c => `<option value="${esc(c.id)}"${c.id === SR.clientId ? ' selected' : ''}>${esc(c.name)}${c.city ? ' — ' + esc(c.city) : ''}</option>`).join('')}<option value="__new"${newCli ? ' selected' : ''}>＋ New client…</option></select></div>
+      <div id="sr-ncbox" class="${newCli ? '' : 'hidden'}"><div class="field"><label>Name</label><input id="sr-nc-name" placeholder="Hospital or company" value="${esc((SR.newClient || {}).name || '')}"></div><div class="field"><label>City</label><input id="sr-nc-city" placeholder="e.g. Nouakchott" value="${esc((SR.newClient || {}).city || '')}"></div><div class="field"><label>Country</label><input id="sr-nc-country" placeholder="e.g. Mauritania" value="${esc((SR.newClient || {}).country || '')}"></div></div></div>
+    <div id="sr-mbox"></div>`, srStep1Mount)));
+}
+function srStep1Mount(b) {
+  const clientSel = $('#sr-cli', b);
+  const paint = () => {
+    srGrab();
+    const newCli = SR.clientId === '__new'; $('#sr-ncbox', b).classList.toggle('hidden', !newCli);
+    const box = $('#sr-mbox', b);
+    if (!SR.clientId) { box.innerHTML = `<div class="foot">Choose the client to see its machines.</div>`; return; }
+    const ms = newCli ? [] : machinesOf(SR.clientId);
+    if (newCli) SR.machineId = '__new'; else if (SR.machineId && SR.machineId !== '__new' && !ms.some(m => m.id === SR.machineId)) SR.machineId = ms.length === 1 && !SR.machineId ? ms[0].id : '';
+    if (!SR.machineId && ms.length === 0) SR.machineId = '__new';
+    const m = srMachine(); const isNewM = SR.machineId === '__new';
+    if (isNewM && !SR.newMachine) SR.newMachine = { type: 'CT', model: '', serial: '', notes: '' };
+    const type = srType(); const kind = readingKind(type); const nm = SR.newMachine || {};
+    const prev = m && kind ? prevReading(m, kind, SR.date, SR.id) : null;
+    box.innerHTML = `<div class="group" style="margin-top:14px">${newCli ? '' : `<div class="field"><label>Machine</label><select id="sr-mch"><option value="">Select machine…</option>${ms.map(x => `<option value="${esc(x.id)}"${x.id === SR.machineId ? ' selected' : ''}>${esc(mtype(x.type).label + ' · ' + (x.model || 'Machine') + (x.serial ? ' · SN ' + x.serial : ''))}</option>`).join('')}<option value="__new"${isNewM ? ' selected' : ''}>＋ Add new machine…</option></select></div>`}
+      ${m ? `<div class="row"><span class="body"><div class="st" style="margin:0 0 2px">Model</div><div id="sr-m-model">${esc(m.model)}</div></span></div><div class="row"><span class="body"><div class="st" style="margin:0 0 2px">Serial no.</div><div id="sr-m-serial">${esc(m.serial || '—')}</div></span></div>${m.notes ? `<div class="row"><span class="body"><div class="st" style="margin:0 0 2px">Room / site</div><div>${esc(m.notes)}</div></span></div>` : ''}` : ''}
+      ${isNewM ? `<div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="sr-nm-type">${MTYPES.map(x => `<button data-k="${x.k}" class="${x.k === (nm.type || 'CT') ? 'on' : ''}">${x.label}</button>`).join('')}</div></div>
+        <div class="field"><label>Model</label><input id="sr-nm-model" placeholder="e.g. TSX-303A" value="${esc(nm.model || '')}"></div><div class="field"><label>Serial no.</label><input id="sr-nm-serial" placeholder="Serial number" autocapitalize="characters" value="${esc(nm.serial || '')}"></div><div class="field"><label>Room / site</label><input id="sr-nm-notes" placeholder="Optional" value="${esc(nm.notes || '')}"></div>` : ''}</div>
+    ${kind ? `<div class="ghead">${kind === 'slice' ? 'Slice counter' : 'Helium level'}</div><div class="group">
+      <div class="row"><span class="body"><div class="st" style="margin:0 0 2px">Previous${prev ? ' · ' + esc(fmtD(prev.date, { day: 'numeric', month: 'short', year: 'numeric' })) : ''}</div><div class="num" id="sr-prev">${prev ? (kind === 'slice' ? esc(nfmt(prev.value)) : prev.value + ' %') : 'No previous reading'}</div></span></div>
+      <div class="field"><label>${kind === 'slice' ? 'Counter now' : 'Helium now %'}</label><input id="sr-read" inputmode="decimal" placeholder="${kind === 'slice' ? 'Enter the updated counter' : '0–100'}" value="${esc(SR.readNew)}"></div></div>
+      <div class="foot" id="sr-delta"></div>` : ''}`;
+    $$('#sr-nm-type button', box).forEach(btn => btn.onclick = () => { srGrab(); SR.newMachine.type = btn.dataset.k; paint(); });
+    const mch = $('#sr-mch', box); if (mch) mch.onchange = () => { SR.machineId = mch.value; SR.ack = false; paint(); };
+    const rd = $('#sr-read', box); if (rd) { rd.oninput = () => { SR.readNew = rd.value; SR.ack = false; delta(prev, kind); }; delta(prev, kind); }
+  };
+  const delta = (prev, kind) => {
+    const el = $('#sr-delta', b); if (!el) return; const v = num(SR.readNew); el.className = 'foot'; el.textContent = '';
+    if (v == null) return;
+    if (kind === 'helium') { if (v < 0 || v > 100) { el.className = 'foot warnline'; el.textContent = 'Helium level must be between 0 and 100 %.'; } else if (prev) { const d = v - prev.value; el.textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d)} % since the last visit.`; } return; }
+    if (prev) { const d = v - prev.value; if (d < 0) { el.className = 'foot warnline'; el.textContent = `Lower than the previous counter (${nfmt(prev.value)}). Check the value.`; } else el.textContent = `${nfmt(d)} slices scanned since the last visit.`; }
+  };
+  clientSel.onchange = () => { SR.clientId = clientSel.value; SR.machineId = ''; SR.ack = false; $('#sr-mbox', b).innerHTML = ''; paint(); };
+  ['sr-nc-name', 'sr-nc-city', 'sr-nc-country'].forEach(id => $('#' + id, b).addEventListener('input', () => { SR.newClient = { name: $('#sr-nc-name', b).value, city: $('#sr-nc-city', b).value, country: $('#sr-nc-country', b).value }; }));
+  paint();
+  $('#sheet-primary').onclick = () => { srGrab(); const err = srValidate1(); if (err) return toast(err, 'warn'); SR.step = 2; srDraw(); };
+}
+function srValidate1() {
+  if (!SR.clientId) return 'Choose the client';
+  if (SR.clientId === '__new' && !(SR.newClient && SR.newClient.name.trim())) return 'Enter the client name';
+  if (!SR.machineId) return 'Choose the machine';
+  if (SR.machineId === '__new') { const n = SR.newMachine || {}; if (!(n.model || '').trim()) return 'Enter the machine model'; const ex = SR.clientId !== '__new' && (n.serial || '').trim() && machinesOf(SR.clientId).find(x => x.serial.toLowerCase() === n.serial.trim().toLowerCase()); if (ex) { SR.machineId = ex.id; SR.newMachine = null; return 'This serial number is already registered — machine selected'; } }
+  const kind = readingKind(srType()), v = num(SR.readNew);
+  if (kind && String(SR.readNew).trim() !== '' && v == null) return 'The reading must be a number';
+  if (kind === 'helium' && v != null && (v < 0 || v > 100)) return 'Helium level must be between 0 and 100 %';
+  if (kind === 'slice' && v != null) { const prev = prevReading(srMachine(), 'slice', SR.date, SR.id); if (prev && v < prev.value && !SR.ack) { SR.ack = true; return `Counter is lower than the previous ${nfmt(prev.value)}. Tap Next again to keep it.`; } }
+  return '';
+}
+
+function srStep2() {
+  const partRow = (p, i) => `<div class="row"><span class="body"><div class="t">${esc(p.name)}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', 'Qty ' + p.qty].filter(Boolean).join(' · '))}</div></span><span class="pill ${p.required ? 'warn' : 'ok'}">${p.required ? 'To order' : 'Used'}</span><button class="navbtn" data-delp="${i}" aria-label="Remove part" style="min-width:34px">${icon('x', 's')}</button></div>`;
+  openSheet(srSheetCfg(`${srBar(2)}
+    <div class="group"><div class="field"><label>Job type</label><select id="sr-job">${JOB_TYPES.map(j => `<option value="${j[0]}"${j[0] === SR.job ? ' selected' : ''}>${j[1]}</option>`).join('')}</select></div></div>
+    <div class="ghead">Work done</div><div class="group"><div class="field stack"><textarea id="sr-work" rows="5" placeholder="What was done on the system…">${esc(SR.work)}</textarea></div></div>
+    <div class="ghead">Remarks</div><div class="group"><div class="field stack"><textarea id="sr-rem" rows="3" placeholder="Recommendations, open points, follow-up…">${esc(SR.remarks)}</textarea></div></div>
+    <div class="ghead">Parts used / required</div><div class="group" id="sr-parts">${SR.parts.map(partRow).join('')}
+      <div class="field"><label>Part</label><input id="sr-p-name" placeholder="Part name"></div><div class="field"><label>Part no.</label><input id="sr-p-pn" placeholder="Optional" autocapitalize="characters"></div>
+      <div class="field"><label>Quantity</label><input id="sr-p-qty" inputmode="numeric" value="1" style="max-width:80px;text-align:right"></div>
+      <div class="row"><span class="body">Needs ordering</span><label class="switch"><input type="checkbox" id="sr-p-req"><span></span></label></div>
+      <button class="row tap has-icon" id="sr-p-add"><span class="ico" style="background:var(--fill2);color:var(--blue)">${icon('plus')}</span><span class="body" style="color:var(--blue)">Add part</span></button></div>
+    <div class="foot">Parts marked “Needs ordering” go into the Parts to order list, to forward to your manager.</div>
+    <div class="ghead">Machine status after the visit</div><div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="sr-status">${MSTATUS.map(s => `<button data-k="${s[0]}" class="${s[0] === SR.status ? 'on' : ''}">${s[1]}</button>`).join('')}</div></div></div>`,
+    b => {
+      $$('[data-delp]', b).forEach(x => x.onclick = () => { srGrab(); SR.parts.splice(+x.dataset.delp, 1); const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; });
+      $$('#sr-status button', b).forEach(x => x.onclick = () => { SR.status = x.dataset.k; $$('#sr-status button', b).forEach(z => z.classList.toggle('on', z === x)); });
+      $('#sr-p-add', b).onclick = () => { const name = $('#sr-p-name', b).value.trim(); if (!name) { $('#sr-p-name', b).focus(); return toast('Enter the part name', 'warn'); } srGrab(); SR.parts.push({ id: uid('PT'), name, pn: $('#sr-p-pn', b).value.trim(), qty: Math.max(1, parseInt($('#sr-p-qty', b).value) || 1), required: $('#sr-p-req', b).checked, ordered: false }); const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; };
+      $('#sheet-primary').onclick = () => { srGrab(); const pn = $('#sr-p-name', b).value.trim(); if (pn) { SR.parts.push({ id: uid('PT'), name: pn, pn: $('#sr-p-pn', b).value.trim(), qty: Math.max(1, parseInt($('#sr-p-qty', b).value) || 1), required: $('#sr-p-req', b).checked, ordered: false }); }
+        if (!SR.work.trim()) return toast('Describe the work done', 'warn'); SR.step = 3; srDraw(); };
+    }));
+}
+
+function srStep3() {
+  const photos = () => SR.photos.map((p, i) => `<div class="ph"><img src="${esc(p.thumb)}" alt="Photo"><button data-delph="${i}" aria-label="Remove photo">${icon('x', 's')}</button></div>`).join('');
+  const sigBox = (k, label, sub) => `<div class="row tap" id="sr-sig-${k}" style="cursor:pointer"><span class="body"><div class="t">${label}</div><div class="st">${sub}</div></span>${SR[k] ? `<img class="sigprev" src="${SR[k]}" alt="">` : icon('chevR', 's chev')}</div>`;
+  openSheet(srSheetCfg(`${srBar(3)}
+    <div class="group"><div class="field"><label>Date</label><input id="sr-d" type="date" value="${esc(SR.date)}"></div><div class="field"><label>Time in</label><input id="sr-ti" type="time" value="${esc(SR.timeIn)}"></div><div class="field"><label>Time out</label><input id="sr-to" type="time" value="${esc(SR.timeOut)}"></div></div>
+    <div class="ghead">Engineer</div><div class="group"><div class="field"><label>Name</label><input id="sr-eng" value="${esc(SR.engineer)}" placeholder="Your name" autocomplete="name"></div><div class="field"><label>Title</label><input id="sr-title" value="${esc(SR.title)}" placeholder="e.g. Field Service Engineer CT/MR"></div></div>
+    <div class="ghead">Photos</div><div class="photos" id="sr-photos">${photos()}<label class="ph add">${icon('camera')}<input type="file" id="sr-photo-in" accept="image/*" multiple hidden></label></div>
+    <div class="ghead">Signatures</div><div class="group">${sigBox('signEng', 'Engineer', SR.signEng ? 'Tap to redo' : 'Tap to sign')}${sigBox('signClient', 'Client', SR.signClient ? 'Tap to redo' : 'Optional · tap to sign')}<div class="field"><label>Client signer</label><input id="sr-scn" value="${esc(SR.signClientName)}" placeholder="Name of the person signing"></div></div>
+    <div class="ghead">PDF language</div><div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="sr-lang"><button data-k="en" class="${SR.lang === 'en' ? 'on' : ''}">English</button><button data-k="fr" class="${SR.lang === 'fr' ? 'on' : ''}">Français</button></div></div></div>
+    <div class="foot">The report stays editable until you finalize it.</div>`,
+    b => {
+      $$('[data-delph]', b).forEach(x => x.onclick = () => { srGrab(); SR.photos.splice(+x.dataset.delph, 1); const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; });
+      $('#sr-photo-in', b).onchange = async e => {
+        srGrab(); const files = [...e.target.files]; if (!files.length) return;
+        for (const f of files.slice(0, 12)) { try { const s = await scaledPhoto(f); SR.photos.push({ id: uid('PH'), name: f.name || 'photo.jpg', thumb: s.thumb, blob: s.blob, caption: '' }); } catch (err) { toast('Could not read a photo', 'warn'); } }
+        const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc;
+      };
+      $$('#sr-lang button', b).forEach(x => x.onclick = () => { SR.lang = x.dataset.k; $$('#sr-lang button', b).forEach(z => z.classList.toggle('on', z === x)); $('#sr-lang', b).dataset.v = SR.lang; });
+      const sign = k => async () => { srGrab(); const v = await sigPad(k === 'signEng' ? 'Engineer signature' : 'Client signature', k === 'signClient' ? SR.signClientName : SR.engineer); if (v === null) return; SR[k] = v; const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; };
+      $('#sr-sig-signEng', b).onclick = sign('signEng'); $('#sr-sig-signClient', b).onclick = sign('signClient');
+      $('#sheet-primary').onclick = async () => {
+        srGrab(); if (!SR.engineer.trim()) { $('#sr-eng', b).focus(); return toast('Enter the engineer name', 'warn'); }
+        const btn = $('#sheet-primary'); btn.disabled = true;
+        try { const r = await srCommit(); SR.keep = false; closeSheet(); toast(`${r.no} saved`); setTimeout(() => reportSheet(r.id), 350); } catch (e) { console.error(e); toast('Could not save the report', 'warn'); btn.disabled = false; }
+      };
+    }));
+}
+
+async function srCommit() {
+  // client
+  let c = SR.clientId === '__new' ? null : clientById(SR.clientId);
+  if (!c) { const nc = SR.newClient || {}; c = FIN().clients.find(x => x.name.toLowerCase() === (nc.name || '').trim().toLowerCase()) || newClientRec({ name: (nc.name || '').trim(), city: (nc.city || '').trim(), country: (nc.country || '').trim() }); }
+  // machine
+  let m = SR.machineId === '__new' || !machineById(SR.machineId) ? null : machineById(SR.machineId);
+  if (!m) { const n = SR.newMachine || {}; m = createMachine({ clientId: c.id, type: n.type || 'OT', model: n.model, serial: n.serial, notes: n.notes }); }
+  const kind = readingKind(m.type); const now = new Date().toISOString();
+  let r = SR.id ? reportById(SR.id) : null; const isNew = !r;
+  if (isNew) { const year = +SR.date.slice(0, 4) || new Date().getFullYear(); const seq = nextReportSeq(year); r = { id: uid('SR'), no: reportNo(year, seq), seq, year, createdAt: now, final: false }; db.reports.push(r); }
+  // photos
+  const oldIds = (r.photos || []).map(p => p.id);
+  for (const p of SR.photos) if (p.blob) { await Files.put(p.id, { blob: p.blob, type: 'image/jpeg', name: p.name, thumb: p.thumb }); }
+  const keepIds = SR.photos.map(p => p.id); for (const id of oldIds) if (!keepIds.includes(id)) await Files.del(id);
+  // readings
+  const oldM = machineById(r.machineId); if (oldM) { oldM.readings = oldM.readings.filter(x => x.reportId !== r.id); machineRecalc(oldM); }
+  const prevS = prevReading(m, 'slice', SR.date, r.id), prevH = prevReading(m, 'helium', SR.date, r.id), v = num(SR.readNew);
+  Object.assign(r, { tripId: SR.tripId, tripLabel: tripShort(tripById(SR.tripId)) || r.tripLabel || '', clientId: c.id, machineId: m.id,
+    snap: { client: c.name, address: c.address || '', city: c.city || '', country: c.country || '', contact: c.contact || '', phone: c.phone || '', type: m.type, model: m.model, serial: m.serial, notes: m.notes || '' },
+    date: SR.date, timeIn: SR.timeIn, timeOut: SR.timeOut, job: SR.job, work: SR.work.trim(), remarks: SR.remarks.trim(), parts: SR.parts.map(p => ({ ...p })), status: SR.status,
+    sliceBefore: kind === 'slice' && prevS ? prevS.value : null, sliceAfter: kind === 'slice' ? v : null, heliumBefore: kind === 'helium' && prevH ? prevH.value : null, heliumAfter: kind === 'helium' ? v : null,
+    engineer: SR.engineer.trim(), engineerTitle: SR.title.trim(), signEng: SR.signEng, signClient: SR.signClient, signClientName: SR.signClientName.trim(),
+    photos: SR.photos.map(p => ({ id: p.id, name: p.name, thumb: p.thumb, caption: p.caption || '' })), lang: SR.lang, updatedAt: now });
+  if (kind && v != null) addReading(m, kind, v, r.date, r.id, 'Service report');
+  machineRecalc(m);
+  const t = tripById(r.tripId); if (t && !t.clientId) t.clientId = c.id;
+  db.settings.name = db.settings.name || r.engineer; db.settings.engineerTitle = r.engineerTitle || db.settings.engineerTitle || ''; if (r.signEng) db.settings.engineerSign = r.signEng; db.settings.reportLang = r.lang;
+  save(); return r;
+}
+
+/* ---------- Report detail ---------- */
+function reportSheet(id) {
+  const r = reportById(id); if (!r) return;
+  const s = r.snap || {}; const st = mstatus(r.status); const kind = readingKind(s.type);
+  const row = (k, v) => v ? `<div class="row"><span class="body">${k ? `<div class="st" style="margin:0 0 2px">${k}</div>` : ''}<div style="white-space:pre-wrap">${esc(v)}</div></span></div>` : '';
+  const rd = kind === 'slice' ? `${nfmt(r.sliceBefore)} → ${nfmt(r.sliceAfter)}${r.sliceAfter != null && r.sliceBefore != null ? ' (' + nfmt(r.sliceAfter - r.sliceBefore) + ' slices)' : ''}` : kind === 'helium' ? `${r.heliumBefore != null ? r.heliumBefore + ' %' : '—'} → ${r.heliumAfter != null ? r.heliumAfter + ' %' : '—'}` : '';
+  openSheet({ title: r.no, left: { label: 'Close' }, right: !r.final ? { label: 'Edit', fn: () => { closeSheet(); setTimeout(() => openReportFlow({ report: r.id }), 320); } } : null,
+    body: `<div class="rhead"><span class="pill ${r.final ? 'ok' : 'warn'}">${r.final ? 'Final' : 'Draft'}</span><span class="pill ${st[2]}">${st[1]}</span></div>
+      <div class="group">${row('Client', [s.client, cityLine(s)].filter(Boolean).join(' — '))}${row('Machine', [mtype(s.type).label, s.model, s.serial ? 'SN ' + s.serial : ''].filter(Boolean).join(' · '))}${row('Date', fmtD(r.date, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) + (r.timeIn ? ` · ${r.timeIn}${r.timeOut ? '–' + r.timeOut : ''}` : ''))}${row('Job', jobLabel(r.job))}${row(kind === 'slice' ? 'Slice counter' : 'Helium level', rd)}${row('Engineer', r.engineer)}${r.tripLabel ? row('Trip', r.tripLabel) : ''}</div>
+      <div class="ghead">Work done</div><div class="group">${row('', r.work) || ''}</div>${r.remarks ? `<div class="ghead">Remarks</div><div class="group">${row('', r.remarks)}</div>` : ''}
+      ${r.parts.length ? `<div class="ghead">Parts</div><div class="group">${r.parts.map(p => `<div class="row"><span class="body"><div class="t">${esc(p.name)}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', 'Qty ' + p.qty].filter(Boolean).join(' · '))}</div></span><span class="pill ${p.required ? 'warn' : 'ok'}">${p.required ? (p.ordered ? 'Ordered' : 'To order') : 'Used'}</span></div>`).join('')}</div>` : ''}
+      ${r.photos.length ? `<div class="photos" style="margin-top:14px">${r.photos.map(p => `<div class="ph"><img src="${esc(p.thumb)}" alt=""></div>`).join('')}</div>` : ''}
+      <div style="margin-top:18px;display:grid;gap:10px"><button class="btn" id="rp-share">${icon('share', 's')} Share / Save PDF</button><button class="btn tinted" id="rp-view">${icon('eye', 's')} Preview PDF</button>
+      <button class="btn tinted" id="rp-fin">${r.final ? 'Reopen for editing' : 'Finalize report'}</button></div>
+      <div class="group" style="margin-top:20px"><button class="row tap" id="rp-del"><span class="body" style="color:var(--red);text-align:center">Delete report</span></button></div>`,
+    onMount: b => {
+      $('#rp-share', b).onclick = () => shareReportPdf(r); $('#rp-view', b).onclick = () => previewReportPdf(r);
+      $('#rp-fin', b).onclick = () => { r.final = !r.final; r.finalizedAt = r.final ? new Date().toISOString() : null; r.updatedAt = new Date().toISOString(); save(); toast(r.final ? 'Report finalized' : 'Report reopened'); reportSheet(id); render(); };
+      $('#rp-del', b).onclick = () => confirmSheet('Delete report?', `${r.no} and its readings are removed. The number is not reused.`, 'Delete', () => deleteReport(r.id));
+    } });
+}
+async function deleteReport(id) {
+  const r = reportById(id); if (!r) return;
+  const m = machineById(r.machineId); if (m) { m.readings = m.readings.filter(x => x.reportId !== id); machineRecalc(m); }
+  for (const p of r.photos || []) await Files.del(p.id);
+  db.reports = db.reports.filter(x => x.id !== id); save(); render(); toast('Report deleted');
+}
+
+/* ---------- Reports list, parts to order, CSV ---------- */
+function reportsMatching(q, f) {
+  q = (q || '').trim().toLowerCase();
+  return reportsSorted(db.reports).filter(r => (f === 'draft' ? !r.final : f === 'final' ? r.final : true) &&
+    (!q || [r.no, (r.snap || {}).client, (r.snap || {}).model, (r.snap || {}).serial, r.work, r.remarks, r.tripLabel, jobLabel(r.job), r.engineer, ...r.parts.map(p => p.name + ' ' + p.pn)].join(' ').toLowerCase().includes(q)));
+}
+function reportsListHTML(q, f) {
+  const l = reportsMatching(q, f);
+  return l.length ? `<div class="group">${l.map(r => reportRow(r)).join('')}</div>` : `<div class="card"><div class="empty">${icon('doc')}${db.reports.length ? 'No report matches.' : 'No service reports yet.<br>Open a trip and tap <b>Submit technical report</b>.'}</div></div>`;
+}
+function renderReportsList() {
+  const v = $('#v-svc'); const f = state.svcF || 'all'; const need = partsToOrder().length;
+  v.innerHTML = svcNav('Service reports', `<button class="navbtn circle" id="rl-csv" aria-label="Export CSV">${icon('download')}</button>`) + `<div class="ltitle">Service reports</div><div class="lsub">${db.reports.length} report${db.reports.length === 1 ? '' : 's'}</div>
+    ${searchBox('svc-q', 'Search no., client, model, work done…', state.svcQ)}<div class="chips">${[['all', 'All'], ['draft', 'Drafts'], ['final', 'Final']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-f="${k}">${l}</button>`).join('')}</div>
+    <div id="svc-list">${reportsListHTML(state.svcQ, f)}</div>
+    <div class="group" style="margin-top:18px"><button class="row tap has-icon" id="rl-parts"><span class="ico" style="background:#ff9500">${icon('wrench')}</span><span class="body"><div class="t">Parts to order</div><div class="st">${need ? `${need} part${need === 1 ? '' : 's'} waiting` : 'Nothing waiting'}</div></span>${icon('chevR', 's chev')}</button></div>`;
+  $('#svc-back', v).onclick = svcBack; $('#rl-csv', v).onclick = exportReportsCSV; $('#rl-parts', v).onclick = partsSheet;
+  const draw = () => { $('#svc-list', v).innerHTML = reportsListHTML(state.svcQ, state.svcF || 'all'); bindSvcRows(v); };
+  $('#svc-q', v).oninput = e => { state.svcQ = e.target.value; draw(); };
+  $$('[data-f]', v).forEach(c => c.onclick = () => { state.svcF = c.dataset.f; renderReportsList(); });
+  bindSvcRows(v);
+}
+function partsToOrder(all) {
+  const out = []; reportsSorted(db.reports).forEach(r => r.parts.forEach(p => { if (p.required && (all || !p.ordered)) out.push({ r, p }); })); return out;
+}
+function partsText() {
+  const l = partsToOrder(); if (!l.length) return '';
+  return `Parts to order — ${db.settings.name || 'Field engineer'} (${fmtD(todayISO(), { day: 'numeric', month: 'short', year: 'numeric' })})\n\n` + l.map(({ r, p }) => `• ${p.name}${p.pn ? ' (P/N ' + p.pn + ')' : ''} × ${p.qty} — ${(r.snap || {}).client || ''}, ${(r.snap || {}).model || ''}${(r.snap || {}).serial ? ' SN ' + r.snap.serial : ''} — ${r.no}`).join('\n');
+}
+function partsSheet() {
+  const l = partsToOrder();
+  openSheet({ title: 'Parts to order', left: { label: 'Close' }, right: l.length ? { label: 'Share', fn: () => {} } : null,
+    body: l.length ? `<div class="group">${l.map(({ r, p }) => `<div class="row"><span class="body"><div class="t">${esc(p.name)} × ${p.qty}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', (r.snap || {}).client, (r.snap || {}).model, r.no].filter(Boolean).join(' · '))}</div></span><label class="switch sm" title="Mark as ordered"><input type="checkbox" data-ord="${esc(p.id)}"><span></span></label></div>`).join('')}</div><div class="foot">Switch a part on when it has been ordered; it leaves this list.</div>` : `<div class="card"><div class="empty">${icon('check')}No parts waiting to be ordered.</div></div>`,
+    onMount: b => {
+      $$('[data-ord]', b).forEach(x => x.onchange = () => { const hit = l.find(z => z.p.id === x.dataset.ord); if (hit) { hit.p.ordered = x.checked; save(); setTimeout(partsSheet, 250); } });
+      const sp = $('#sheet-primary'); if (sp) sp.onclick = async () => { const txt = partsText(); try { if (navigator.share) await navigator.share({ title: 'Parts to order', text: txt }); else { await navigator.clipboard.writeText(txt); toast('List copied'); } } catch (e) { if (e && e.name !== 'AbortError') { download('parts-to-order.txt', txt, 'text/plain'); } } };
+    } });
+}
+function exportReportsCSV() {
+  const list = reportsSorted(db.reports).reverse(); if (!list.length) return toast('No reports to export', 'warn');
+  const q = v => { const s = String(v ?? ''); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const rows = [['Report no.', 'Status', 'Date', 'Time in', 'Time out', 'Client', 'City', 'Country', 'Machine type', 'Model', 'Serial no.', 'Job type', 'Machine status', 'Slice before', 'Slice after', 'Slices since last visit', 'Helium before %', 'Helium after %', 'Work done', 'Remarks', 'Parts', 'Parts to order', 'Engineer', 'Trip']];
+  for (const r of list) { const s = r.snap || {};
+    rows.push([r.no, r.final ? 'Final' : 'Draft', r.date, r.timeIn, r.timeOut, s.client, s.city, s.country, mtype(s.type).label, s.model, s.serial, jobLabel(r.job), mstatus(r.status)[1], r.sliceBefore ?? '', r.sliceAfter ?? '', r.sliceAfter != null && r.sliceBefore != null ? r.sliceAfter - r.sliceBefore : '', r.heliumBefore ?? '', r.heliumAfter ?? '', r.work, r.remarks,
+      r.parts.map(p => `${p.name}${p.pn ? ' [' + p.pn + ']' : ''} x${p.qty}`).join('; '), r.parts.filter(p => p.required).map(p => `${p.name}${p.pn ? ' [' + p.pn + ']' : ''} x${p.qty}${p.ordered ? ' (ordered)' : ''}`).join('; '), r.engineer, r.tripLabel || '']); }
+  download(`veritrip-service-reports-${todayISO()}.csv`, '\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
+}
+
+/* ===================== VeriTrip 3.6 — Service report PDF (jsPDF, fully offline) =====================
+   To restyle the report: edit SR_STYLE (colours, sizes, margins) and SR_L (labels, EN/FR). Layout code is in buildReportPdf. */
+const SR_STYLE = {
+  margin: 16, bottom: 18, font: 'helvetica',
+  accent: [0, 102, 204], ink: [28, 28, 30], muted: [118, 118, 124], line: [214, 214, 220], panel: [245, 246, 248],
+  ok: [40, 160, 80], warn: [230, 140, 0], red: [214, 50, 40],
+  size: { company: 12, title: 8, no: 19, label: 6.6, body: 9.6, big: 11, small: 7.6 }
+};
+const SR_L = {
+  en: { title: 'SERVICE REPORT', draft: 'DRAFT', date: 'DATE', time: 'TIME', job: 'JOB TYPE', status: 'STATUS AFTER VISIT', client: 'CLIENT', machine: 'MACHINE', model: 'Model', serial: 'Serial no.', room: 'Room / site', contact: 'Contact', phone: 'Phone',
+    readings: 'READINGS', prevCounter: 'PREVIOUS COUNTER', nowCounter: 'COUNTER NOW', slices: 'SLICES SINCE LAST VISIT', prevHe: 'PREVIOUS HELIUM', nowHe: 'HELIUM NOW', heChange: 'CHANGE', work: 'WORK PERFORMED', remarks: 'REMARKS',
+    parts: 'PARTS', part: 'Part', pn: 'Part no.', qty: 'Qty', used: 'Used', req: 'To order', photos: 'PHOTOS', signoff: 'SIGN-OFF', engineer: 'Engineer', clientSig: 'Client', signedBy: 'Signed by', page: 'Page', of: 'of', gen: 'Generated with VeriTrip', trip: 'Trip', none: '-',
+    job_pm: 'Preventive maintenance', job_cm: 'Corrective repair', job_inst: 'Installation', job_insp: 'Inspection', job_other: 'Other', st_ok: 'Operational', st_limited: 'Operational, limited', st_down: 'Down',
+    t_CT: 'CT scanner', t_MR: 'MR scanner', t_XR: 'X-ray', t_US: 'Ultrasound', t_OT: 'Equipment', in: 'in', out: 'out' },
+  fr: { title: "RAPPORT D'INTERVENTION", draft: 'BROUILLON', date: 'DATE', time: 'HORAIRE', job: "TYPE D'INTERVENTION", status: "ETAT APRES INTERVENTION", client: 'CLIENT', machine: 'EQUIPEMENT', model: 'Modele', serial: 'N de serie', room: 'Salle / site', contact: 'Contact', phone: 'Tel.',
+    readings: 'RELEVES', prevCounter: 'COMPTEUR PRECEDENT', nowCounter: 'COMPTEUR ACTUEL', slices: 'COUPES DEPUIS LA DERNIERE VISITE', prevHe: 'HELIUM PRECEDENT', nowHe: 'HELIUM ACTUEL', heChange: 'VARIATION', work: 'TRAVAUX EFFECTUES', remarks: 'REMARQUES',
+    parts: 'PIECES', part: 'Piece', pn: 'Ref.', qty: 'Qte', used: 'Utilisee', req: 'A commander', photos: 'PHOTOS', signoff: 'VALIDATION', engineer: 'Ingenieur', clientSig: 'Client', signedBy: 'Signe par', page: 'Page', of: 'sur', gen: 'Genere avec VeriTrip', trip: 'Mission', none: '-',
+    job_pm: 'Maintenance preventive', job_cm: 'Reparation corrective', job_inst: 'Installation', job_insp: 'Inspection', job_other: 'Autre', st_ok: 'Operationnel', st_limited: 'Operationnel, limite', st_down: 'En panne',
+    t_CT: 'Scanner CT', t_MR: 'IRM', t_XR: 'Radiologie', t_US: 'Echographie', t_OT: 'Equipement', in: 'arrivee', out: 'depart' }
+};
+const pdfTxt = s => String(s ?? '').replace(/[\u2018\u2019\u201B]/g, "'").replace(/[\u201C\u201D\u201E]/g, '"').replace(/[\u2013\u2014\u2212]/g, '-').replace(/\u2026/g, '...').replace(/[\u00A0\u202F\u2009]/g, ' ').replace(/\t/g, '  ').replace(/\r/g, '')
+  .replace(/[^\n\x20-\x7E\u00A1-\u00FF\u20AC]+/g, '?');
+const pdfNum = n => n == null || !isFinite(n) ? '-' : Number(n).toLocaleString('en-US');
+const pdfDate = iso => iso ? D(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+const pdfDateFr = iso => iso ? D(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+function imgSize(src) { return new Promise(res => { const im = new Image(); im.onload = () => res({ w: im.naturalWidth, h: im.naturalHeight }); im.onerror = () => res(null); im.src = src; }); }
+async function reportPhotoData(p) { try { const f = await Files.get(p.id); if (f && f.blob) return await blobToDataUrl(f.blob); } catch (e) {} return p.thumb || null; }
+
+async function buildReportPdf(r) {
+  await loadScript(LIB.jspdf); const { jsPDF } = window.jspdf;
+  const S = SR_STYLE, L = SR_L[r.lang === 'fr' ? 'fr' : 'en'], T = pdfTxt, s = r.snap || {};
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true }); doc.setProperties({ title: `${r.no} - ${s.client || ''}`, author: r.engineer || '', subject: 'Service report', creator: 'VeriTrip' });
+  const PW = 210, PH = 297, M = S.margin, CW = PW - 2 * M; let y = M;
+  const col = c => doc.setTextColor(c[0], c[1], c[2]), fill = c => doc.setFillColor(c[0], c[1], c[2]), draw = c => doc.setDrawColor(c[0], c[1], c[2]);
+  const font = (st, sz, c) => { doc.setFont(S.font, st); doc.setFontSize(sz); col(c || S.ink); };
+  const label = (txt, x, yy, align) => { font('bold', S.size.label, S.muted); doc.setCharSpace(0.35); doc.text(T(txt), x, yy, align ? { align } : undefined); doc.setCharSpace(0); };
+  const ensure = h => { if (y + h > PH - S.bottom) { doc.addPage(); y = M; } };
+  const para = (txt, x, w, size, c, lh) => { font('normal', size, c); lh = lh || size * 0.5; const lines = doc.splitTextToSize(T(txt), w); for (const ln of lines) { ensure(lh); doc.text(ln, x, y + lh * 0.8); y += lh; } };
+  const locale = r.lang === 'fr' ? pdfDateFr : pdfDate;
+  const st = mstatus(r.status); const stCol = { ok: S.ok, limited: S.warn, down: S.red }[r.status] || S.ok;
+  const kind = readingKind(s.type);
+
+  /* --- Header --- */
+  const company = (db.settings.company || '').trim();
+  font('bold', S.size.company, S.ink); doc.text(T(company || r.engineer || 'Field service'), M, y + 4);
+  font('normal', S.size.small, S.muted); doc.text(T(company ? (r.lang === 'fr' ? 'Service technique' : 'Field service') : ''), M, y + 8.5);
+  font('bold', S.size.title, S.accent); doc.setCharSpace(0.6); doc.text(T(L.title), PW - M, y + 3.2, { align: 'right' }); doc.setCharSpace(0);
+  font('bold', S.size.no, S.ink); doc.text(T(r.no), PW - M, y + 11.5, { align: 'right' });
+  const noW = doc.getTextWidth(T(r.no));
+  if (!r.final) { font('bold', 7, S.warn); const dw = doc.getTextWidth(T(L.draft)) + 5, dx = PW - M - noW - dw - 4; draw(S.warn); doc.setLineWidth(0.3); doc.roundedRect(dx, y + 6.4, dw, 6, 1.4, 1.4, 'S'); doc.text(T(L.draft), dx + dw / 2, y + 10.4, { align: 'center' }); }
+  y += 17; fill(S.accent); doc.rect(M, y, CW, 0.7, 'F'); y += 6;
+
+  /* --- Visit strip --- */
+  const stripH = 15; fill(S.panel); doc.roundedRect(M, y, CW, stripH, 2, 2, 'F');
+  const cw4 = [CW * 0.30, CW * 0.20, CW * 0.26, CW * 0.24]; let cx = M + 4;
+  const timeTxt = r.timeIn ? r.timeIn + (r.timeOut ? ' - ' + r.timeOut : '') : '-';
+  [[L.date, locale(r.date), null], [L.time, timeTxt, null], [L.job, L['job_' + r.job] || jobLabel(r.job), null], [L.status, L['st_' + r.status] || st[1], stCol]].forEach(([k, v, dot], i) => {
+    label(k, cx, y + 5.2); font('bold', 9, S.ink); let tx = cx; if (dot) { fill(dot); doc.circle(cx + 1.2, y + 10.3, 1.2, 'F'); tx += 4; } doc.text(T(v), tx, y + 11, { maxWidth: cw4[i] - 6 }); cx += cw4[i];
+  });
+  y += stripH + 7;
+
+  /* --- Client / Machine --- */
+  const half = (CW - 8) / 2; const y0 = y;
+  const block = (x, head, big, lines) => { let yy = y0; label(head, x, yy + 2.5); yy += 7; font('bold', S.size.big, S.ink); const bl = doc.splitTextToSize(T(big || '-'), half); doc.text(bl, x, yy + 1); yy += bl.length * 5 + 0.5; font('normal', S.size.body, S.ink);
+    for (const [k, v] of lines) { if (!v) continue; if (k) { font('normal', S.size.small, S.muted); doc.text(T(k), x, yy + 1.2); } font('normal', S.size.body, S.ink); const vx = k ? x + 22 : x; const vl = doc.splitTextToSize(T(v), half - (k ? 22 : 0)); doc.text(vl, vx, yy + 1.2); yy += Math.max(4.6, vl.length * 4.2); } return yy; };
+  const yA = block(M, L.client, s.client, [[L.contact, s.contact], [L.phone, s.phone], ['', [s.address, [s.city, s.country].filter(Boolean).join(', ')].filter(Boolean).join('\n')]]);
+  const yB = block(M + half + 8, L.machine, s.model, [['', L['t_' + (s.type || 'OT')]], [L.serial, s.serial], [L.room, s.notes]]);
+  y = Math.max(yA, yB) + 3; draw(S.line); doc.setLineWidth(0.2); doc.line(M, y, PW - M, y); y += 6;
+
+  /* --- Readings --- */
+  if (kind) {
+    const boxes = kind === 'slice' ? [[L.prevCounter, pdfNum(r.sliceBefore)], [L.nowCounter, pdfNum(r.sliceAfter)], [L.slices, r.sliceBefore != null && r.sliceAfter != null ? pdfNum(r.sliceAfter - r.sliceBefore) : '-']]
+      : [[L.prevHe, r.heliumBefore != null ? r.heliumBefore + ' %' : '-'], [L.nowHe, r.heliumAfter != null ? r.heliumAfter + ' %' : '-'], [L.heChange, r.heliumBefore != null && r.heliumAfter != null ? (r.heliumAfter - r.heliumBefore >= 0 ? '+' : '-') + Math.abs(r.heliumAfter - r.heliumBefore) + ' %' : '-']];
+    ensure(24); label(L.readings, M, y + 2.5); y += 5.5; const bw = (CW - 8) / 3;
+    boxes.forEach(([k, v], i) => { const x = M + i * (bw + 4); draw(S.line); doc.setLineWidth(0.25); doc.roundedRect(x, y, bw, 15, 2, 2, 'S'); label(k, x + 3.5, y + 5); font('bold', 13, i === 1 ? S.accent : S.ink); doc.text(T(v), x + 3.5, y + 12.2); });
+    y += 21;
+  }
+
+  /* --- Work / remarks --- */
+  const section = (head, txt) => { if (!txt) return; ensure(16); label(head, M, y + 2.5); y += 6; para(txt, M, CW, S.size.body, S.ink, 4.7); y += 5; };
+  section(L.work, r.work); section(L.remarks, r.remarks);
+
+  /* --- Parts --- */
+  if (r.parts.length) {
+    ensure(22); label(L.parts, M, y + 2.5); y += 5.5; const cols = [CW * 0.50, CW * 0.26, CW * 0.08, CW * 0.16]; const hx = [M, M + cols[0], M + cols[0] + cols[1], M + cols[0] + cols[1] + cols[2]];
+    fill(S.panel); doc.rect(M, y, CW, 6.4, 'F'); font('bold', S.size.small, S.muted); [L.part, L.pn, L.qty, ''].forEach((h, i) => doc.text(T(h), hx[i] + (i === 0 ? 2 : 0), y + 4.4));
+    y += 6.4;
+    for (const p of r.parts) { const nl = doc.splitTextToSize(T(p.name), cols[0] - 4); const rh = Math.max(6.6, nl.length * 4.2 + 2.6); ensure(rh);
+      font('normal', S.size.body, S.ink); doc.text(nl, hx[0] + 2, y + 4.5); doc.text(T(p.pn || '-'), hx[1], y + 4.5, { maxWidth: cols[1] - 2 }); doc.text(String(p.qty), hx[2], y + 4.5);
+      font('bold', S.size.small, p.required ? S.warn : S.muted); doc.text(T(p.required ? L.req : L.used), hx[3], y + 4.5);
+      y += rh; draw(S.line); doc.setLineWidth(0.15); doc.line(M, y, PW - M, y); }
+    y += 6;
+  }
+
+  /* --- Photos --- */
+  if (r.photos.length) {
+    const imgs = []; for (const p of r.photos) { const d = await reportPhotoData(p); if (d) { const z = await imgSize(d); if (z) imgs.push({ d, z }); } }
+    if (imgs.length) { ensure(50); label(L.photos, M, y + 2.5); y += 6; const g = 4, cwid = (CW - 2 * g) / 3, ch = cwid * 0.75;
+      imgs.forEach((im, i) => { const c = i % 3; if (c === 0) { ensure(ch + g); } const x = M + c * (cwid + g); const k = Math.min(cwid / im.z.w, ch / im.z.h); const w = im.z.w * k, h = im.z.h * k;
+        fill(S.panel); doc.roundedRect(x, y, cwid, ch, 1.5, 1.5, 'F'); doc.addImage(im.d, 'JPEG', x + (cwid - w) / 2, y + (ch - h) / 2, w, h, undefined, 'FAST'); if (c === 2 || i === imgs.length - 1) y += ch + g; });
+      y += 3; }
+  }
+
+  /* --- Sign-off --- */
+  const sigH = 34; ensure(sigH + 6); label(L.signoff, M, y + 2.5); y += 6; const sw = (CW - 8) / 2;
+  const sig = async (x, head, data, name) => { draw(S.line); doc.setLineWidth(0.25); doc.roundedRect(x, y, sw, sigH, 2, 2, 'S'); label(head, x + 4, y + 5.5);
+    if (data) { const z = await imgSize(data); if (z) { const k = Math.min((sw - 10) / z.w, 16 / z.h); doc.addImage(data, 'PNG', x + 5, y + 8, z.w * k, z.h * k); } }
+    draw(S.line); doc.line(x + 4, y + 26, x + sw - 4, y + 26); font('normal', S.size.small, S.muted); doc.text(T(name || ''), x + 4, y + 30.5, { maxWidth: sw - 8 }); };
+  await sig(M, L.engineer, r.signEng, [r.engineer, r.engineerTitle].filter(Boolean).join(', '));
+  await sig(M + sw + 8, L.clientSig, r.signClient, r.signClientName ? `${L.signedBy} ${r.signClientName}` : s.client);
+  y += sigH + 4;
+
+  /* --- Footer on every page --- */
+  const n = doc.getNumberOfPages();
+  for (let i = 1; i <= n; i++) { doc.setPage(i); draw(S.line); doc.setLineWidth(0.2); doc.line(M, PH - 13, PW - M, PH - 13);
+    font('normal', S.size.small, S.muted); doc.text(T(`${r.no}  |  ${s.client || ''}${s.model ? '  |  ' + s.model : ''}${s.serial ? '  |  SN ' + s.serial : ''}`), M, PH - 8.5, { maxWidth: CW - 40 });
+    doc.text(`${L.page} ${i} ${L.of} ${n}`, PW - M, PH - 8.5, { align: 'right' }); doc.setFontSize(6.6); doc.text(T(L.gen), M, PH - 5); }
+  return doc.output('blob');
+}
+const reportPdfName = r => `${r.no}_${((r.snap || {}).client || 'client').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24)}_${((r.snap || {}).model || 'machine').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20)}.pdf`;
+async function shareReportPdf(r) {
+  toast('Preparing PDF…');
+  let blob; try { blob = await buildReportPdf(r); } catch (e) { console.error(e); return toast('Could not build the PDF (library not loaded?)', 'warn'); }
+  const name = reportPdfName(r);
+  try { const file = new File([blob], name, { type: 'application/pdf' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: r.no, text: `${r.no} - ${(r.snap || {}).client || ''}` }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  download(name, blob); toast('PDF saved');
+}
+async function previewReportPdf(r) {
+  toast('Preparing PDF…'); let blob; try { blob = await buildReportPdf(r); } catch (e) { console.error(e); return toast('Could not build the PDF', 'warn'); }
+  const url = URL.createObjectURL(blob); const v = $('#viewer'); document.getElementById('toast').className = '';
+  v.innerHTML = `<button class="x" aria-label="Close">${icon('x')}</button><iframe src="${url}" title="${esc(r.no)}"></iframe>`; v.classList.add('show');
+  v.querySelector('.x').onclick = () => { v.classList.remove('show'); v.innerHTML = ''; URL.revokeObjectURL(url); };
+}
 
 /* ---------------- PWA layer (only in the pwa/ build) ---------------- */
 const PWA = (() => {
