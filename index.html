@@ -1649,7 +1649,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '3.6';
+const APP_VERSION = '3.7';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -1687,7 +1687,8 @@ const OLD = { trips: 'veritrip_saved_trips_v2', exp: 'veritrip_saved_expenses_v2
 const DEFAULT_SETTINGS = () => {
   let tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
   return { baseCurrency: 'USD', theme: 'auto', name: '', company: '', employeeId: '', homeIata: TZ_HOME[tz] || '',
-    ai: { provider: 'none', key: '', model: '' }, travelBuffer: 1, autoFx: true, onboarded: false, engineerTitle: '', reportLang: 'en', engineerSign: '' };
+    ai: { provider: 'none', key: '', model: '' }, travelBuffer: 1, autoFx: true, onboarded: false, engineerTitle: '', reportLang: 'en', engineerSign: '',
+    reportCompany: 'TMSP', reportSub: 'Trading Medical Systems Private', reportLogoMode: 'default', reportLogoData: '' };
 };
 let db, pendingToast = null;
 
@@ -2273,8 +2274,11 @@ function renderSettings() {
       <button class="row tap has-icon" id="s-parts"><span class="ico" style="background:#ff9500">${icon('wrench')}</span><span class="body"><div class="t">Parts to order</div><div class="st">${partsToOrder().length} waiting</div></span>${icon('chevR', 's chev')}</button>
       <div class="field"><label>Job title</label><input id="s-title" value="${esc(s.engineerTitle)}" placeholder="e.g. Field Service Engineer CT/MR"></div>
       <div class="field"><label>Report language</label><select id="s-rlang"><option value="en"${s.reportLang !== 'fr' ? ' selected' : ''}>English</option><option value="fr"${s.reportLang === 'fr' ? ' selected' : ''}>Français</option></select></div>
+      <div class="field"><label>Report company</label><input id="s-rco" value="${esc(s.reportCompany)}" placeholder="Name in the report header"></div>
+      <div class="field"><label>Report subtitle</label><input id="s-rsub" value="${esc(s.reportSub)}" placeholder="Under the company name"></div>
+      <div class="field"><label>Report logo</label><select id="s-rlogo"><option value="default"${s.reportLogoMode === 'default' ? ' selected' : ''}>Canon Medical (default)</option><option value="custom"${s.reportLogoMode === 'custom' ? ' selected' : ''}>${s.reportLogoData ? 'My logo' : 'Upload image…'}</option><option value="none"${s.reportLogoMode === 'none' ? ' selected' : ''}>No logo</option></select><input type="file" id="s-rlogo-in" accept="image/*" hidden></div>
       <button class="row tap" id="s-esig"><span class="body">Engineer signature</span>${s.engineerSign ? `<img class="sigprev" src="${s.engineerSign}" alt="">` : '<span class="muted">Not set</span>'}</button>
-    </div><div class="foot">Clients and their machines are added from trips and reports, or here. Name, company and job title appear on every service report.</div>
+    </div><div class="foot">Clients and their machines are added from trips and reports, or here. The service report header (company, subtitle, logo) and your job title appear on every PDF.</div>
     <div class="ghead">Appearance</div><div class="group"><div class="row"><span class="body">Theme</span><div class="seg" style="width:200px">${[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button data-theme="${k}" class="${s.theme === k ? 'on' : ''}">${l}</button>`).join('')}</div></div></div>
     <div class="ghead">Currency</div><div class="group">
       <div class="field"><label>Report currency</label><select id="s-base">${curOptions(base())}</select></div>
@@ -2310,6 +2314,10 @@ function renderSettings() {
   $('#s-rlang', v).onchange = e => { s.reportLang = e.target.value; save(); };
   $('#s-esig', v).onclick = async () => { const x = await sigPad('Engineer signature', s.name); if (x === null) return; s.engineerSign = x; save(); renderSettings(); };
   bindText('#s-title', 'engineerTitle');
+  bindText('#s-rco', 'reportCompany'); bindText('#s-rsub', 'reportSub');
+  { const sel = $('#s-rlogo', v), fi = $('#s-rlogo-in', v);
+    sel.onchange = () => { if (sel.value === 'custom' && !s.reportLogoData) { fi.click(); sel.value = s.reportLogoMode; return; } s.reportLogoMode = sel.value; save(); toast('Report logo saved'); };
+    fi.onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const im = await loadImage(f); const k = Math.min(1, 600 / Math.max(im.naturalWidth, im.naturalHeight)); const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.naturalWidth * k)); c.height = Math.max(1, Math.round(im.naturalHeight * k)); const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height); s.reportLogoData = c.toDataURL('image/jpeg', 0.9); s.reportLogoMode = 'custom'; save(); toast('Report logo saved'); renderSettings(); } catch (err) { toast('Could not read the image', 'warn'); } }; }
   bindText('#s-name', 'name'); bindText('#s-company', 'company'); bindText('#s-emp', 'employeeId'); bindText('#s-home', 'homeIata', x => x.trim().toUpperCase().slice(0, 3));
   $$('[data-theme]', v).forEach(b => b.onclick = () => { s.theme = b.dataset.theme; save(); applyTheme(); renderSettings(); });
   $('#s-base', v).onchange = e => { s.baseCurrency = e.target.value; save(); renderSettings(); };
@@ -2934,7 +2942,7 @@ function init() {
   moveInlinePreviews();
   if (db.settings.autoFx && (!db.fx.updatedAt || Date.now() - Date.parse(db.fx.updatedAt) > 12 * 3600e3)) refreshRates(false).then(ok => ok && render());
   window.PWA && PWA.init();
-  window.VeriTrip = { db: () => db, resolveTrip, extractDocument, parseICS, icsToCandidates, render, go, financeYear, invStatus, ensureRates, fxFor, econv, livDue, readFinanceDoc, buildReportPdf, machineById, reportById, svcOpen, openReportFlow, reportSheet, exportReportsCSV, partsToOrder, SR_L, SR_STYLE, pdfTxt };
+  window.VeriTrip = { db: () => db, resolveTrip, extractDocument, parseICS, icsToCandidates, render, go, financeYear, invStatus, ensureRates, fxFor, econv, livDue, readFinanceDoc, buildReportPdf, machineById, reportById, svcOpen, openReportFlow, reportSheet, exportReportsCSV, partsToOrder, SR_L, SR_BOXES, reportBrand, pdfTxt };
 }
 
 /* ================= v3.2 — trip wizard, flight & hotel, add-receipt options, simple trip screen ================= */
@@ -3824,13 +3832,14 @@ function financeFileIds() { const F = FIN(); return [...F.living.flatMap(l => l.
 document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
 setTimeout(() => { if (db) scheduleRates(); }, 1200);
 
-/* ===================== VeriTrip 3.6 — Clients · Machines · Service reports (data + client/machine screens) ===================== */
+/* ===================== VeriTrip 3.7 — Clients · Machines · Service reports (data + client/machine screens) ===================== */
 const MTYPES = [
   { k: 'CT', label: 'CT', color: '#007aff' }, { k: 'MR', label: 'MR', color: '#5856d6' }, { k: 'XR', label: 'X-ray', color: '#ff9500' },
   { k: 'US', label: 'Ultrasound', color: '#30b0c7' }, { k: 'OT', label: 'Other', color: '#8e8e93' }];
 const mtype = k => MTYPES.find(x => x.k === k) || MTYPES[4];
 const JOB_TYPES = [['pm', 'Preventive maintenance'], ['cm', 'Corrective repair'], ['inst', 'Installation'], ['insp', 'Inspection'], ['other', 'Other']];
 const jobLabel = k => (JOB_TYPES.find(j => j[0] === k) || JOB_TYPES[4])[1];
+const CONTRACTS = ['No', 'Yes', 'Full', 'Labour only', 'Parts only'];
 const MSTATUS = [['ok', 'Operational', 'ok'], ['limited', 'Limited', 'warn'], ['down', 'Down', 'red']];
 const mstatus = k => MSTATUS.find(s => s[0] === k) || MSTATUS[0];
 
@@ -3839,15 +3848,17 @@ function migrateV36() {
   db.machines = Array.isArray(db.machines) ? db.machines : [];
   db.reports = Array.isArray(db.reports) ? db.reports : [];
   db.svc = Object.assign({ seq: {} }, db.svc || {}); db.svc.seq = db.svc.seq || {};
-  FIN().clients.forEach(c => { for (const k of ['address', 'city', 'country', 'contact', 'phone', 'email', 'note']) c[k] = c[k] == null ? '' : String(c[k]); });
+  FIN().clients.forEach(c => { for (const k of ['address', 'city', 'country', 'contact', 'phone', 'email', 'note', 'reportedBy']) c[k] = c[k] == null ? '' : String(c[k]); });
   db.machines.forEach(m => {
-    m.id = m.id || uid('MCH'); m.type = MTYPES.some(x => x.k === m.type) ? m.type : 'OT'; m.model = m.model || ''; m.serial = m.serial || ''; m.notes = m.notes || '';
+    m.id = m.id || uid('MCH'); m.type = MTYPES.some(x => x.k === m.type) ? m.type : 'OT'; m.model = m.model || ''; m.serial = m.serial || ''; m.notes = m.notes || ''; m.dept = m.dept || ''; m.warranty = m.warranty === 'yes' ? 'yes' : 'no'; m.contract = m.contract || 'No';
     m.readings = (Array.isArray(m.readings) ? m.readings : []).map(r => ({ id: r.id || uid('RD'), kind: r.kind === 'helium' ? 'helium' : 'slice', value: +r.value, date: r.date || todayISO(), reportId: r.reportId || null, note: r.note || '', at: r.at || '' })).filter(r => isFinite(r.value));
     m.createdAt = m.createdAt || new Date().toISOString(); machineRecalc(m);
   });
   db.reports.forEach(r => {
-    r.id = r.id || uid('SR'); r.parts = (r.parts || []).map(p => ({ id: p.id || uid('PT'), name: p.name || '', pn: p.pn || '', qty: +p.qty || 1, required: !!p.required, ordered: !!p.ordered }));
+    r.id = r.id || uid('SR'); r.parts = (r.parts || []).map(p => ({ id: p.id || uid('PT'), name: p.name || '', pn: p.pn || '', qty: +p.qty || 1, required: !!p.required, ordered: !!p.ordered, exch: !!p.exch }));
     r.photos = r.photos || []; r.status = r.status || 'ok'; r.job = r.job || 'other'; r.work = r.work || ''; r.remarks = r.remarks || ''; r.snap = r.snap || {};
+    r.fault = r.fault || ''; r.warranty = r.warranty === 'yes' ? 'yes' : r.warranty === 'no' ? 'no' : ''; r.contract = r.contract == null ? '' : r.contract; r.sysDown = r.sysDown === 'yes' || r.sysDown === 'no' ? r.sysDown : (r.status === 'down' ? 'yes' : 'no'); r.downHours = r.downHours || '';
+    r.dept = r.dept || ''; r.reportedBy = r.reportedBy || ''; r.travel = r.travel == null ? '' : String(r.travel); r.signClientName = r.signClientName || '';
     r.final = !!r.final; r.lang = r.lang === 'fr' ? 'fr' : 'en'; r.createdAt = r.createdAt || new Date().toISOString();
   });
 }
@@ -3875,7 +3886,7 @@ function createMachine(o) {
   const serial = String(o.serial || '').trim();
   const ex = serial && db.machines.find(m => m.clientId === o.clientId && m.serial.toLowerCase() === serial.toLowerCase());
   if (ex) return ex;
-  const m = { id: uid('MCH'), clientId: o.clientId, type: o.type || 'OT', model: String(o.model || '').trim(), serial, notes: String(o.notes || '').trim(), readings: [], createdAt: new Date().toISOString() };
+  const m = { id: uid('MCH'), clientId: o.clientId, type: o.type || 'OT', model: String(o.model || '').trim(), serial, notes: String(o.notes || '').trim(), dept: String(o.dept || '').trim(), warranty: o.warranty === 'yes' ? 'yes' : 'no', contract: o.contract || 'No', readings: [], createdAt: new Date().toISOString() };
   machineRecalc(m); db.machines.push(m); return m;
 }
 const machineLabel = m => m ? [m.model || 'Machine', m.serial ? 'SN ' + m.serial : ''].filter(Boolean).join(' · ') : '';
@@ -4009,7 +4020,7 @@ function openClientEditor(src, opt = {}) {
 
 /* ---------- Machine editor + history ---------- */
 function openMachineEditor(src, opt = {}) {
-  const isNew = !src; const m0 = src || { clientId: opt.clientId, type: opt.type || 'CT', model: '', serial: '', notes: '', readings: [] };
+  const isNew = !src; const m0 = src || { clientId: opt.clientId, type: opt.type || 'CT', model: '', serial: '', notes: '', dept: '', warranty: 'no', contract: 'No', readings: [] };
   let type = m0.type;
   const client = clientById(m0.clientId);
   const f = (id, label, val, extra = '') => `<div class="field"><label>${label}</label><input id="${id}" value="${esc(val || '')}" ${extra}></div>`;
@@ -4025,7 +4036,9 @@ function openMachineEditor(src, opt = {}) {
   };
   openSheet({ title: isNew ? 'New machine' : 'Machine', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
     body: `${client ? `<div class="foot" style="margin:0 4px 8px">${esc(client.name)}</div>` : ''}<div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="mc-type">${MTYPES.map(t => `<button data-k="${t.k}" class="${t.k === type ? 'on' : ''}">${t.label}</button>`).join('')}</div></div>
-      ${f('mc-model', 'Model', m0.model, 'placeholder="e.g. TSX-303A"')}${f('mc-serial', 'Serial no.', m0.serial, 'placeholder="Serial number" autocapitalize="characters"')}${f('mc-notes', 'Room / site', m0.notes, 'placeholder="e.g. Radiology, room 2"')}
+      ${f('mc-model', 'Model', m0.model, 'placeholder="e.g. TSX-303A"')}${f('mc-serial', 'Serial no.', m0.serial, 'placeholder="Serial number" autocapitalize="characters"')}${f('mc-notes', 'Room / site', m0.notes, 'placeholder="e.g. Radiology, room 2"')}${f('mc-dept', 'Department', m0.dept, 'placeholder="e.g. Radiology"')}
+      <div class="row" style="padding:10px 16px"><span class="body">Warranty</span><div class="seg" style="width:140px" id="mc-war"><button data-k="no" class="${m0.warranty === 'yes' ? '' : 'on'}">No</button><button data-k="yes" class="${m0.warranty === 'yes' ? 'on' : ''}">Yes</button></div></div>
+      <div class="field"><label>Service contract</label><select id="mc-contract">${CONTRACTS.map(c => `<option${c === (m0.contract || 'No') ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
       <div class="field" id="mc-rd-f"><label id="mc-rd-l">Counter</label><input id="mc-rd" inputmode="decimal" placeholder=""></div></div>
       <div class="foot" id="mc-rd-foot"></div>${hist()}
       ${!isNew ? `<div class="group" style="margin-top:24px"><button class="row tap" id="mc-del"><span class="body" style="color:var(--red);text-align:center">Delete machine</span></button></div>` : ''}`,
@@ -4037,6 +4050,7 @@ function openMachineEditor(src, opt = {}) {
         $('#mc-rd-foot', b).textContent = k ? (isNew ? 'Optional starting value. Reports update it on every visit.' : 'Changing it adds a manual entry to the history.') : '';
       };
       $$('#mc-type button', b).forEach(btn => btn.onclick = () => { type = btn.dataset.k; $$('#mc-type button', b).forEach(z => z.classList.toggle('on', z === btn)); rdUI(); }); rdUI();
+      let war = m0.warranty === 'yes' ? 'yes' : 'no'; $$('#mc-war button', b).forEach(btn => btn.onclick = () => { war = btn.dataset.k; $$('#mc-war button', b).forEach(z => z.classList.toggle('on', z === btn)); });
       bindSvcRows(b);
       $$('[data-rep]', b).forEach(x => x.onclick = () => { closeSheet(); setTimeout(() => reportSheet(x.dataset.rep), 300); });
       $('#sheet-primary').onclick = () => {
@@ -4044,6 +4058,7 @@ function openMachineEditor(src, opt = {}) {
         const serial = $('#mc-serial', b).value.trim();
         const dup = db.machines.find(x => x !== src && x.clientId === m0.clientId && serial && x.serial.toLowerCase() === serial.toLowerCase()); if (dup) return toast('This serial number already exists for this client', 'warn');
         const m = isNew ? createMachine({ clientId: m0.clientId, type, model, serial, notes: $('#mc-notes', b).value }) : Object.assign(src, { type, model, serial, notes: $('#mc-notes', b).value.trim() });
+        Object.assign(m, { dept: $('#mc-dept', b).value.trim(), warranty: war, contract: $('#mc-contract', b).value });
         const k = readingKind(type), raw = $('#mc-rd', b).value.replace(/[\s,]/g, '');
         if (k && raw !== '' && isFinite(+raw) && +raw !== (k === 'slice' ? m.lastSlice : m.lastHelium)) addReading(m, k, +raw, todayISO(), null, 'Manual');
         save(); closeSheet(); toast(isNew ? 'Machine added' : 'Saved'); if (opt.onDone) opt.onDone(m); else render();
@@ -4057,7 +4072,7 @@ function openMachineEditor(src, opt = {}) {
     } });
 }
 
-/* ===================== VeriTrip 3.6 — Service report flow, detail, lists, parts, CSV ===================== */
+/* ===================== VeriTrip 3.7 — Service report flow, detail, lists, parts, CSV ===================== */
 let SR = null; // working state of the report flow
 
 const reportNo = (year, seq) => `SR-${year}-${String(seq).padStart(3, '0')}`;
@@ -4105,11 +4120,23 @@ function openReportFlow(opt = {}) {
   const dflt = tripDefaultDate(t);
   SR = ed ? { id: ed.id, step: 1, tripId: ed.tripId, clientId: ed.clientId, machineId: ed.machineId, newMachine: null, newClient: null, date: ed.date, timeIn: ed.timeIn || '', timeOut: ed.timeOut || '',
       job: ed.job, work: ed.work, remarks: ed.remarks, parts: ed.parts.map(p => ({ ...p })), status: ed.status, readNew: ed.sliceAfter != null ? String(ed.sliceAfter) : ed.heliumAfter != null ? String(ed.heliumAfter) : '',
-      engineer: ed.engineer, title: ed.engineerTitle || '', photos: ed.photos.map(p => ({ ...p })), signClient: ed.signClient || '', signClientName: ed.signClientName || '', signEng: ed.signEng || '', lang: ed.lang, ack: false }
+      engineer: ed.engineer, title: ed.engineerTitle || '', photos: ed.photos.map(p => ({ ...p })), signClient: ed.signClient || '', signClientName: ed.signClientName || '', signEng: ed.signEng || '', lang: ed.lang, ack: false,
+      fault: ed.fault || '', warranty: ed.warranty || 'no', contract: ed.contract || 'No', sysDown: ed.sysDown || 'no', downHours: ed.downHours || '', visitNo: ed.visitNo == null ? '' : String(ed.visitNo), dept: ed.dept || '', reportedBy: ed.reportedBy || '', travel: ed.travel || '',
+      contact: (ed.snap || {}).contact || '', phone: (ed.snap || {}).phone || '', email: (ed.snap || {}).email || '', defFor: ed.machineId }
     : { id: null, step: 1, tripId: t ? t.id : null, clientId: opt.clientId || (t && t.clientId) || '', machineId: opt.machineId || '', newMachine: null, newClient: null, date: dflt, timeIn: '', timeOut: '',
-      job: 'pm', work: '', remarks: '', parts: [], status: 'ok', readNew: '', engineer: db.settings.name || '', title: db.settings.engineerTitle || '', photos: [], signClient: '', signClientName: '', signEng: db.settings.engineerSign || '', lang: db.settings.reportLang || 'en', ack: false };
+      job: 'pm', work: '', remarks: '', parts: [], status: 'ok', readNew: '', engineer: db.settings.name || '', title: db.settings.engineerTitle || '', photos: [], signClient: '', signClientName: '', signEng: db.settings.engineerSign || '', lang: db.settings.reportLang || 'en', ack: false,
+      fault: '', warranty: 'no', contract: 'No', sysDown: 'no', downHours: '', visitNo: '', dept: '', reportedBy: '', travel: '', contact: '', phone: '', email: '', defFor: null };
   if (SR.machineId && !SR.clientId) { const m = machineById(SR.machineId); if (m) SR.clientId = m.clientId; }
   srDraw();
+}
+/* Prefill the form fields that belong to the client / machine (only when the machine changes; editing a saved report keeps its own values) */
+function srApplyDefaults() {
+  const key = (SR.clientId || '') + '|' + (SR.machineId || ''); if (SR.defFor === key || SR.defFor === SR.machineId) { SR.defFor = key; return; }
+  if (!SR.clientId || !SR.machineId) return; SR.defFor = key;
+  const c = clientById(SR.clientId), m = srMachine();
+  SR.contact = c ? c.contact || '' : ''; SR.phone = c ? c.phone || '' : ''; SR.email = c ? c.email || '' : ''; SR.reportedBy = c ? c.reportedBy || c.contact || '' : '';
+  SR.dept = (m && m.dept) || db.settings.lastDept || ''; SR.warranty = m ? m.warranty || 'no' : 'no'; SR.contract = m ? m.contract || 'No' : 'No';
+  SR.visitNo = String(m ? db.reports.filter(r => r.machineId === m.id && r.id !== SR.id).length + 1 : 1);
 }
 const srMachine = () => SR.machineId && SR.machineId !== '__new' ? machineById(SR.machineId) : null;
 const srType = () => srMachine() ? srMachine().type : (SR.newMachine ? SR.newMachine.type : null);
@@ -4124,13 +4151,14 @@ function srGrab() {
   const b = $('#sheet-b'); const g = id => { const e = $('#' + id, b); return e ? e.value : undefined; };
   if (SR.step === 1) {
     SR.clientId = g('sr-cli') !== undefined ? g('sr-cli') : SR.clientId; SR.machineId = g('sr-mch') !== undefined ? g('sr-mch') : SR.machineId;
-    if (SR.clientId === '__new') SR.newClient = { name: g('sr-nc-name') || '', city: g('sr-nc-city') || '', country: g('sr-nc-country') || '' };
+    if (SR.clientId === '__new') SR.newClient = { name: g('sr-nc-name') || '', address: g('sr-nc-address') || '', city: g('sr-nc-city') || '', country: g('sr-nc-country') || '' };
+    for (const [k, id] of [['contact', 'sr-contact'], ['phone', 'sr-phone'], ['email', 'sr-email'], ['visitNo', 'sr-visit'], ['dept', 'sr-dept'], ['reportedBy', 'sr-repby']]) if (g(id) !== undefined) SR[k] = g(id);
     if (SR.machineId === '__new' || SR.clientId === '__new') SR.newMachine = Object.assign(SR.newMachine || { type: 'CT' }, { model: g('sr-nm-model') || '', serial: g('sr-nm-serial') || '', notes: g('sr-nm-notes') || '' });
     if (g('sr-read') !== undefined) SR.readNew = g('sr-read'); if (g('sr-date') !== undefined) SR.date = g('sr-date') || SR.date;
   } else if (SR.step === 2) {
-    SR.job = g('sr-job') || SR.job; SR.work = g('sr-work') ?? SR.work; SR.remarks = g('sr-rem') ?? SR.remarks;
+    SR.job = g('sr-job') || SR.job; SR.fault = g('sr-fault') ?? SR.fault; SR.work = g('sr-work') ?? SR.work; SR.remarks = g('sr-rem') ?? SR.remarks; SR.contract = g('sr-contract') || SR.contract; SR.downHours = g('sr-dh') ?? SR.downHours;
   } else {
-    SR.date = g('sr-d') || SR.date; SR.timeIn = g('sr-ti') ?? SR.timeIn; SR.timeOut = g('sr-to') ?? SR.timeOut; SR.engineer = g('sr-eng') ?? SR.engineer; SR.title = g('sr-title') ?? SR.title; SR.signClientName = g('sr-scn') ?? SR.signClientName; SR.lang = g('sr-lang') || SR.lang;
+    SR.date = g('sr-d') || SR.date; SR.timeIn = g('sr-ti') ?? SR.timeIn; SR.timeOut = g('sr-to') ?? SR.timeOut; SR.travel = g('sr-trv') ?? SR.travel; SR.engineer = g('sr-eng') ?? SR.engineer; SR.title = g('sr-title') ?? SR.title; SR.signClientName = g('sr-scn') ?? SR.signClientName; SR.lang = g('sr-lang') || SR.lang;
   }
 }
 const num = v => { const s = String(v ?? '').replace(/[\s,]/g, ''); return s !== '' && isFinite(+s) ? +s : null; };
@@ -4141,7 +4169,7 @@ function srStep1() {
   const newCli = SR.clientId === '__new';
   openSheet(Object.assign(srSheetCfg(`${srBar(1)}${t ? `<div class="foot" style="margin:0 4px 10px">${esc(tripShort(t))}</div>` : ''}
     <div class="group"><div class="field"><label>Client</label><select id="sr-cli"><option value="">Select client…</option>${clients.map(c => `<option value="${esc(c.id)}"${c.id === SR.clientId ? ' selected' : ''}>${esc(c.name)}${c.city ? ' — ' + esc(c.city) : ''}</option>`).join('')}<option value="__new"${newCli ? ' selected' : ''}>＋ New client…</option></select></div>
-      <div id="sr-ncbox" class="${newCli ? '' : 'hidden'}"><div class="field"><label>Name</label><input id="sr-nc-name" placeholder="Hospital or company" value="${esc((SR.newClient || {}).name || '')}"></div><div class="field"><label>City</label><input id="sr-nc-city" placeholder="e.g. Nouakchott" value="${esc((SR.newClient || {}).city || '')}"></div><div class="field"><label>Country</label><input id="sr-nc-country" placeholder="e.g. Mauritania" value="${esc((SR.newClient || {}).country || '')}"></div></div></div>
+      <div id="sr-ncbox" class="${newCli ? '' : 'hidden'}"><div class="field"><label>Name</label><input id="sr-nc-name" placeholder="Hospital or company" value="${esc((SR.newClient || {}).name || '')}"></div><div class="field"><label>Address</label><input id="sr-nc-address" placeholder="Optional" value="${esc((SR.newClient || {}).address || '')}"></div><div class="field"><label>City</label><input id="sr-nc-city" placeholder="e.g. Nouakchott" value="${esc((SR.newClient || {}).city || '')}"></div><div class="field"><label>Country</label><input id="sr-nc-country" placeholder="e.g. Mauritania" value="${esc((SR.newClient || {}).country || '')}"></div></div></div>
     <div id="sr-mbox"></div>`, srStep1Mount)));
 }
 function srStep1Mount(b) {
@@ -4156,6 +4184,7 @@ function srStep1Mount(b) {
     if (!SR.machineId && ms.length === 0) SR.machineId = '__new';
     const m = srMachine(); const isNewM = SR.machineId === '__new';
     if (isNewM && !SR.newMachine) SR.newMachine = { type: 'CT', model: '', serial: '', notes: '' };
+    if (SR.machineId) srApplyDefaults();
     const type = srType(); const kind = readingKind(type); const nm = SR.newMachine || {};
     const prev = m && kind ? prevReading(m, kind, SR.date, SR.id) : null;
     box.innerHTML = `<div class="group" style="margin-top:14px">${newCli ? '' : `<div class="field"><label>Machine</label><select id="sr-mch"><option value="">Select machine…</option>${ms.map(x => `<option value="${esc(x.id)}"${x.id === SR.machineId ? ' selected' : ''}>${esc(mtype(x.type).label + ' · ' + (x.model || 'Machine') + (x.serial ? ' · SN ' + x.serial : ''))}</option>`).join('')}<option value="__new"${isNewM ? ' selected' : ''}>＋ Add new machine…</option></select></div>`}
@@ -4165,7 +4194,9 @@ function srStep1Mount(b) {
     ${kind ? `<div class="ghead">${kind === 'slice' ? 'Slice counter' : 'Helium level'}</div><div class="group">
       <div class="row"><span class="body"><div class="st" style="margin:0 0 2px">Previous${prev ? ' · ' + esc(fmtD(prev.date, { day: 'numeric', month: 'short', year: 'numeric' })) : ''}</div><div class="num" id="sr-prev">${prev ? (kind === 'slice' ? esc(nfmt(prev.value)) : prev.value + ' %') : 'No previous reading'}</div></span></div>
       <div class="field"><label>${kind === 'slice' ? 'Counter now' : 'Helium now %'}</label><input id="sr-read" inputmode="decimal" placeholder="${kind === 'slice' ? 'Enter the updated counter' : '0–100'}" value="${esc(SR.readNew)}"></div></div>
-      <div class="foot" id="sr-delta"></div>` : ''}`;
+      <div class="foot" id="sr-delta"></div>` : ''}
+    ${SR.machineId ? `<div class="ghead">Customer contact</div><div class="group"><div class="field"><label>Name</label><input id="sr-contact" value="${esc(SR.contact)}" placeholder="Person on site" autocomplete="off"></div><div class="field"><label>Mobile</label><input id="sr-phone" type="tel" value="${esc(SR.phone)}" placeholder="Optional"></div><div class="field"><label>E-mail</label><input id="sr-email" type="email" value="${esc(SR.email)}" placeholder="Optional"></div></div>
+    <div class="ghead">Report form</div><div class="group"><div class="field"><label>Visit no.</label><input id="sr-visit" inputmode="numeric" value="${esc(SR.visitNo)}" style="max-width:90px;text-align:right"></div><div class="field"><label>Department</label><input id="sr-dept" value="${esc(SR.dept)}" placeholder="e.g. Radiology"></div><div class="field"><label>Reported by</label><input id="sr-repby" value="${esc(SR.reportedBy)}" placeholder="Who reported the fault"></div></div><div class="foot">Prefilled from the client and machine; the visit number counts this machine's reports.</div>` : ''}`;
     $$('#sr-nm-type button', box).forEach(btn => btn.onclick = () => { srGrab(); SR.newMachine.type = btn.dataset.k; paint(); });
     const mch = $('#sr-mch', box); if (mch) mch.onchange = () => { SR.machineId = mch.value; SR.ack = false; paint(); };
     const rd = $('#sr-read', box); if (rd) { rd.oninput = () => { SR.readNew = rd.value; SR.ack = false; delta(prev, kind); }; delta(prev, kind); }
@@ -4177,7 +4208,7 @@ function srStep1Mount(b) {
     if (prev) { const d = v - prev.value; if (d < 0) { el.className = 'foot warnline'; el.textContent = `Lower than the previous counter (${nfmt(prev.value)}). Check the value.`; } else el.textContent = `${nfmt(d)} slices scanned since the last visit.`; }
   };
   clientSel.onchange = () => { SR.clientId = clientSel.value; SR.machineId = ''; SR.ack = false; $('#sr-mbox', b).innerHTML = ''; paint(); };
-  ['sr-nc-name', 'sr-nc-city', 'sr-nc-country'].forEach(id => $('#' + id, b).addEventListener('input', () => { SR.newClient = { name: $('#sr-nc-name', b).value, city: $('#sr-nc-city', b).value, country: $('#sr-nc-country', b).value }; }));
+  ['sr-nc-name', 'sr-nc-address', 'sr-nc-city', 'sr-nc-country'].forEach(id => $('#' + id, b).addEventListener('input', () => { SR.newClient = { name: $('#sr-nc-name', b).value, address: $('#sr-nc-address', b).value, city: $('#sr-nc-city', b).value, country: $('#sr-nc-country', b).value }; }));
   paint();
   $('#sheet-primary').onclick = () => { srGrab(); const err = srValidate1(); if (err) return toast(err, 'warn'); SR.step = 2; srDraw(); };
 }
@@ -4194,23 +4225,34 @@ function srValidate1() {
 }
 
 function srStep2() {
-  const partRow = (p, i) => `<div class="row"><span class="body"><div class="t">${esc(p.name)}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', 'Qty ' + p.qty].filter(Boolean).join(' · '))}</div></span><span class="pill ${p.required ? 'warn' : 'ok'}">${p.required ? 'To order' : 'Used'}</span><button class="navbtn" data-delp="${i}" aria-label="Remove part" style="min-width:34px">${icon('x', 's')}</button></div>`;
+  const partRow = (p, i) => `<div class="row"><span class="body"><div class="t">${esc(p.name)}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', 'Qty ' + p.qty, p.exch ? 'Exchange' : ''].filter(Boolean).join(' · '))}</div></span><span class="pill ${p.required ? 'warn' : 'ok'}">${p.required ? 'To order' : 'Used'}</span><button class="navbtn" data-delp="${i}" aria-label="Remove part" style="min-width:34px">${icon('x', 's')}</button></div>`;
   openSheet(srSheetCfg(`${srBar(2)}
     <div class="group"><div class="field"><label>Job type</label><select id="sr-job">${JOB_TYPES.map(j => `<option value="${j[0]}"${j[0] === SR.job ? ' selected' : ''}>${j[1]}</option>`).join('')}</select></div></div>
+    <div class="ghead">Fault</div><div class="group"><div class="field stack"><textarea id="sr-fault" rows="3" placeholder="Fault reported / found…">${esc(SR.fault)}</textarea></div></div>
     <div class="ghead">Work done</div><div class="group"><div class="field stack"><textarea id="sr-work" rows="5" placeholder="What was done on the system…">${esc(SR.work)}</textarea></div></div>
     <div class="ghead">Remarks</div><div class="group"><div class="field stack"><textarea id="sr-rem" rows="3" placeholder="Recommendations, open points, follow-up…">${esc(SR.remarks)}</textarea></div></div>
     <div class="ghead">Parts used / required</div><div class="group" id="sr-parts">${SR.parts.map(partRow).join('')}
       <div class="field"><label>Part</label><input id="sr-p-name" placeholder="Part name"></div><div class="field"><label>Part no.</label><input id="sr-p-pn" placeholder="Optional" autocapitalize="characters"></div>
       <div class="field"><label>Quantity</label><input id="sr-p-qty" inputmode="numeric" value="1" style="max-width:80px;text-align:right"></div>
+      <div class="row"><span class="body">Exchange part</span><label class="switch"><input type="checkbox" id="sr-p-exch"><span></span></label></div>
       <div class="row"><span class="body">Needs ordering</span><label class="switch"><input type="checkbox" id="sr-p-req"><span></span></label></div>
       <button class="row tap has-icon" id="sr-p-add"><span class="ico" style="background:var(--fill2);color:var(--blue)">${icon('plus')}</span><span class="body" style="color:var(--blue)">Add part</span></button></div>
     <div class="foot">Parts marked “Needs ordering” go into the Parts to order list, to forward to your manager.</div>
-    <div class="ghead">Machine status after the visit</div><div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="sr-status">${MSTATUS.map(s => `<button data-k="${s[0]}" class="${s[0] === SR.status ? 'on' : ''}">${s[1]}</button>`).join('')}</div></div></div>`,
+    <div class="ghead">Machine status after the visit</div><div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="sr-status">${MSTATUS.map(s => `<button data-k="${s[0]}" class="${s[0] === SR.status ? 'on' : ''}">${s[1]}</button>`).join('')}</div></div></div>
+    <div class="ghead">Warranty &amp; contract</div><div class="group">
+      <div class="row"><span class="body">Warranty</span><div class="seg" style="width:140px" id="sr-war"><button data-k="no" class="${SR.warranty === 'yes' ? '' : 'on'}">No</button><button data-k="yes" class="${SR.warranty === 'yes' ? 'on' : ''}">Yes</button></div></div>
+      <div class="field"><label>Service contract</label><select id="sr-contract">${CONTRACTS.map(c => `<option${c === SR.contract ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
+      <div class="row"><span class="body">System down</span><div class="seg" style="width:140px" id="sr-down"><button data-k="no" class="${SR.sysDown === 'yes' ? '' : 'on'}">No</button><button data-k="yes" class="${SR.sysDown === 'yes' ? 'on' : ''}">Yes</button></div></div>
+      <div class="field ${SR.sysDown === 'yes' ? '' : 'hidden'}" id="sr-dh-f"><label>Hours down</label><input id="sr-dh" inputmode="decimal" placeholder="Optional" value="${esc(SR.downHours)}" style="max-width:90px;text-align:right"></div></div>`,
     b => {
       $$('[data-delp]', b).forEach(x => x.onclick = () => { srGrab(); SR.parts.splice(+x.dataset.delp, 1); const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; });
-      $$('#sr-status button', b).forEach(x => x.onclick = () => { SR.status = x.dataset.k; $$('#sr-status button', b).forEach(z => z.classList.toggle('on', z === x)); });
-      $('#sr-p-add', b).onclick = () => { const name = $('#sr-p-name', b).value.trim(); if (!name) { $('#sr-p-name', b).focus(); return toast('Enter the part name', 'warn'); } srGrab(); SR.parts.push({ id: uid('PT'), name, pn: $('#sr-p-pn', b).value.trim(), qty: Math.max(1, parseInt($('#sr-p-qty', b).value) || 1), required: $('#sr-p-req', b).checked, ordered: false }); const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; };
-      $('#sheet-primary').onclick = () => { srGrab(); const pn = $('#sr-p-name', b).value.trim(); if (pn) { SR.parts.push({ id: uid('PT'), name: pn, pn: $('#sr-p-pn', b).value.trim(), qty: Math.max(1, parseInt($('#sr-p-qty', b).value) || 1), required: $('#sr-p-req', b).checked, ordered: false }); }
+      const segSet = (id, k) => $$('#' + id + ' button', b).forEach(z => z.classList.toggle('on', z.dataset.k === k));
+      const downUI = () => { segSet('sr-down', SR.sysDown); $('#sr-dh-f', b).classList.toggle('hidden', SR.sysDown !== 'yes'); };
+      $$('#sr-status button', b).forEach(x => x.onclick = () => { SR.status = x.dataset.k; segSet('sr-status', SR.status); if (SR.status === 'down') { SR.sysDown = 'yes'; downUI(); } });
+      $$('#sr-war button', b).forEach(x => x.onclick = () => { SR.warranty = x.dataset.k; segSet('sr-war', SR.warranty); });
+      $$('#sr-down button', b).forEach(x => x.onclick = () => { SR.sysDown = x.dataset.k; downUI(); });
+      $('#sr-p-add', b).onclick = () => { const name = $('#sr-p-name', b).value.trim(); if (!name) { $('#sr-p-name', b).focus(); return toast('Enter the part name', 'warn'); } srGrab(); SR.parts.push({ id: uid('PT'), name, pn: $('#sr-p-pn', b).value.trim(), qty: Math.max(1, parseInt($('#sr-p-qty', b).value) || 1), required: $('#sr-p-req', b).checked, ordered: false, exch: $('#sr-p-exch', b).checked }); const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; };
+      $('#sheet-primary').onclick = () => { srGrab(); const pn = $('#sr-p-name', b).value.trim(); if (pn) { SR.parts.push({ id: uid('PT'), name: pn, pn: $('#sr-p-pn', b).value.trim(), qty: Math.max(1, parseInt($('#sr-p-qty', b).value) || 1), required: $('#sr-p-req', b).checked, ordered: false, exch: $('#sr-p-exch', b).checked }); }
         if (!SR.work.trim()) return toast('Describe the work done', 'warn'); SR.step = 3; srDraw(); };
     }));
 }
@@ -4219,10 +4261,10 @@ function srStep3() {
   const photos = () => SR.photos.map((p, i) => `<div class="ph"><img src="${esc(p.thumb)}" alt="Photo"><button data-delph="${i}" aria-label="Remove photo">${icon('x', 's')}</button></div>`).join('');
   const sigBox = (k, label, sub) => `<div class="row tap" id="sr-sig-${k}" style="cursor:pointer"><span class="body"><div class="t">${label}</div><div class="st">${sub}</div></span>${SR[k] ? `<img class="sigprev" src="${SR[k]}" alt="">` : icon('chevR', 's chev')}</div>`;
   openSheet(srSheetCfg(`${srBar(3)}
-    <div class="group"><div class="field"><label>Date</label><input id="sr-d" type="date" value="${esc(SR.date)}"></div><div class="field"><label>Time in</label><input id="sr-ti" type="time" value="${esc(SR.timeIn)}"></div><div class="field"><label>Time out</label><input id="sr-to" type="time" value="${esc(SR.timeOut)}"></div></div>
+    <div class="group"><div class="field"><label>Date</label><input id="sr-d" type="date" value="${esc(SR.date)}"></div><div class="field"><label>Work start</label><input id="sr-ti" type="time" value="${esc(SR.timeIn)}"></div><div class="field"><label>Work end</label><input id="sr-to" type="time" value="${esc(SR.timeOut)}"></div><div class="field"><label>Traveling time (h)</label><input id="sr-trv" inputmode="decimal" placeholder="Optional" value="${esc(SR.travel)}" style="max-width:110px;text-align:right"></div></div>
     <div class="ghead">Engineer</div><div class="group"><div class="field"><label>Name</label><input id="sr-eng" value="${esc(SR.engineer)}" placeholder="Your name" autocomplete="name"></div><div class="field"><label>Title</label><input id="sr-title" value="${esc(SR.title)}" placeholder="e.g. Field Service Engineer CT/MR"></div></div>
     <div class="ghead">Photos</div><div class="photos" id="sr-photos">${photos()}<label class="ph add">${icon('camera')}<input type="file" id="sr-photo-in" accept="image/*" multiple hidden></label></div>
-    <div class="ghead">Signatures</div><div class="group">${sigBox('signEng', 'Engineer', SR.signEng ? 'Tap to redo' : 'Tap to sign')}${sigBox('signClient', 'Client', SR.signClient ? 'Tap to redo' : 'Optional · tap to sign')}<div class="field"><label>Client signer</label><input id="sr-scn" value="${esc(SR.signClientName)}" placeholder="Name of the person signing"></div></div>
+    <div class="ghead">Signatures</div><div class="group">${sigBox('signEng', 'Engineer', SR.signEng ? 'Tap to redo' : 'Tap to sign')}${sigBox('signClient', 'Client', SR.signClient ? 'Tap to redo' : 'Optional · tap to sign')}<div class="field"><label>Client signer</label><input id="sr-scn" value="${esc(SR.signClientName || SR.contact)}" placeholder="Name of the person signing"></div></div>
     <div class="ghead">PDF language</div><div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="sr-lang"><button data-k="en" class="${SR.lang === 'en' ? 'on' : ''}">English</button><button data-k="fr" class="${SR.lang === 'fr' ? 'on' : ''}">Français</button></div></div></div>
     <div class="foot">The report stays editable until you finalize it.</div>`,
     b => {
@@ -4246,7 +4288,7 @@ function srStep3() {
 async function srCommit() {
   // client
   let c = SR.clientId === '__new' ? null : clientById(SR.clientId);
-  if (!c) { const nc = SR.newClient || {}; c = FIN().clients.find(x => x.name.toLowerCase() === (nc.name || '').trim().toLowerCase()) || newClientRec({ name: (nc.name || '').trim(), city: (nc.city || '').trim(), country: (nc.country || '').trim() }); }
+  if (!c) { const nc = SR.newClient || {}; c = FIN().clients.find(x => x.name.toLowerCase() === (nc.name || '').trim().toLowerCase()) || newClientRec({ name: (nc.name || '').trim(), address: (nc.address || '').trim(), city: (nc.city || '').trim(), country: (nc.country || '').trim() }); }
   // machine
   let m = SR.machineId === '__new' || !machineById(SR.machineId) ? null : machineById(SR.machineId);
   if (!m) { const n = SR.newMachine || {}; m = createMachine({ clientId: c.id, type: n.type || 'OT', model: n.model, serial: n.serial, notes: n.notes }); }
@@ -4261,13 +4303,16 @@ async function srCommit() {
   const oldM = machineById(r.machineId); if (oldM) { oldM.readings = oldM.readings.filter(x => x.reportId !== r.id); machineRecalc(oldM); }
   const prevS = prevReading(m, 'slice', SR.date, r.id), prevH = prevReading(m, 'helium', SR.date, r.id), v = num(SR.readNew);
   Object.assign(r, { tripId: SR.tripId, tripLabel: tripShort(tripById(SR.tripId)) || r.tripLabel || '', clientId: c.id, machineId: m.id,
-    snap: { client: c.name, address: c.address || '', city: c.city || '', country: c.country || '', contact: c.contact || '', phone: c.phone || '', type: m.type, model: m.model, serial: m.serial, notes: m.notes || '' },
+    snap: { client: c.name, address: c.address || '', city: c.city || '', country: c.country || '', contact: SR.contact.trim(), phone: SR.phone.trim(), email: SR.email.trim(), type: m.type, model: m.model, serial: m.serial, notes: m.notes || '' },
     date: SR.date, timeIn: SR.timeIn, timeOut: SR.timeOut, job: SR.job, work: SR.work.trim(), remarks: SR.remarks.trim(), parts: SR.parts.map(p => ({ ...p })), status: SR.status,
     sliceBefore: kind === 'slice' && prevS ? prevS.value : null, sliceAfter: kind === 'slice' ? v : null, heliumBefore: kind === 'helium' && prevH ? prevH.value : null, heliumAfter: kind === 'helium' ? v : null,
-    engineer: SR.engineer.trim(), engineerTitle: SR.title.trim(), signEng: SR.signEng, signClient: SR.signClient, signClientName: SR.signClientName.trim(),
+    engineer: SR.engineer.trim(), engineerTitle: SR.title.trim(), signEng: SR.signEng, signClient: SR.signClient, signClientName: (SR.signClientName || SR.contact).trim(),
+    fault: SR.fault.trim(), warranty: SR.warranty, contract: SR.contract, sysDown: SR.sysDown, downHours: SR.sysDown === 'yes' ? String(SR.downHours || '').trim() : '', visitNo: num(SR.visitNo) == null ? '' : num(SR.visitNo), dept: SR.dept.trim(), reportedBy: SR.reportedBy.trim(), travel: String(SR.travel || '').trim(),
     photos: SR.photos.map(p => ({ id: p.id, name: p.name, thumb: p.thumb, caption: p.caption || '' })), lang: SR.lang, updatedAt: now });
   if (kind && v != null) addReading(m, kind, v, r.date, r.id, 'Service report');
   machineRecalc(m);
+  /* remember for next time: contact on the client, department / warranty / contract on the machine, reported-by per client */
+  c.contact = SR.contact.trim() || c.contact; c.phone = SR.phone.trim() || c.phone; c.email = SR.email.trim() || c.email; c.reportedBy = r.reportedBy || c.reportedBy || ''; m.dept = r.dept || m.dept || ''; m.warranty = r.warranty || m.warranty; m.contract = r.contract || m.contract; db.settings.lastDept = r.dept || db.settings.lastDept || '';
   const t = tripById(r.tripId); if (t && !t.clientId) t.clientId = c.id;
   db.settings.name = db.settings.name || r.engineer; db.settings.engineerTitle = r.engineerTitle || db.settings.engineerTitle || ''; if (r.signEng) db.settings.engineerSign = r.signEng; db.settings.reportLang = r.lang;
   save(); return r;
@@ -4281,9 +4326,9 @@ function reportSheet(id) {
   const rd = kind === 'slice' ? `${nfmt(r.sliceBefore)} → ${nfmt(r.sliceAfter)}${r.sliceAfter != null && r.sliceBefore != null ? ' (' + nfmt(r.sliceAfter - r.sliceBefore) + ' slices)' : ''}` : kind === 'helium' ? `${r.heliumBefore != null ? r.heliumBefore + ' %' : '—'} → ${r.heliumAfter != null ? r.heliumAfter + ' %' : '—'}` : '';
   openSheet({ title: r.no, left: { label: 'Close' }, right: !r.final ? { label: 'Edit', fn: () => { closeSheet(); setTimeout(() => openReportFlow({ report: r.id }), 320); } } : null,
     body: `<div class="rhead"><span class="pill ${r.final ? 'ok' : 'warn'}">${r.final ? 'Final' : 'Draft'}</span><span class="pill ${st[2]}">${st[1]}</span></div>
-      <div class="group">${row('Client', [s.client, cityLine(s)].filter(Boolean).join(' — '))}${row('Machine', [mtype(s.type).label, s.model, s.serial ? 'SN ' + s.serial : ''].filter(Boolean).join(' · '))}${row('Date', fmtD(r.date, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) + (r.timeIn ? ` · ${r.timeIn}${r.timeOut ? '–' + r.timeOut : ''}` : ''))}${row('Job', jobLabel(r.job))}${row(kind === 'slice' ? 'Slice counter' : 'Helium level', rd)}${row('Engineer', r.engineer)}${r.tripLabel ? row('Trip', r.tripLabel) : ''}</div>
-      <div class="ghead">Work done</div><div class="group">${row('', r.work) || ''}</div>${r.remarks ? `<div class="ghead">Remarks</div><div class="group">${row('', r.remarks)}</div>` : ''}
-      ${r.parts.length ? `<div class="ghead">Parts</div><div class="group">${r.parts.map(p => `<div class="row"><span class="body"><div class="t">${esc(p.name)}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', 'Qty ' + p.qty].filter(Boolean).join(' · '))}</div></span><span class="pill ${p.required ? 'warn' : 'ok'}">${p.required ? (p.ordered ? 'Ordered' : 'To order') : 'Used'}</span></div>`).join('')}</div>` : ''}
+      <div class="group">${row('Client', [s.client, cityLine(s)].filter(Boolean).join(' — '))}${row('Machine', [mtype(s.type).label, s.model, s.serial ? 'SN ' + s.serial : ''].filter(Boolean).join(' · '))}${row('Date', fmtD(r.date, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) + (r.timeIn ? ` · ${r.timeIn}${r.timeOut ? '–' + r.timeOut : ''}` : ''))}${row('Job', jobLabel(r.job))}${row('Visit', [r.visitNo ? 'No. ' + r.visitNo : '', r.dept, r.reportedBy ? 'reported by ' + r.reportedBy : ''].filter(Boolean).join(' · '))}${row('Warranty / contract', [r.warranty === 'yes' ? 'Warranty' : 'No warranty', 'Contract: ' + (r.contract || 'No'), r.sysDown === 'yes' ? 'System down' + (r.downHours ? ' ' + r.downHours + ' h' : '') : ''].filter(Boolean).join(' · '))}${row(kind === 'slice' ? 'Slice counter' : 'Helium level', rd)}${row('Engineer', r.engineer)}${r.tripLabel ? row('Trip', r.tripLabel) : ''}</div>
+      ${r.fault ? `<div class="ghead">Fault</div><div class="group">${row('', r.fault)}</div>` : ''}<div class="ghead">Work done</div><div class="group">${row('', r.work) || ''}</div>${r.remarks ? `<div class="ghead">Remarks</div><div class="group">${row('', r.remarks)}</div>` : ''}
+      ${r.parts.length ? `<div class="ghead">Parts</div><div class="group">${r.parts.map(p => `<div class="row"><span class="body"><div class="t">${esc(p.name)}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', 'Qty ' + p.qty].filter(Boolean).join(' · '))}</div></span><span class="pill ${p.required ? 'warn' : 'ok'}">${p.required ? (p.ordered ? 'Ordered' : 'To order') : (p.exch ? 'Exchange' : 'Used')}</span></div>`).join('')}</div>` : ''}
       ${r.photos.length ? `<div class="photos" style="margin-top:14px">${r.photos.map(p => `<div class="ph"><img src="${esc(p.thumb)}" alt=""></div>`).join('')}</div>` : ''}
       <div style="margin-top:18px;display:grid;gap:10px"><button class="btn" id="rp-share">${icon('share', 's')} Share / Save PDF</button><button class="btn tinted" id="rp-view">${icon('eye', 's')} Preview PDF</button>
       <button class="btn tinted" id="rp-fin">${r.final ? 'Reopen for editing' : 'Finalize report'}</button></div>
@@ -4305,7 +4350,7 @@ async function deleteReport(id) {
 function reportsMatching(q, f) {
   q = (q || '').trim().toLowerCase();
   return reportsSorted(db.reports).filter(r => (f === 'draft' ? !r.final : f === 'final' ? r.final : true) &&
-    (!q || [r.no, (r.snap || {}).client, (r.snap || {}).model, (r.snap || {}).serial, r.work, r.remarks, r.tripLabel, jobLabel(r.job), r.engineer, ...r.parts.map(p => p.name + ' ' + p.pn)].join(' ').toLowerCase().includes(q)));
+    (!q || [r.no, (r.snap || {}).client, (r.snap || {}).model, (r.snap || {}).serial, r.fault, r.work, r.remarks, r.tripLabel, jobLabel(r.job), r.engineer, ...r.parts.map(p => p.name + ' ' + p.pn)].join(' ').toLowerCase().includes(q)));
 }
 function reportsListHTML(q, f) {
   const l = reportsMatching(q, f);
@@ -4342,130 +4387,158 @@ function partsSheet() {
 function exportReportsCSV() {
   const list = reportsSorted(db.reports).reverse(); if (!list.length) return toast('No reports to export', 'warn');
   const q = v => { const s = String(v ?? ''); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [['Report no.', 'Status', 'Date', 'Time in', 'Time out', 'Client', 'City', 'Country', 'Machine type', 'Model', 'Serial no.', 'Job type', 'Machine status', 'Slice before', 'Slice after', 'Slices since last visit', 'Helium before %', 'Helium after %', 'Work done', 'Remarks', 'Parts', 'Parts to order', 'Engineer', 'Trip']];
+  const rows = [['Report no.', 'Status', 'Date', 'Time in', 'Time out', 'Client', 'City', 'Country', 'Machine type', 'Model', 'Serial no.', 'Job type', 'Machine status', 'Slice before', 'Slice after', 'Slices since last visit', 'Helium before %', 'Helium after %', 'Fault', 'Work done', 'Remarks', 'Parts', 'Parts to order', 'Engineer', 'Trip', 'Visit no.', 'Department', 'Reported by', 'Warranty', 'Service contract', 'System down', 'Hours down', 'Travel hours', 'Customer contact', 'Customer phone', 'Customer e-mail']];
   for (const r of list) { const s = r.snap || {};
-    rows.push([r.no, r.final ? 'Final' : 'Draft', r.date, r.timeIn, r.timeOut, s.client, s.city, s.country, mtype(s.type).label, s.model, s.serial, jobLabel(r.job), mstatus(r.status)[1], r.sliceBefore ?? '', r.sliceAfter ?? '', r.sliceAfter != null && r.sliceBefore != null ? r.sliceAfter - r.sliceBefore : '', r.heliumBefore ?? '', r.heliumAfter ?? '', r.work, r.remarks,
-      r.parts.map(p => `${p.name}${p.pn ? ' [' + p.pn + ']' : ''} x${p.qty}`).join('; '), r.parts.filter(p => p.required).map(p => `${p.name}${p.pn ? ' [' + p.pn + ']' : ''} x${p.qty}${p.ordered ? ' (ordered)' : ''}`).join('; '), r.engineer, r.tripLabel || '']); }
+    rows.push([r.no, r.final ? 'Final' : 'Draft', r.date, r.timeIn, r.timeOut, s.client, s.city, s.country, mtype(s.type).label, s.model, s.serial, jobLabel(r.job), mstatus(r.status)[1], r.sliceBefore ?? '', r.sliceAfter ?? '', r.sliceAfter != null && r.sliceBefore != null ? r.sliceAfter - r.sliceBefore : '', r.heliumBefore ?? '', r.heliumAfter ?? '', r.fault, r.work, r.remarks,
+      r.parts.map(p => `${p.name}${p.pn ? ' [' + p.pn + ']' : ''} x${p.qty}`).join('; '), r.parts.filter(p => p.required).map(p => `${p.name}${p.pn ? ' [' + p.pn + ']' : ''} x${p.qty}${p.ordered ? ' (ordered)' : ''}`).join('; '), r.engineer, r.tripLabel || '', r.visitNo, r.dept, r.reportedBy, r.warranty, r.contract, r.sysDown, r.downHours, r.travel, s.contact, s.phone, s.email]); }
   download(`veritrip-service-reports-${todayISO()}.csv`, '\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
 }
 
-/* ===================== VeriTrip 3.6 — Service report PDF (jsPDF, fully offline) =====================
-   To restyle the report: edit SR_STYLE (colours, sizes, margins) and SR_L (labels, EN/FR). Layout code is in buildReportPdf. */
-const SR_STYLE = {
-  margin: 16, bottom: 18, font: 'helvetica',
-  accent: [0, 102, 204], ink: [28, 28, 30], muted: [118, 118, 124], line: [214, 214, 220], panel: [245, 246, 248],
-  ok: [40, 160, 80], warn: [230, 140, 0], red: [214, 50, 40],
-  size: { company: 12, title: 8, no: 19, label: 6.6, body: 9.6, big: 11, small: 7.6 }
-};
+/* Canon Medical Systems "Official Distributor" logo, taken from the user's own TMSP service report template. Default report header image; replaceable in Settings -> Profile parameters. */
+const TMSP_LOGO = 'data:image/jpeg;base64,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';
+const TMSP_LOGO_PX = { w: 359, h: 157 };
+
+/* ===================== VeriTrip 3.7 — Service report PDF (jsPDF, fully offline) =====================
+   Page 1 reproduces the TMSP / Canon Medical Systems "Service Report" form (A4, boxed grid, serif labels, dotted lines).
+   Coordinates below are in points, measured from the user's template PDF. Photos and any text that does not fit go on an Annex page.
+   Header (company, subtitle, logo) comes from Settings -> Profile parameters. To restyle: edit SR_BOXES (grid) or the positions in buildReportPdf. */
+const SR_BOXES = [[42.8,37.4,44.8,99.1],[44.8,37.4,552.5,39.4],[550.6,39.4,552.5,99.1],[44.8,97.2,552.5,99.1],[42.8,106.2,44.8,185.9],[44.8,106.2,552.5,108.1],[347.5,108.1,349.4,185.9],[550.6,108.1,552.5,185.9],[44.8,132.6,347.5,133.6],[349.4,132.6,550.6,133.6],[44.8,158.5,347.5,159.5],[349.4,158.5,550.6,159.5],[44.8,184.0,552.5,185.9],[42.8,188.8,44.8,268.5],[44.8,188.8,552.5,190.7],[347.5,190.7,349.4,268.5],[550.6,190.7,552.5,268.5],[44.8,215.2,347.5,216.1],[349.4,215.2,550.6,216.1],[44.8,241.1,347.5,242.1],[349.4,241.1,550.6,242.1],[44.8,266.5,552.5,268.5],[42.8,271.3,44.8,325.1],[44.8,271.3,552.5,273.3],[347.5,273.3,349.4,325.1],[550.6,273.3,552.5,325.1],[44.8,297.8,347.5,298.7],[349.4,297.8,550.6,298.7],[44.8,323.2,552.5,325.1],[42.8,328.0,44.8,434.9],[44.8,328.0,552.5,329.9],[245.9,329.9,247.8,434.9],[550.6,329.9,552.5,434.9],[44.8,355.2,552.5,357.2],[44.8,433.0,552.5,434.9],[42.8,437.8,44.8,584.6],[44.8,437.8,552.5,439.7],[550.6,439.7,552.5,584.6],[44.8,465.1,552.5,467.0],[245.9,467.0,247.8,584.6],[347.5,467.0,349.4,584.6],[449.0,467.0,450.9,584.6],[44.8,491.0,552.5,492.9],[44.8,514.4,245.9,515.3],[247.8,514.4,347.5,515.3],[349.4,514.4,449.0,515.3],[450.9,514.4,550.6,515.3],[44.8,537.3,245.9,538.3],[247.8,537.3,347.5,538.3],[349.4,537.3,449.0,538.3],[450.9,537.3,550.6,538.3],[44.8,560.2,245.9,561.2],[247.8,560.2,347.5,561.2],[349.4,560.2,449.0,561.2],[450.9,560.2,550.6,561.2],[44.8,582.7,552.5,584.6],[42.8,587.5,44.8,641.3],[44.8,587.5,552.5,589.4],[144.4,589.4,146.3,641.3],[245.9,589.4,247.8,641.3],[347.5,589.4,349.4,641.3],[550.6,589.4,552.5,641.3],[146.3,613.4,552.5,615.3],[449.5,615.3,450.5,639.3],[44.8,639.3,552.5,641.3],[42.8,644.1,44.8,697.9],[44.8,644.1,552.5,646.1],[144.4,646.1,146.3,697.9],[550.6,646.1,552.5,697.9],[44.8,696.0,552.5,697.9],[42.8,700.8,44.8,806.4],[44.8,700.8,552.5,702.7],[144.4,702.7,146.3,806.4],[347.5,702.7,349.4,806.4],[550.6,702.7,552.5,806.4],[44.8,726.7,552.5,728.6],[44.8,753.1,144.4,754.1],[146.3,753.1,347.5,754.1],[349.4,753.1,550.6,754.1],[44.8,779.0,144.4,780.0],[146.3,779.0,347.5,780.0],[349.4,779.0,550.6,780.0],[44.8,804.5,552.5,806.4]];
+const SR_RED = [214, 0, 0];
 const SR_L = {
-  en: { title: 'SERVICE REPORT', draft: 'DRAFT', date: 'DATE', time: 'TIME', job: 'JOB TYPE', status: 'STATUS AFTER VISIT', client: 'CLIENT', machine: 'MACHINE', model: 'Model', serial: 'Serial no.', room: 'Room / site', contact: 'Contact', phone: 'Phone',
-    readings: 'READINGS', prevCounter: 'PREVIOUS COUNTER', nowCounter: 'COUNTER NOW', slices: 'SLICES SINCE LAST VISIT', prevHe: 'PREVIOUS HELIUM', nowHe: 'HELIUM NOW', heChange: 'CHANGE', work: 'WORK PERFORMED', remarks: 'REMARKS',
-    parts: 'PARTS', part: 'Part', pn: 'Part no.', qty: 'Qty', used: 'Used', req: 'To order', photos: 'PHOTOS', signoff: 'SIGN-OFF', engineer: 'Engineer', clientSig: 'Client', signedBy: 'Signed by', page: 'Page', of: 'of', gen: 'Generated with VeriTrip', trip: 'Trip', none: '-',
-    job_pm: 'Preventive maintenance', job_cm: 'Corrective repair', job_inst: 'Installation', job_insp: 'Inspection', job_other: 'Other', st_ok: 'Operational', st_limited: 'Operational, limited', st_down: 'Down',
-    t_CT: 'CT scanner', t_MR: 'MR scanner', t_XR: 'X-ray', t_US: 'Ultrasound', t_OT: 'Equipment', in: 'in', out: 'out' },
-  fr: { title: "RAPPORT D'INTERVENTION", draft: 'BROUILLON', date: 'DATE', time: 'HORAIRE', job: "TYPE D'INTERVENTION", status: "ETAT APRES INTERVENTION", client: 'CLIENT', machine: 'EQUIPEMENT', model: 'Modele', serial: 'N de serie', room: 'Salle / site', contact: 'Contact', phone: 'Tel.',
-    readings: 'RELEVES', prevCounter: 'COMPTEUR PRECEDENT', nowCounter: 'COMPTEUR ACTUEL', slices: 'COUPES DEPUIS LA DERNIERE VISITE', prevHe: 'HELIUM PRECEDENT', nowHe: 'HELIUM ACTUEL', heChange: 'VARIATION', work: 'TRAVAUX EFFECTUES', remarks: 'REMARQUES',
-    parts: 'PIECES', part: 'Piece', pn: 'Ref.', qty: 'Qte', used: 'Utilisee', req: 'A commander', photos: 'PHOTOS', signoff: 'VALIDATION', engineer: 'Ingenieur', clientSig: 'Client', signedBy: 'Signe par', page: 'Page', of: 'sur', gen: 'Genere avec VeriTrip', trip: 'Mission', none: '-',
-    job_pm: 'Maintenance preventive', job_cm: 'Reparation corrective', job_inst: 'Installation', job_insp: 'Inspection', job_other: 'Autre', st_ok: 'Operationnel', st_limited: 'Operationnel, limite', st_down: 'En panne',
-    t_CT: 'Scanner CT', t_MR: 'IRM', t_XR: 'Radiologie', t_US: 'Echographie', t_OT: 'Equipement', in: 'arrivee', out: 'depart' }
+  en: { title: 'Service Report', customer: 'Customer', date: 'Date', address: 'Address', name: 'Name', email: 'E-mail', mobile: 'Mobile', system: 'System', serial: 'Serial No.', warranty: 'Warranty', down: 'System Down', contract: 'Service Contract', visit: 'Visit No.', dept: 'Department', slice: 'Slice Counter', reportedBy: 'Reported by', helium: 'Helium Level',
+    fault: 'Fault', work: 'Work Done', parts: 'Replaced Parts', partName: 'Part Name', partNo: 'Part No.', qty: 'Qty', exch: 'Exch', wtime: 'Working Time', start: 'Start', end: 'End', travel: 'Traveling Time', remarks: 'Remarks', concerned: 'Concerned', cust: 'Customer', eng: 'Service Engineer', sig: 'Signature',
+    yes: 'Yes', no: 'No', annex: 'Annex', cont: 'continued', seeAnnex: 'see Annex', toOrder: 'Parts to order', photos: 'Photos', more: 'more part(s), see Annex', page: 'Page', of: 'of', draft: 'draft', hrs: 'h' },
+  fr: { title: "Rapport d'intervention", customer: 'Client', date: 'Date', address: 'Adresse', name: 'Nom', email: 'E-mail', mobile: 'Mobile', system: 'Système', serial: 'N° de série', warranty: 'Garantie', down: 'Système à l\u2019arrêt', contract: 'Contrat de service', visit: 'Visite n°', dept: 'Service', slice: 'Compteur de coupes', reportedBy: 'Signalé par', helium: 'Niveau d\u2019hélium',
+    fault: 'Panne', work: 'Travaux effectués', parts: 'Pièces remplacées', partName: 'Désignation', partNo: 'Référence', qty: 'Qté', exch: 'Éch.', wtime: 'Temps de travail', start: 'Début', end: 'Fin', travel: 'Temps de trajet', remarks: 'Remarques', concerned: 'Concerné', cust: 'Client', eng: 'Ingénieur SAV', sig: 'Signature',
+    yes: 'Oui', no: 'Non', annex: 'Annexe', cont: 'suite', seeAnnex: 'voir annexe', toOrder: 'Pièces à commander', photos: 'Photos', more: 'autre(s) pièce(s), voir annexe', page: 'Page', of: 'sur', draft: 'brouillon', hrs: 'h' }
 };
-const pdfTxt = s => String(s ?? '').replace(/[\u2018\u2019\u201B]/g, "'").replace(/[\u201C\u201D\u201E]/g, '"').replace(/[\u2013\u2014\u2212]/g, '-').replace(/\u2026/g, '...').replace(/[\u00A0\u202F\u2009]/g, ' ').replace(/\t/g, '  ').replace(/\r/g, '')
-  .replace(/[^\n\x20-\x7E\u00A1-\u00FF\u20AC]+/g, '?');
-const pdfNum = n => n == null || !isFinite(n) ? '-' : Number(n).toLocaleString('en-US');
-const pdfDate = iso => iso ? D(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) : '-';
-const pdfDateFr = iso => iso ? D(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+/* jsPDF's built-in fonts use WinAnsi (Windows-1252): Latin letters with accents, € and typographic punctuation print correctly.
+   Anything outside that set (e.g. Arabic, Cyrillic) is replaced by '?'. */
+const pdfTxt = s => String(s ?? '').replace(/[\u00A0\u202F\u2009\u2007]/g, ' ').replace(/\t/g, '  ').replace(/\r/g, '').replace(/[\u2212]/g, '-')
+  .replace(/[^\n\x20-\x7E\u00A1-\u00FF\u20AC\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u017D\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u017E\u0178]+/g, '?');
+const pdfNum = n => n == null || !isFinite(n) ? '' : Number(n).toLocaleString('en-US');
+const pdfDMY = iso => iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '';
 function imgSize(src) { return new Promise(res => { const im = new Image(); im.onload = () => res({ w: im.naturalWidth, h: im.naturalHeight }); im.onerror = () => res(null); im.src = src; }); }
 async function reportPhotoData(p) { try { const f = await Files.get(p.id); if (f && f.blob) return await blobToDataUrl(f.blob); } catch (e) {} return p.thumb || null; }
+/* Header settings: company name, subtitle and logo (default = the bundled Canon "Official Distributor" logo) */
+function reportBrand() {
+  const s = db.settings, mode = s.reportLogoMode;
+  return { name: s.reportCompany == null ? 'TMSP' : s.reportCompany, sub: s.reportSub == null ? 'Trading Medical Systems Private' : s.reportSub,
+    logo: mode === 'none' ? null : mode === 'custom' && s.reportLogoData ? s.reportLogoData : TMSP_LOGO };
+}
+const srYN = (v, L) => v === 'yes' || v === true ? L.yes : v === 'no' || v === false ? L.no : '';
 
 async function buildReportPdf(r) {
   await loadScript(LIB.jspdf); const { jsPDF } = window.jspdf;
-  const S = SR_STYLE, L = SR_L[r.lang === 'fr' ? 'fr' : 'en'], T = pdfTxt, s = r.snap || {};
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true }); doc.setProperties({ title: `${r.no} - ${s.client || ''}`, author: r.engineer || '', subject: 'Service report', creator: 'VeriTrip' });
-  const PW = 210, PH = 297, M = S.margin, CW = PW - 2 * M; let y = M;
-  const col = c => doc.setTextColor(c[0], c[1], c[2]), fill = c => doc.setFillColor(c[0], c[1], c[2]), draw = c => doc.setDrawColor(c[0], c[1], c[2]);
-  const font = (st, sz, c) => { doc.setFont(S.font, st); doc.setFontSize(sz); col(c || S.ink); };
-  const label = (txt, x, yy, align) => { font('bold', S.size.label, S.muted); doc.setCharSpace(0.35); doc.text(T(txt), x, yy, align ? { align } : undefined); doc.setCharSpace(0); };
-  const ensure = h => { if (y + h > PH - S.bottom) { doc.addPage(); y = M; } };
-  const para = (txt, x, w, size, c, lh) => { font('normal', size, c); lh = lh || size * 0.5; const lines = doc.splitTextToSize(T(txt), w); for (const ln of lines) { ensure(lh); doc.text(ln, x, y + lh * 0.8); y += lh; } };
-  const locale = r.lang === 'fr' ? pdfDateFr : pdfDate;
-  const st = mstatus(r.status); const stCol = { ok: S.ok, limited: S.warn, down: S.red }[r.status] || S.ok;
+  const L = SR_L[r.lang === 'fr' ? 'fr' : 'en'], T = pdfTxt, s = r.snap || {}, B = reportBrand();
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true }); doc.setProperties({ title: `${r.no} - ${s.client || ''}`, author: r.engineer || '', subject: 'Service report', creator: 'VeriTrip' });
+  const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight(), TOP = 0.82;
+  const font = (st, sz, c) => { doc.setFont('times', st); doc.setFontSize(sz); const k = c || [0, 0, 0]; doc.setTextColor(k[0], k[1], k[2]); };
+  const W = (t, st, sz) => { doc.setFont('times', st); doc.setFontSize(sz); return doc.getTextWidth(T(t)); };
+  const at = (txt, x, top, st, sz, opt, c) => { font(st, sz, c); doc.text(T(txt), x, top + sz * TOP, opt); };         /* text positioned by its top (as measured in the template) */
+  const fit = (txt, maxW, st, sz, min) => { txt = T(txt); let z = sz; while (z > min && W(txt, st, z) > maxW) z -= 0.25; if (W(txt, st, z) > maxW) { while (txt.length > 1 && W(txt + '...', st, z) > maxW) txt = txt.slice(0, -1); txt += '...'; } return { txt, z }; };
+  const locD = pdfDMY;
   const kind = readingKind(s.type);
+  const over = [];                                                        /* content that goes to the Annex */
+
+  /* --- Grid --- */
+  doc.setFillColor(0, 0, 0); SR_BOXES.forEach(([x0, y0, x1, y1]) => doc.rect(x0, y0, x1 - x0, y1 - y0, 'F'));
 
   /* --- Header --- */
-  const company = (db.settings.company || '').trim();
-  font('bold', S.size.company, S.ink); doc.text(T(company || r.engineer || 'Field service'), M, y + 4);
-  font('normal', S.size.small, S.muted); doc.text(T(company ? (r.lang === 'fr' ? 'Service technique' : 'Field service') : ''), M, y + 8.5);
-  font('bold', S.size.title, S.accent); doc.setCharSpace(0.6); doc.text(T(L.title), PW - M, y + 3.2, { align: 'right' }); doc.setCharSpace(0);
-  font('bold', S.size.no, S.ink); doc.text(T(r.no), PW - M, y + 11.5, { align: 'right' });
-  const noW = doc.getTextWidth(T(r.no));
-  if (!r.final) { font('bold', 7, S.warn); const dw = doc.getTextWidth(T(L.draft)) + 5, dx = PW - M - noW - dw - 4; draw(S.warn); doc.setLineWidth(0.3); doc.roundedRect(dx, y + 6.4, dw, 6, 1.4, 1.4, 'S'); doc.text(T(L.draft), dx + dw / 2, y + 10.4, { align: 'center' }); }
-  y += 17; fill(S.accent); doc.rect(M, y, CW, 0.7, 'F'); y += 6;
+  const cx1 = 144.5;
+  if (B.name) { const f = fit(B.name, 190, 'bold', 18.2, 9); font('bold', f.z, SR_RED); doc.text(f.txt, cx1, 53.6 + f.z * TOP, { align: 'center' }); }
+  if (B.sub) { const f = fit(B.sub, 190, 'bold', 11.35, 6.5); font('bold', f.z); doc.text(f.txt, cx1, 72.9 + f.z * TOP, { align: 'center' }); }
+  { const z = Math.min(16.5, 14 * 91.2 / W(L.title, 'bolditalic', 14)); font('bolditalic', z); doc.text(T(L.title), 296.5, 61.6 + 14 * TOP, { align: 'center' }); const w = doc.getTextWidth(T(L.title)); doc.rect(296.5 - w / 2, 73.3, w, 0.7, 'F'); }
+  font('normal', 8.5, [60, 60, 60]); doc.text(T(r.no + (r.final ? '' : ' (' + L.draft + ')')), 296.5, 91, { align: 'center' });
+  if (B.logo) { const z = B.logo === TMSP_LOGO ? TMSP_LOGO_PX : await imgSize(B.logo); if (z) { const bw = 122.9, bh = 51.9, k = Math.min(bw / z.w, bh / z.h), w = z.w * k, h = z.h * k;
+    try { doc.addImage(B.logo, /^data:image\/png/.test(B.logo) ? 'PNG' : 'JPEG', 418.7 + (bw - w) / 2, 42.6 + (bh - h) / 2, w, h, undefined, 'FAST'); } catch (e) { console.error('logo', e); } } }
 
-  /* --- Visit strip --- */
-  const stripH = 15; fill(S.panel); doc.roundedRect(M, y, CW, stripH, 2, 2, 'F');
-  const cw4 = [CW * 0.30, CW * 0.20, CW * 0.26, CW * 0.24]; let cx = M + 4;
-  const timeTxt = r.timeIn ? r.timeIn + (r.timeOut ? ' - ' + r.timeOut : '') : '-';
-  [[L.date, locale(r.date), null], [L.time, timeTxt, null], [L.job, L['job_' + r.job] || jobLabel(r.job), null], [L.status, L['st_' + r.status] || st[1], stCol]].forEach(([k, v, dot], i) => {
-    label(k, cx, y + 5.2); font('bold', 9, S.ink); let tx = cx; if (dot) { fill(dot); doc.circle(cx + 1.2, y + 10.3, 1.2, 'F'); tx += 4; } doc.text(T(v), tx, y + 11, { maxWidth: cw4[i] - 6 }); cx += cw4[i];
-  });
-  y += stripH + 7;
+  /* --- Label / value cells --- */
+  const cell = (x, top, label, val, xmax, sz) => { const lab = L[label] + ' :'; at(lab, x, top, 'bold', 12); const vx = x + W(lab, 'bold', 12) + 6;
+    if (val !== '' && val != null) { const f = fit(val, xmax - vx - 5, 'normal', sz || 11.5, 7); font('normal', f.z); doc.text(f.txt, vx, top + 12 * TOP, {}); } };
+  const LX = 53.5, RX = 358.1, LM = 345, RM = 549;
+  const addr = [s.address, [s.city, s.country].filter(Boolean).join(', ')].filter(Boolean).join(', ');
+  const sysTxt = [s.model, s.notes ? '(' + s.notes + ')' : ''].filter(Boolean).join(' ');
+  const down = r.sysDown === 'yes' || (r.sysDown == null && r.status === 'down') ? L.yes + (r.downHours ? ' (' + r.downHours + ' ' + L.hrs + ')' : '') : srYN(r.sysDown || 'no', L);
+  const rows = [
+    [114.4, ['customer', s.client], ['date', locD(r.date)]],
+    [140.4, ['address', addr], ['name', s.contact]],
+    [166.3, ['email', s.email], ['mobile', s.phone]],
+    [197.0, ['system', sysTxt], ['serial', s.serial]],
+    [223.4, ['warranty', srYN(r.warranty, L)], ['down', down]],
+    [248.8, ['contract', r.contract == null ? '' : (r.contract === 'No' ? L.no : r.contract === 'Yes' ? L.yes : r.contract)], ['visit', r.visitNo == null || r.visitNo === '' ? '' : String(r.visitNo)]],
+    [279.6, ['dept', r.dept], ['slice', kind === 'slice' ? pdfNum(r.sliceAfter) : '']],
+    [305.5, ['reportedBy', r.reportedBy], ['helium', kind === 'helium' && r.heliumAfter != null ? r.heliumAfter + ' %' : '']]
+  ];
+  rows.forEach(([top, a, b]) => { cell(LX, top, a[0], a[1], LM); cell(RX, top, b[0], b[1], RM); });
 
-  /* --- Client / Machine --- */
-  const half = (CW - 8) / 2; const y0 = y;
-  const block = (x, head, big, lines) => { let yy = y0; label(head, x, yy + 2.5); yy += 7; font('bold', S.size.big, S.ink); const bl = doc.splitTextToSize(T(big || '-'), half); doc.text(bl, x, yy + 1); yy += bl.length * 5 + 0.5; font('normal', S.size.body, S.ink);
-    for (const [k, v] of lines) { if (!v) continue; if (k) { font('normal', S.size.small, S.muted); doc.text(T(k), x, yy + 1.2); } font('normal', S.size.body, S.ink); const vx = k ? x + 22 : x; const vl = doc.splitTextToSize(T(v), half - (k ? 22 : 0)); doc.text(vl, vx, yy + 1.2); yy += Math.max(4.6, vl.length * 4.2); } return yy; };
-  const yA = block(M, L.client, s.client, [[L.contact, s.contact], [L.phone, s.phone], ['', [s.address, [s.city, s.country].filter(Boolean).join(', ')].filter(Boolean).join('\n')]]);
-  const yB = block(M + half + 8, L.machine, s.model, [['', L['t_' + (s.type || 'OT')]], [L.serial, s.serial], [L.room, s.notes]]);
-  y = Math.max(yA, yB) + 3; draw(S.line); doc.setLineWidth(0.2); doc.line(M, y, PW - M, y); y += 6;
+  /* --- Fault | Work Done --- */
+  const head = (txt, x0, x1, top, sz) => { at(txt, (x0 + x1) / 2, top, 'bold', sz, { align: 'center' }); };
+  head(L.fault, 44.8, 245.9, 336.5, 13); head(L.work, 247.8, 550.6, 336.5, 13);
+  const dots = (x0, x1, tops) => { tops.forEach(t => { font('bold', 14); let w = doc.getTextWidth('.'), n = Math.floor((x1 - x0) / w); doc.text('.'.repeat(n), x0, t + 14 * TOP); }); };
+  const dotted = (txt, x0, x1, topLines, name, boxTop, boxBot) => {
+    const maxW = x1 - x0 - 4; txt = T(txt || '').trim();
+    if (!topLines.length) return;
+    font('normal', 11.5); let size = 11.5, lines = txt ? doc.splitTextToSize(txt, maxW) : [];
+    if (lines.length <= topLines.length) { dots(x0, x1, topLines); font('normal', 11.5); lines.forEach((ln, i) => doc.text(ln, x0 + 1, topLines[i] + 14 * TOP - 3.4)); return; }
+    const avail = boxBot - boxTop - 4;
+    for (size = 10.5; size >= 7; size -= 0.5) { font('normal', size); lines = doc.splitTextToSize(txt, maxW); if (lines.length * size * 1.18 <= avail) break; }
+    font('normal', size); lines = doc.splitTextToSize(txt, maxW); const cap = Math.floor(avail / (size * 1.18));
+    if (lines.length > cap) { lines = lines.slice(0, cap); let last = lines[cap - 1]; const mk = ' ... (' + L.seeAnnex + ')'; while (last.length > 1 && doc.getTextWidth(last + mk) > maxW) last = last.slice(0, -1); lines[cap - 1] = last + mk; over.push(name); }
+    lines.forEach((ln, i) => doc.text(ln, x0 + 1, boxTop + 2 + size * 0.9 + i * size * 1.18));
+  };
+  dotted(r.fault, 53.6, 241, [371.7, 388.4, 405.2], 'fault', 357.2, 433.0);
+  dotted(r.work, 256.7, 546, [371.7, 388.4, 405.2], 'work', 357.2, 433.0);
 
-  /* --- Readings --- */
-  if (kind) {
-    const boxes = kind === 'slice' ? [[L.prevCounter, pdfNum(r.sliceBefore)], [L.nowCounter, pdfNum(r.sliceAfter)], [L.slices, r.sliceBefore != null && r.sliceAfter != null ? pdfNum(r.sliceAfter - r.sliceBefore) : '-']]
-      : [[L.prevHe, r.heliumBefore != null ? r.heliumBefore + ' %' : '-'], [L.nowHe, r.heliumAfter != null ? r.heliumAfter + ' %' : '-'], [L.heChange, r.heliumBefore != null && r.heliumAfter != null ? (r.heliumAfter - r.heliumBefore >= 0 ? '+' : '-') + Math.abs(r.heliumAfter - r.heliumBefore) + ' %' : '-']];
-    ensure(24); label(L.readings, M, y + 2.5); y += 5.5; const bw = (CW - 8) / 3;
-    boxes.forEach(([k, v], i) => { const x = M + i * (bw + 4); draw(S.line); doc.setLineWidth(0.25); doc.roundedRect(x, y, bw, 15, 2, 2, 'S'); label(k, x + 3.5, y + 5); font('bold', 13, i === 1 ? S.accent : S.ink); doc.text(T(v), x + 3.5, y + 12.2); });
-    y += 21;
+  /* --- Replaced parts --- */
+  at(L.parts, (44.8 + 552.5) / 2, 446.3, 'bold', 13, { align: 'center' });
+  [[44.8, 245.9, L.partName], [247.8, 347.5, L.partNo], [349.4, 449.0, L.qty], [450.9, 550.6, L.exch]].forEach(([a, b, t]) => at(t, (a + b) / 2, 473.3, 'bold', 12, { align: 'center' }));
+  const plist = (r.parts || []).filter(p => !p.required), ordered = (r.parts || []).filter(p => p.required);
+  const prow = [[492.9, 514.4], [515.3, 537.4], [538.3, 560.3], [561.2, 582.7]]; const nrow = plist.length > 4 ? 3 : plist.length;
+  for (let i = 0; i < nrow; i++) { const p = plist[i], [a, b] = prow[i], base = (a + b) / 2 + 4;
+    font('normal', 11); const nm = fit(p.name, 192, 'normal', 11, 7); font('normal', nm.z); doc.text(nm.txt, 50, base);
+    const pn = fit(p.pn || '', 92, 'normal', 11, 7); font('normal', pn.z); doc.text(pn.txt, 297.65, base, { align: 'center' });
+    font('normal', 11); doc.text(String(p.qty), 399.2, base, { align: 'center' }); doc.text(p.exch ? L.yes : L.no, 500.7, base, { align: 'center' }); }
+  if (plist.length > 4) { const [a, b] = prow[3]; font('italic', 10.5); doc.text(T(`+ ${plist.length - 3} ${L.more}`), 50, (a + b) / 2 + 4); over.push('parts'); }
+
+  /* --- Working / traveling time --- */
+  at(L.wtime, 55.6, 608.6, 'bold', 12); at(L.start, 195.1, 596.2, 'bold', 12, { align: 'center' }); at(L.end, 297.65, 596.2, 'bold', 12, { align: 'center' }); at(L.travel, 449.5, 595.7, 'bold', 12, { align: 'center' });
+  font('normal', 11.5); doc.text(T(r.timeIn || ''), 195.1, 627.2, { align: 'center' }); doc.text(T(r.timeOut || ''), 297.65, 627.2, { align: 'center' });
+  if (r.travel !== '' && r.travel != null) doc.text(T(r.travel + ' ' + L.hrs), 399.2, 627.2, { align: 'center' });
+
+  /* --- Remarks --- */
+  at(L.remarks, 53.6, 664.9, 'bold', 13);
+  const orderTxt = ordered.length ? L.toOrder + ': ' + ordered.map(p => p.name + (p.pn ? ' (' + p.pn + ')' : '') + (p.qty > 1 ? ' x' + p.qty : '')).join('; ') : '';
+  const remTxt = [r.remarks, orderTxt].filter(Boolean).join('\n');
+  dotted(remTxt, 148.8, 548, [656.0, 672.7], 'remarks', 646.1, 696.0);
+
+  /* --- Signatures --- */
+  at(L.concerned, 53.5, 709.5, 'bold', 12); at(L.cust, 246.5, 709.0, 'bold', 12, { align: 'center' }); at(L.eng, 449.0, 709.0, 'bold', 12, { align: 'center' });
+  at(L.name, 53.5, 735.4, 'bold', 12); at(L.sig, 53.5, 761.3, 'bold', 12); at(L.date, 53.5, 787.2, 'bold', 12);
+  const sname = (c, x, v) => { if (!v) return; const f = fit(v, 192, 'normal', 11.5, 7); font('normal', f.z); doc.text(f.txt, x, 735.4 + 12 * TOP, { align: 'center' }); };
+  sname(0, 246.5, r.signClientName || s.contact); sname(0, 449.0, [r.engineer].filter(Boolean).join(''));
+  const sig = async (data, x0, x1) => { if (!data) return; const z = await imgSize(data); if (z) { const bw = x1 - x0 - 8, bh = 22, k = Math.min(bw / z.w, bh / z.h); const w = z.w * k, h = z.h * k; doc.addImage(data, 'PNG', (x0 + x1) / 2 - w / 2, 754.1 + (24.9 - h) / 2, w, h); } };
+  await sig(r.signClient, 146.3, 347.5); await sig(r.signEng, 349.4, 550.6);
+  font('normal', 11.5); if (r.signClient || r.signClientName) doc.text(locD(r.signClientDate || r.date), 246.5, 787.2 + 12 * TOP, { align: 'center' }); if (r.signEng || r.engineer) doc.text(locD(r.signEngDate || r.date), 449.0, 787.2 + 12 * TOP, { align: 'center' });
+
+  /* --- Annex page: photos and anything that did not fit --- */
+  const imgs = []; for (const p of (r.photos || [])) { const d = await reportPhotoData(p); if (d) { const z = await imgSize(d); if (z) imgs.push({ d, z }); } }
+  if (over.length || imgs.length) {
+    doc.addPage(); const M = 43, CWd = PW - 2 * M; let y = 46;
+    font('bold', 15); doc.text(T(`${L.title} - ${L.annex}`), M, y + 12); font('normal', 10, [60, 60, 60]); doc.text(T([r.no, s.client, [s.model, s.serial && 'SN ' + s.serial].filter(Boolean).join(' '), locD(r.date)].filter(Boolean).join('  |  ')), M, y + 28);
+    doc.setFillColor(0, 0, 0); doc.rect(M, y + 36, CWd, 1.2, 'F'); y += 52;
+    const ensure = h => { if (y + h > PH - 46) { doc.addPage(); y = 46; } };
+    const block = (head, txt) => { ensure(40); font('bold', 12); doc.text(T(head), M, y + 10); y += 18; font('normal', 11); const ls = doc.splitTextToSize(T(txt), CWd); for (const ln of ls) { ensure(15); font('normal', 11); doc.text(ln, M, y + 9); y += 14.5; } y += 10; };
+    if (over.includes('fault')) block(`${L.fault} (${L.cont})`, r.fault);
+    if (over.includes('work')) block(`${L.work} (${L.cont})`, r.work);
+    if (over.includes('remarks')) block(`${L.remarks} (${L.cont})`, remTxt);
+    if (over.includes('parts')) { ensure(40); font('bold', 12); doc.text(T(L.parts), M, y + 10); y += 18;
+      plist.forEach(p => { ensure(16); font('normal', 11); doc.text(T(p.name), M, y + 9, { maxWidth: 270 }); doc.text(T(p.pn || ''), M + 285, y + 9, { maxWidth: 110 }); doc.text(String(p.qty), M + 410, y + 9); doc.text(p.exch ? L.yes : L.no, M + 460, y + 9); y += 15; }); y += 10; }
+    if (imgs.length) { ensure(120); font('bold', 12); doc.text(T(L.photos), M, y + 10); y += 20; const g = 10, cw = (CWd - g) / 2, ch = cw * 0.75;
+      imgs.forEach((im, i) => { const c = i % 2; if (c === 0) ensure(ch + g); const x = M + c * (cw + g); const k = Math.min(cw / im.z.w, ch / im.z.h), w = im.z.w * k, h = im.z.h * k;
+        doc.setFillColor(244, 244, 246); doc.rect(x, y, cw, ch, 'F'); doc.addImage(im.d, 'JPEG', x + (cw - w) / 2, y + (ch - h) / 2, w, h, undefined, 'FAST'); if (c === 1 || i === imgs.length - 1) y += ch + g; }); }
+    const n = doc.getNumberOfPages(); for (let i = 2; i <= n; i++) { doc.setPage(i); font('normal', 8.5, [110, 110, 114]); doc.text(T(`${r.no}  |  ${L.page} ${i} ${L.of} ${n}`), PW / 2, PH - 24, { align: 'center' }); }
   }
-
-  /* --- Work / remarks --- */
-  const section = (head, txt) => { if (!txt) return; ensure(16); label(head, M, y + 2.5); y += 6; para(txt, M, CW, S.size.body, S.ink, 4.7); y += 5; };
-  section(L.work, r.work); section(L.remarks, r.remarks);
-
-  /* --- Parts --- */
-  if (r.parts.length) {
-    ensure(22); label(L.parts, M, y + 2.5); y += 5.5; const cols = [CW * 0.50, CW * 0.26, CW * 0.08, CW * 0.16]; const hx = [M, M + cols[0], M + cols[0] + cols[1], M + cols[0] + cols[1] + cols[2]];
-    fill(S.panel); doc.rect(M, y, CW, 6.4, 'F'); font('bold', S.size.small, S.muted); [L.part, L.pn, L.qty, ''].forEach((h, i) => doc.text(T(h), hx[i] + (i === 0 ? 2 : 0), y + 4.4));
-    y += 6.4;
-    for (const p of r.parts) { const nl = doc.splitTextToSize(T(p.name), cols[0] - 4); const rh = Math.max(6.6, nl.length * 4.2 + 2.6); ensure(rh);
-      font('normal', S.size.body, S.ink); doc.text(nl, hx[0] + 2, y + 4.5); doc.text(T(p.pn || '-'), hx[1], y + 4.5, { maxWidth: cols[1] - 2 }); doc.text(String(p.qty), hx[2], y + 4.5);
-      font('bold', S.size.small, p.required ? S.warn : S.muted); doc.text(T(p.required ? L.req : L.used), hx[3], y + 4.5);
-      y += rh; draw(S.line); doc.setLineWidth(0.15); doc.line(M, y, PW - M, y); }
-    y += 6;
-  }
-
-  /* --- Photos --- */
-  if (r.photos.length) {
-    const imgs = []; for (const p of r.photos) { const d = await reportPhotoData(p); if (d) { const z = await imgSize(d); if (z) imgs.push({ d, z }); } }
-    if (imgs.length) { ensure(50); label(L.photos, M, y + 2.5); y += 6; const g = 4, cwid = (CW - 2 * g) / 3, ch = cwid * 0.75;
-      imgs.forEach((im, i) => { const c = i % 3; if (c === 0) { ensure(ch + g); } const x = M + c * (cwid + g); const k = Math.min(cwid / im.z.w, ch / im.z.h); const w = im.z.w * k, h = im.z.h * k;
-        fill(S.panel); doc.roundedRect(x, y, cwid, ch, 1.5, 1.5, 'F'); doc.addImage(im.d, 'JPEG', x + (cwid - w) / 2, y + (ch - h) / 2, w, h, undefined, 'FAST'); if (c === 2 || i === imgs.length - 1) y += ch + g; });
-      y += 3; }
-  }
-
-  /* --- Sign-off --- */
-  const sigH = 34; ensure(sigH + 6); label(L.signoff, M, y + 2.5); y += 6; const sw = (CW - 8) / 2;
-  const sig = async (x, head, data, name) => { draw(S.line); doc.setLineWidth(0.25); doc.roundedRect(x, y, sw, sigH, 2, 2, 'S'); label(head, x + 4, y + 5.5);
-    if (data) { const z = await imgSize(data); if (z) { const k = Math.min((sw - 10) / z.w, 16 / z.h); doc.addImage(data, 'PNG', x + 5, y + 8, z.w * k, z.h * k); } }
-    draw(S.line); doc.line(x + 4, y + 26, x + sw - 4, y + 26); font('normal', S.size.small, S.muted); doc.text(T(name || ''), x + 4, y + 30.5, { maxWidth: sw - 8 }); };
-  await sig(M, L.engineer, r.signEng, [r.engineer, r.engineerTitle].filter(Boolean).join(', '));
-  await sig(M + sw + 8, L.clientSig, r.signClient, r.signClientName ? `${L.signedBy} ${r.signClientName}` : s.client);
-  y += sigH + 4;
-
-  /* --- Footer on every page --- */
-  const n = doc.getNumberOfPages();
-  for (let i = 1; i <= n; i++) { doc.setPage(i); draw(S.line); doc.setLineWidth(0.2); doc.line(M, PH - 13, PW - M, PH - 13);
-    font('normal', S.size.small, S.muted); doc.text(T(`${r.no}  |  ${s.client || ''}${s.model ? '  |  ' + s.model : ''}${s.serial ? '  |  SN ' + s.serial : ''}`), M, PH - 8.5, { maxWidth: CW - 40 });
-    doc.text(`${L.page} ${i} ${L.of} ${n}`, PW - M, PH - 8.5, { align: 'right' }); doc.setFontSize(6.6); doc.text(T(L.gen), M, PH - 5); }
   return doc.output('blob');
 }
 const reportPdfName = r => `${r.no}_${((r.snap || {}).client || 'client').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24)}_${((r.snap || {}).model || 'machine').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20)}.pdf`;
