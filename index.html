@@ -1507,19 +1507,57 @@ const FXKEYS = ['fxRate', 'fxSrc', 'fxDate', 'fxCur', 'fxRateDate', 'fxStatus', 
 const fxRules = () => (db && db.settings && Array.isArray(db.settings.fxRules)) ? db.settings.fxRules : [];
 const ruleSpan = r => Date.parse((r.to || '9999-12-31') + 'T00:00:00Z') - Date.parse((r.from || '1000-01-01') + 'T00:00:00Z');
 const ruleHas = (r, date) => (!r.from || date >= r.from) && (!r.to || date <= r.to);
-function ruleFor(cur, date) {
+/* v4.1.1 — a currency / date written any other way ("mro", " MRU ", "UM", "2026-10-5", "27/10/2026", an ISO timestamp) still matches its rule */
+const CUR_ALIAS = { MRO: 'MRU', UM: 'MRU', OUGUIYA: 'MRU', OUGUIYAS: 'MRU', FCFA: 'XOF', CFA: 'XOF', 'F CFA': 'XOF', 'FRANC CFA': 'XOF', FRW: 'RWF', GHC: 'GHS', KSH: 'KES', BIRR: 'ETB', DH: 'MAD', DHS: 'MAD', '€': 'EUR', '£': 'GBP', '$': 'USD', 'US$': 'USD', USD$: 'USD', EURO: 'EUR', EUROS: 'EUR', DOLLAR: 'USD', DOLLARS: 'USD' };
+function normCur(c) {
+  if (c == null) return '';
+  const raw = String(c).trim().replace(/\s+/g, ' ').toUpperCase(); if (!raw) return '';
+  if (CUR_ALIAS[raw]) return CUR_ALIAS[raw];
+  const m = raw.match(/^([A-Z]{3})(\b|[^A-Z])/); // "MRU — Mauritanian Ouguiya", "MRU (UM)"
+  if (m && CUR_ALIAS[m[1]]) return CUR_ALIAS[m[1]];
+  if (m && P.CURRENCIES[m[1]]) return m[1];
+  return raw;
+}
+function normDate(d) {
+  if (d == null) return '';
+  const s = String(d).trim(); if (isoOK(s)) return s;
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:$|[T\s])/) || s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (m) return `${m[1]}-${String(+m[2]).padStart(2, '0')}-${String(+m[3]).padStart(2, '0')}`;
+  m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);   // day-first, like every receipt he scans
+  if (m && +m[2] >= 1 && +m[2] <= 12 && +m[1] >= 1 && +m[1] <= 31) return `${m[3]}-${String(+m[2]).padStart(2, '0')}-${String(+m[1]).padStart(2, '0')}`;
+  return s;
+}
+function ruleFor(cur, date, list) {
+  cur = normCur(cur); date = normDate(date);
   if (!cur || cur === 'USD' || pegged(cur) || !isoOK(date)) return null;
   let best = null;
-  for (const r of fxRules()) { if (r.cur !== cur || !(r.fcfa > 0) || !ruleHas(r, date)) continue; if (!best || ruleSpan(r) < ruleSpan(best) || (ruleSpan(r) === ruleSpan(best) && (r.at || 0) >= (best.at || 0))) best = r; }
+  for (const r of list || fxRules()) { if (normCur(r.cur) !== cur || !(r.fcfa > 0) || !ruleHas(r, date)) continue; if (!best || ruleSpan(r) < ruleSpan(best) || (ruleSpan(r) === ruleSpan(best) && (r.at || 0) >= (best.at || 0))) best = r; }
   return best;
 }
-const rulesOverlap = (a, b) => a.cur === b.cur && (!a.to || !b.from || a.to >= b.from) && (!b.to || !a.from || b.to >= a.from);
+const rulesOverlap = (a, b) => normCur(a.cur) === normCur(b.cur) && (!a.to || !b.from || a.to >= b.from) && (!b.to || !a.from || b.to >= a.from);
 const rulesClashing = r => fxRules().filter(x => x.id !== r.id && rulesOverlap(x, r));
 const ruleDates = r => !r.from && !r.to ? 'All dates' : r.from && r.to ? `${fxFmtDay(r.from)} – ${fxFmtDay(r.to)}` : r.from ? `From ${fxFmtDay(r.from)}` : `Until ${fxFmtDay(r.to)}`;
+/* What a rule does to the data: expenses it priced, others it could have priced but could not, and what else is in its dates. */
+function ruleStats(r, draft) {
+  const rules = draft ? fxRules().filter(z => z.id !== r.id).concat([{ ...r, at: r.at || Date.now() }]) : null;
+  const cur = normCur(r.cur), from = r.from || '', to = r.to || '';
+  const st = { cur, applied: 0, typed: 0, company: 0, beaten: 0, inRange: 0, others: [], candidates: 0 }; const oth = {};
+  for (const e of db.expenses) {
+    const d = normDate(e.date); if (!isoOK(d) || !ruleHas({ from, to }, d)) continue;
+    st.inRange++; const c = normCur(e.currency) || '?';
+    if (c !== cur) { if (c !== r.cur) oth[c] = (oth[c] || 0) + 1; continue; }
+    if (e.paidBy === 'company') { st.company++; continue; }
+    if (e.fxManual === true && e.fxRate > 0) { st.typed++; continue; }
+    st.candidates++;
+    const w = ruleFor(c, d, rules); if (w && w.id === r.id) st.applied++; else st.beaten++;
+  }
+  st.others = Object.entries(oth).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])); return st;
+}
+const othersText = st => st.others.length ? `${st.others.reduce((s, x) => s + x[1], 0)} expense${st.others.reduce((s, x) => s + x[1], 0) === 1 ? '' : 's'} in this date range ${st.others.reduce((s, x) => s + x[1], 0) === 1 ? 'is' : 'are'} in other currencies: ${st.others.slice(0, 5).map(([c, n]) => c + ' ' + n).join(', ')}${st.others.length > 5 ? '…' : ''}` : '';
 const fmtN = n => +(+n).toPrecision(6);
 /* Store the best-known rate on an item. Final and manual rates are kept while the item's date and currency are unchanged. */
 function stampFx(o, cur, date, useRules) {
-  if (!o) return false;
+  if (!o) return false; cur = normCur(cur) || cur; date = normDate(date) || date;
   const before = FXKEYS.map(k => o[k]).join('|');
   const legacy = !o.fxStatus && o.fxRate > 0; if (legacy) { o.fxStatus = fxStatusOf(o); o.fxCur = o.fxCur || cur; o.fxRateDate = o.fxRateDate || (o.fxStatus === 'final' ? o.fxDate || null : null); o.fxSrc = String(o.fxSrc || '').replace(/^hist · /, ''); }
   const manual = o.fxManual === true && o.fxRate > 0 && (!o.fxCur || o.fxCur === cur);
@@ -1559,7 +1597,7 @@ const perBase = (rate, b = base()) => rate > 0 ? +(usdPer(b) / rate).toPrecision
 /* ---------- every priced item ---------- */
 function fxItems() {
   const F = db.finance || {}; const out = [];
-  for (const e of db.expenses) out.push([e, e.currency, e.date, e.paidBy !== 'company']);   // 4th = "my exchange rates" apply
+  for (const e of db.expenses) out.push([e, normCur(e.currency) || e.currency, normDate(e.date), e.paidBy !== 'company']);   // 4th = "my exchange rates" apply (currency and date read leniently, v4.1.1)
   for (const l of F.living || []) {
     if (l.srcExp) continue;   // v3.9: mirrored from its local expense (rate comes from there) — never queued twice
     out.push([l, l.currency, l.due]);
@@ -1694,7 +1732,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '4.1';
+const APP_VERSION = '4.1.1';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -1761,14 +1799,17 @@ function migrateTrip(t, i) {
 function migrateExpense(e) {
   const pm = e.paymentMethod || 'Out-of-Pocket';
   const company = e.paidBy ? e.paidBy === 'company' : (e.excludedFromTotals === true || /corporate|company|expedia|agency/i.test(pm));
-  const x = { id: e.id || uid('EXP'), tripId: e.tripId || null, date: e.date, merchant: e.merchant || '', description: e.description || '',
-    category: e.category || 'Other', amount: +e.amount || 0, currency: e.currency || 'USD', paidBy: company ? 'company' : 'me', paymentMethod: pm,
+  const x = { id: e.id || uid('EXP'), tripId: e.tripId || null, date: normDate(e.date) || e.date, merchant: e.merchant || '', description: e.description || '',
+    category: e.category || 'Other', amount: +e.amount || 0, currency: normCur(e.currency) || 'USD', paidBy: company ? 'company' : 'me', paymentMethod: pm,
     refCode: e.refCode || '', fileType: e.fileType || null, fileName: e.fileName || '', hasFile: !!e.hasFile, source: e.source || 'manual',
     createdAt: e.createdAt || new Date().toISOString() };
   if (e.previewDataUrl) x.previewDataUrl = e.previewDataUrl;
   if (e.oorOk) x.oorOk = e.oorOk;
   if (e.local) { x.local = true; x.tripId = null; if (e.claim) x.claim = true; x.category = localCatKey(x.category); } // v3.8: Local expense (home country, no trip)
-  for (const k of ['fxRate', 'fxSrc', 'fxDate', 'fxManual', 'fxCur', 'fxRateDate', 'fxStatus', 'fxRule', 'fxRuleN']) if (e[k] != null) x[k] = e[k]; // keep the per-item rate across reloads // "Keep as is" for an expense outside its trip dates (v3.4)
+  for (const k of ['fxRate', 'fxSrc', 'fxDate', 'fxManual', 'fxCur', 'fxRateDate', 'fxStatus', 'fxRule', 'fxRuleN']) if (e[k] != null) x[k] = e[k];
+  if (x.fxCur && normCur(x.fxCur) !== x.fxCur) x.fxCur = normCur(x.fxCur);   // v4.1.1: "MRO"/"mru " saved by an older version → MRU, so a typed rate or a final rate stays attached
+  if (x.fxDate && normDate(x.fxDate) !== x.fxDate) x.fxDate = normDate(x.fxDate);
+  if (x.fxCur && x.fxCur !== x.currency && !x.fxManual) { x.fxStatus = null; x.fxRate = null; }  // a rate for another currency is no rate at all → re-priced below // keep the per-item rate across reloads // "Keep as is" for an expense outside its trip dates (v3.4)
   syncExpense(x);
   return x;
 }
@@ -1784,7 +1825,7 @@ function normalizeDB() {
   db.expenses = (db.expenses || []).map(migrateExpense);
   db.settings = Object.assign(d.settings, db.settings || {});
   db.settings.ai = Object.assign({ provider: 'none', key: '', model: '' }, db.settings.ai || {});
-  db.settings.fxRules = (Array.isArray(db.settings.fxRules) ? db.settings.fxRules : []).filter(r => r && r.cur && +r.fcfa > 0).map((r, i) => ({ id: r.id || uid('RATE'), cur: r.cur, fcfa: +r.fcfa, from: r.from || '', to: r.to || '', at: r.at || i + 1 }));
+  db.settings.fxRules = (Array.isArray(db.settings.fxRules) ? db.settings.fxRules : []).filter(r => r && normCur(r.cur) && +r.fcfa > 0).map((r, i) => ({ id: r.id || uid('RATE'), cur: normCur(r.cur), fcfa: +r.fcfa, from: normDate(r.from) || '', to: normDate(r.to) || '', at: r.at || i + 1 }));
   db.fx = Object.assign(d.fx, db.fx || {});
   db.fx.rates = Object.assign({ ...P.DEFAULT_FX_TO_USD }, db.fx.rates || {});
   db.fx.manual = db.fx.manual || {};
@@ -1792,6 +1833,7 @@ function normalizeDB() {
   migrateV33();
   migrateV36();
   syncLocalLiving();   // v3.9: every local expense is in Finance → Living (also migrates 3.8 data)
+  try { fxStampAll(); } catch (err) { console.warn('VeriTrip: rate rules', err); }   // v4.1.1: every saved expense is matched against "My exchange rates" on every start / update / restore
 }
 /* Re-render the visible screen shortly after any data change so derived lists (Today's "Needs attention", badges)
    are always recomputed from the current data. Skipped while a sheet is open; closeSheet() re-renders instead. */
@@ -2338,11 +2380,22 @@ function deleteTrip(t) {
 
 
 /* ---------------- v4.1 · My exchange rates ---------------- */
-const ruleUsed = r => db.expenses.filter(e => e.fxRule === r.id).length;
+const ruleUsed = r => ruleStats(r).applied;
+/* Why a rule priced nothing (or not everything) — shown under the rate so a mismatch is obvious. */
+function ruleHint(st, live) {
+  const bits = [];
+  if (st.company) bits.push(`${st.company} paid by the company`);
+  if (st.typed) bits.push(`${st.typed} with a rate typed on the expense`);
+  if (st.beaten) bits.push(`${st.beaten} covered by a narrower rate`);
+  if (!st.applied && !st.company && !st.typed && !st.beaten) return `No expenses in ${st.cur} between these dates.` + (st.others.length ? ' ' + othersText(st) + '.' : '');
+  const out = []; if (bits.length) out.push((st.applied ? 'Not used for: ' : 'Not used: ') + bits.join(', ') + '.');
+  if (!st.applied && st.others.length) out.push(othersText(st) + '.');
+  return out.join(' ');
+}
 function rateRulesHTML() {
   const rules = fxRules().slice().sort((a, b) => a.cur.localeCompare(b.cur) || (a.from || '').localeCompare(b.from || ''));
-  return rules.map(r => { const n = ruleUsed(r), clash = rulesClashing(r).length;
-    return `<button class="row tap" data-rrule="${esc(r.id)}"><span class="body"><div class="t">1 ${esc(r.cur)} = ${esc(fmtN(r.fcfa))} FCFA</div><div class="st">${esc(ruleDates(r))}${clash ? ' · <span style="color:var(--orange)">overlaps another rate</span>' : ''}</div></span><span class="amt"><span class="muted" style="font-size:15px">${n} expense${n === 1 ? '' : 's'}</span></span></button>`; }).join('')
+  return rules.map(r => { const st = ruleStats(r), n = st.applied, clash = rulesClashing(r).length, hint = ruleHint(st);
+    return `<button class="row tap" data-rrule="${esc(r.id)}"><span class="body"><div class="t">1 ${esc(r.cur)} = ${esc(fmtN(r.fcfa))} FCFA</div><div class="st">${esc(ruleDates(r))}${clash ? ' · <span style="color:var(--orange)">overlaps another rate</span>' : ''}</div>${hint ? `<div class="st rt-hint" style="color:${n ? 'var(--label2)' : 'var(--orange)'};white-space:normal">${esc(hint)}</div>` : ''}</span><span class="amt"><span class="muted rt-n" style="font-size:15px">${n} expense${n === 1 ? '' : 's'}</span></span></button>`; }).join('')
     + `<button class="row tap" id="s-addrate"><span class="body" style="color:var(--blue)">Add exchange rate</span></button>`;
 }
 /* Re-price every expense after a rule was added, edited or deleted; Finance mirrors follow in save(). */
@@ -2357,7 +2410,7 @@ function rateRuleSheet(rule) {
         <div class="field"><label id="rt-l">FCFA for 1 ${esc(x.cur)}</label><input id="rt-n" type="text" inputmode="decimal" value="${esc(x.fcfa)}" placeholder="e.g. 5"></div>
         <div class="field"><label>From</label><input id="rt-from" type="date" value="${esc(x.from)}"></div>
         <div class="field"><label>To</label><input id="rt-to" type="date" value="${esc(x.to)}"></div>
-      </div><div class="foot" id="rt-info" style="min-height:34px"> </div><div class="foot" id="rt-warn" style="color:var(--orange)"></div>
+      </div><div class="foot" id="rt-info" style="min-height:34px"> </div><div class="foot" id="rt-count"></div><div class="foot" id="rt-warn" style="color:var(--orange)"></div>
       ${!isNew ? `<div class="group" style="margin-top:24px"><button class="row tap" id="rt-del"><span class="body" style="color:var(--red);text-align:center">Delete rate</span></button></div>` : ''}`,
     onMount: b => {
       const cur = $('#rt-cur', b), n = $('#rt-n', b), from = $('#rt-from', b), to = $('#rt-to', b);
@@ -2368,6 +2421,8 @@ function rateRuleSheet(rule) {
         $('#rt-info', b).textContent = r.fcfa > 0 ? `${fmt(100, r.cur)} → ${groupAmt(100 * r.fcfa) + ' FCFA'} ≈ ${fmtBase(100 * r.fcfa * f.rate / usdPer(base()))}${f.status === 'final' ? '' : ' (estimate until the day’s FCFA rate is known)'}` : 'Dates are optional — leave both empty to use this rate on every date.';
         const w = r.fcfa > 0 && r.from && r.to && r.from > r.to ? 'The start date is after the end date.' : r.fcfa > 0 && rulesClashing(r).length ? 'Overlaps another rate for ' + r.cur + ' — the narrower dates (then the newest rate) are used.' : '';
         $('#rt-warn', b).textContent = w;
+        const st = ruleStats({ ...r, id: x.id }, true), ct = $('#rt-count', b);
+        if (r.fcfa > 0 && !(r.from && r.to && r.from > r.to)) { const h = ruleHint(st); ct.textContent = st.applied ? `Applies to ${st.applied} expense${st.applied === 1 ? '' : 's'}${h ? ' · ' + h : ''}` : h; ct.style.color = st.applied ? 'var(--green, #34c759)' : 'var(--orange)'; } else ct.textContent = '';
       };
       [cur, n, from, to].forEach(el => { el.oninput = upd; el.onchange = upd; }); upd();
       $('#sheet-primary').onclick = () => {
@@ -2376,7 +2431,7 @@ function rateRuleSheet(rule) {
         r.fcfa = +r.fcfa.toPrecision(8); r.at = Date.now(); const list = fxRules();
         if (isNew) list.push(r); else list[list.findIndex(z => z.id === x.id)] = r;
         db.settings.fxRules = list; applyRateRules(); closeSheet(); renderSettings();
-        const k = ruleUsed(r); toast(k ? `Rate saved · ${k} expense${k === 1 ? '' : 's'} recalculated` : 'Rate saved · applies to new expenses');
+        const k = ruleUsed(r); toast(k ? `Rate saved · ${k} expense${k === 1 ? '' : 's'} recalculated` : `Rate saved · no ${r.cur} expenses in these dates yet`, k ? undefined : 'warn');
       };
       $('#rt-del', b) && ($('#rt-del', b).onclick = () => confirmSheet('Delete this rate?', `Expenses in ${x.cur} on these dates go back to the market rate.`, 'Delete', () => {
         const k = ruleUsed(x); db.settings.fxRules = fxRules().filter(z => z.id !== x.id); applyRateRules(); renderSettings(); toast(k ? `Rate deleted · ${k} expense${k === 1 ? '' : 's'} back to market rate` : 'Rate deleted'); }));
