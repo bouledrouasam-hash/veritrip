@@ -533,6 +533,20 @@ label.row{cursor:pointer}
 .loclink .linkbtn svg{width:16px;height:16px}
 #hero-local{width:100%}
 
+/* v4.0 — Trips page: days-left line, thin previous-trip cards */
+.hero .daysl{font-size:15px;font-weight:600;margin-top:10px}
+.hero.flagged .daysl{color:var(--label)}
+.pcards{display:flex;flex-direction:column;gap:8px}
+.pcard{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border-radius:14px;padding:9px 14px;box-shadow:var(--shadow);color:var(--label)}
+.pcard:active{background:var(--fill)}
+.pflag{flex:none;width:34px;height:24px;border-radius:5px;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 .5px rgba(128,128,128,.35);background:var(--fill);color:var(--label2)}
+.pflag svg{width:100%;height:100%;display:block}
+.pbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.pt{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pt .pd{font-weight:400;font-size:13px;color:var(--label2);margin-left:8px}
+.pp{font-size:13px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pamt{flex:none;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+
 </style>
 </head>
 <body>
@@ -1654,7 +1668,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '3.9';
+const APP_VERSION = '4.0';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -2184,6 +2198,13 @@ function renderCalendar() {
 const quickHTML = () => `<button class="btn addr" id="q-add">${icon('camera')} Add receipt</button>`;
 /** Local expense entry (fuel, car, parking … at home). Same Add receipt menu (Take photo / Choose photo or file / Type it in) as everywhere else. */
 function localExpenseSheet() { receiptSheet({ local: true }, 'Local expense'); }
+/** Thin "previous trip" card (v4.0): flag · city + dates · purpose · USD spent. */
+function prevCard(t) {
+  const c = countryISO(t.country, t.city); const tot = tripTotals(t);
+  return `<button class="pcard" data-trip="${esc(t.id)}"><span class="pflag">${(c && flagSVG(c)) || icon('plane', 's')}</span>
+    <span class="pbody"><span class="pt">${esc(tripName(t))}<span class="pd">${esc(fmtRange(t.startDate, t.endDate))}</span></span>${t.purpose ? `<span class="pp">${esc(t.purpose)}</span>` : ''}</span>
+    <span class="pamt num">${esc(fmtBase(tot.reimb))}</span></button>`;
+}
 function renderTrips() {
   const v = $('#v-trips');
   if (state.tripsMode === 'past') return renderPastTrips(v);
@@ -2191,17 +2212,17 @@ function renderTrips() {
   const cur = tripsOn(today).sort((a, b) => b.startDate.localeCompare(a.startDate));
   const upcoming = db.trips.filter(t => t.startDate > today).sort((a, b) => a.startDate.localeCompare(b.startDate));
   const past = db.trips.filter(t => tripStatus(t) === 'past');
-  let hero, localLink = '';
+  let hero;
   if (cur.length) {
     const t = cur[0]; const tot = tripTotals(t); const dayN = daysBetween(t.startDate, today) + 1; const L = tripLen(t);
     const fb = flagBG(t);
     hero = `<button class="hero${fb ? ' flagged' : ''}" id="hero-active" data-trip="${esc(t.id)}" style="${fb ? `--tint:${fb.tint}` : `--c1:${t.color};--c2:color-mix(in srgb, ${t.color} 55%, #1c1c1e)`};width:100%;text-align:left">${fb ? fb.html : ''}
-      <div class="k">${icon('plane', 's')} On trip · Day ${dayN} of ${L}</div>
+      <div class="k">${icon('plane', 's')} On trip</div>
       <div class="city">${esc(tripName(t))}</div><div class="dates">${esc(fmtRange(t.startDate, t.endDate))}${t.purpose ? ' · ' + esc(t.purpose) : ''}</div>
-      <div class="stats s1"><div class="stat"><b>${esc(fmtBase(tot.reimb, true))}</b><span>To claim</span></div></div>
+      <div class="daysl">Day ${dayN} of ${L} · ${L - dayN > 0 ? `${L - dayN} day${L - dayN > 1 ? 's' : ''} left` : 'last day'}</div>
+      <div class="stats s2"><div class="stat"><b>${esc(fmtBase(tot.reimb, true))}</b><span>Spent so far</span></div><div class="stat"><b>${esc(fmtBase(Math.round(tot.reimb / clamp(dayN, 1, L))).replace(/[.,]00$/, ''))}/day</b><span>Daily average</span></div></div>
       <div class="progress"><i style="width:${clamp(dayN / L * 100, 4, 100)}%"></i></div></button>`
       + (cur.length > 1 ? `<div class="foot">Also active: ${cur.slice(1).map(x => esc(tripName(x))).join(', ')}. New expenses go to the trip matching the receipt's currency.</div>` : '');
-    localLink = `<div class="loclink"><button class="linkbtn" id="loc-link">${icon('pin', 's')} Local expense in ${esc(homeCountry())}</button></div>`;
   } else {
     const mk = today.slice(0, 7); const lm = localExps().filter(e => e.date.startsWith(mk) && e.paidBy === 'me'); const sum = lm.reduce((s, e) => s + (econv(e) || 0), 0);
     const fb = flagBG({ country: homeCountry() }); const nx = upcoming[0];
@@ -2216,21 +2237,17 @@ function renderTrips() {
   v.innerHTML = navbar('Trips', '', meBtn() + plusBtn()) + `<div class="ltitle">Trips</div>
     ${onboarding}${hero}
     ${quickHTML()}
-    ${localLink}
     ${!cur.length && lcount ? `<div class="loclink"><button class="linkbtn" id="loc-all">${lcount} local expense${lcount > 1 ? 's' : ''} · see all</button></div>` : ''}
-    <button class="btn tinted" id="home-report" style="margin-top:12px">${icon('wrench', 's')} Submit technical report</button>
     ${financeCardsHTML()}
     ${!db.trips.length ? `<div class="card" style="margin-top:14px"><div class="empty">${icon('suitcase')}No trips yet.<br><br><button class="btn sm" id="t-ticket">${icon('plus', 's')} New trip</button></div></div>` : ''}
     ${upcoming.length ? `<div class="section-h"><h2>Upcoming</h2></div><div class="group" id="up-list">${upcoming.map(t => tripRow(t, true)).join('')}</div>` : ''}
     ${att.length ? `<div class="section-h"><h2>Needs attention</h2></div><div class="group" id="att-list">${att.map((a, i) => `<button class="row tap has-icon" data-att="${i}" data-kind="${a.kind}"><span class="ico" style="background:${a.color}">${icon(a.icon)}</span><span class="body"><div class="t">${esc(a.t)}</div><div class="st">${esc(a.st)}</div></span>${icon('chevR', 's chev')}</button>`).join('')}</div>` : ''}
-    ${past.length ? `<div class="group" style="margin-top:22px"><button class="row tap has-icon" id="prev-trips"><span class="ico" style="background:#8e8e93">${icon('clock')}</span><span class="body"><div class="t">Previous trips</div><div class="st">${past.length} trip${past.length > 1 ? 's' : ''} · ${[...new Set(past.map(t => t.startDate.slice(0, 4)))].sort().reverse().join(', ')}</div></span><span class="num muted" style="margin-right:6px">${past.length}</span>${icon('chevR', 's chev')}</button></div>` : ''}`;
+    ${past.length ? `<div class="section-h"><h2>Previous trips</h2></div><div class="pcards" id="prev-list">${sortTrips(past).slice(0, 5).map(prevCard).join('')}</div>${past.length > 5 ? `<div class="group" style="margin-top:8px"><button class="row tap" id="prev-trips"><span class="body"><div class="t" style="color:var(--blue)">Show all ${past.length} trips</div></span>${icon('chevR', 's chev')}</button></div>` : ''}` : ''}`;
   bindRows(v);
   $('#nav-add', v).onclick = () => newTripWizard();
   $('#q-add', v).onclick = () => receiptSheet(cur.length ? {} : { local: true });
   bindMe(v); bindFinanceCards(v);
-  $('#loc-link', v) && ($('#loc-link', v).onclick = localExpenseSheet);
   $('#loc-all', v) && ($('#loc-all', v).onclick = () => go('expenses', { expFilter: 'local' }));
-  $('#home-report', v).onclick = () => openReportFlow(cur.length ? { tripId: cur[0].id } : {});
   $('#prev-trips', v) && ($('#prev-trips', v).onclick = () => go('trips', { tripsMode: 'past' }));
   $('#t-ticket', v) && ($('#t-ticket', v).onclick = () => newTripWizard());
   $('#load-sample', v) && ($('#load-sample', v).onclick = loadSample);
@@ -3329,13 +3346,12 @@ function renderTrip() {
     <div class="foot">Rates: ${db.fx.updatedAt ? 'live, updated ' + esc(new Date(db.fx.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : 'built-in defaults'} · edit in Settings.${tot.unconverted ? ` ${tot.unconverted} item(s) need a rate.` : ''}</div>
     ${t.purpose || t.notes ? `<div class="ghead">Notes</div><div class="group"><div class="row"><span class="body" style="white-space:pre-wrap">${esc([t.purpose, t.notes].filter(Boolean).join('\n'))}</span></div></div>` : ''}
   </details>`;
-  v.innerHTML = navbar(`${flag ? flag + ' ' : ''}${tripName(t)}`, `<button class="navbtn" id="tr-back">${icon('chevL')}${esc(fromLabel)}</button>`, `<button class="navbtn circle" id="tr-more" aria-label="More">${icon('more')}</button>`) +
+  v.innerHTML = navbar(`${flag ? flag + ' ' : ''}${tripName(t)}`, `<button class="navbtn" id="tr-back">${icon('chevL')}${esc(fromLabel)}</button>`, plusBtn('tr-addr') + `<button class="navbtn circle" id="tr-more" aria-label="More">${icon('more')}</button>`) +
     `<div class="thero${tfb ? ' flagged' : ''}"${tfb ? ` style="--tint:${tfb.tint}"` : ''}>${tfb ? tfb.html : ''}<div class="ltitle">${flag && !tfb ? `<span class="flag">${flag}</span>` : ''}${esc(tripName(t))}</div>
       <div class="lsub" style="margin-bottom:14px">${esc(fmtRange(t.startDate, t.endDate))} · <b>${esc(tripDayText(t))}</b>${travel ? '' : ' · Local'}${t.clientId ? ' · ' + esc(clientName(t.clientId)) : ''}</div></div>
     ${remind}
     <div class="reimb"><div class="k">To reimburse</div><div class="v">${esc(fmtBase(tot.reimb))}</div><div class="s">${mine.length} receipt${mine.length === 1 ? '' : 's'}${tot.noReceipt ? ` · ${tot.noReceipt} without photo` : ''}</div></div>
     ${travel ? `<div class="btiles">${bookingTile(t, 'flight')}${bookingTile(t, 'hotel')}</div>` : ''}
-    <button class="btn addr" id="tr-addr">${icon('camera')} Add receipt</button>
     <button class="btn tinted" id="tr-report" style="margin-top:10px">${icon('wrench', 's')} Submit technical report</button>
     ${treps.length ? `<div class="section-h"><h2>Service reports</h2></div><div class="group" id="tr-reps">${treps.map(r => reportRow(r)).join('')}</div>` : ''}
     <div class="section-h"><h2>Expenses</h2></div>

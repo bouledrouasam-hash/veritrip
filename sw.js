@@ -1,5 +1,5 @@
 /* VeriTrip service worker — precaches the app shell, pdf.js and the offline OCR engine + eng/fra models. */
-const VERSION = "d23bd4a41d";
+const VERSION = "621eb4707c";
 const CACHE = 'veritrip-' + VERSION;
 const PRECACHE = [
  "./",
