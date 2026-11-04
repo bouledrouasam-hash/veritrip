@@ -547,6 +547,22 @@ label.row{cursor:pointer}
 .pt .pd{font-weight:400;font-size:13px;color:var(--label2);margin-left:8px}
 .pp{font-size:13px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pamt{flex:none;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+/* v4.3 — grouped living rows, expense report sheet */
+.lgrp{position:relative}
+.lgrp+.lgrp>.lg-h::before{content:"";position:absolute;top:0;right:0;left:60px;border-top:.5px solid var(--sep)}
+.lg-x{flex:none;width:26px;height:26px;border-radius:50%;background:var(--fill);color:var(--blue);display:grid;place-items:center;transition:transform .22s}
+.lg-x .i{width:14px;height:14px}
+.lgrp.open .lg-x{transform:rotate(45deg)}
+.lg-items>.row{--inset:72px;padding-left:28px}
+.lg-items>.row::before{content:"";position:absolute;top:0;right:0;left:var(--inset);border-top:.5px solid var(--sep)}
+.lg-items>.row .ico{transform:scale(.86)}
+.dot.co{background:var(--blue)}
+.ex-sum{margin-top:16px;padding:12px 16px}
+.ex-l{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;font-size:15px}
+.ex-l b{font-variant-numeric:tabular-nums}
+.ex-l b.neg{color:var(--red)} .ex-l b.pos{color:var(--green)}
+.ex-l.sub{font-size:13px;color:var(--label2);border-top:.5px solid var(--sep);margin-top:4px;padding-top:8px}
+.ex-l.sub b{font-weight:600;color:var(--label)}
 
 </style>
 </head>
@@ -1608,6 +1624,7 @@ function fxItems() {
   }
   for (const c of F.contracts || []) out.push([c, c.currency, c.start]);
   for (const i of F.invoices || []) { out.push([i, i.currency, i.date]); for (const p of i.payments || []) out.push([p, i.currency, p.date]); }
+  for (const r of F.received || []) out.push([r, r.currency, r.date]);   // v4.3: money received from the company
   return out;
 }
 const fxPending = () => fxItems().filter(([o, c]) => c !== 'USD' && fxStatusOf(o) === 'pending');
@@ -1734,7 +1751,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '4.2';
+const APP_VERSION = '4.3';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -3506,6 +3523,7 @@ function renderTrip() {
     { icon: 'printer', color: '#007aff', label: 'Report — print or save as PDF', sub: 'Claim with receipts attached', fn: () => printReport(t) },
     { icon: 'download', color: '#34c759', label: 'Export CSV', sub: 'For Excel / expense system', fn: () => exportCSV(expensesOf(t).sort((a, b) => a.date.localeCompare(b.date)), `VeriTrip-${slug}-${t.startDate}.csv`) },
     { icon: 'calendar', color: '#ff2d55', label: 'Add to calendar (.ics)', fn: () => exportICS([t], `VeriTrip-${slug}.ics`) },
+    { icon: 'building', color: '#0a84ff', label: 'Money received from company', sub: (FIN().received || []).filter(r => r.tripId === t.id).length ? `${fmt((FIN().received || []).filter(r => r.tripId === t.id).reduce((s, r) => s + (econv(r) || 0), 0), base())} received for this trip` : 'Transfer or advance for this trip', fn: () => openCompanyMoneyEditor(null, { tripId: t.id }) },
     { icon: 'check', color: '#34c759', label: t.reimbursed ? 'Mark as not reimbursed' : 'Mark as reimbursed', sub: t.reimbursed ? `Reimbursed ${fmtD(t.reimbursed, { day: 'numeric', month: 'short', year: 'numeric' })}` : 'The company has paid back this claim', fn: () => { t.reimbursed = t.reimbursed ? null : todayISO(); save(); render(); toast(t.reimbursed ? 'Marked as reimbursed' : 'Marked as not reimbursed'); } },
     { icon: 'trash', color: '#ff3b30', label: 'Delete trip', fn: () => deleteTrip(t) }]);
 }
@@ -3515,12 +3533,13 @@ function renderTrip() {
 
 /* ---------- Migration to 3.3 ---------- */
 function migrateV33() {
-  const F = db.finance = Object.assign({ living: [], clients: [], contracts: [], invoices: [], tripOOP: false }, db.finance || {});
-  for (const k of ['living', 'clients', 'contracts', 'invoices']) F[k] = Array.isArray(F[k]) ? F[k] : [];
+  const F = db.finance = Object.assign({ living: [], clients: [], contracts: [], invoices: [], received: [], tripOOP: false }, db.finance || {});
+  for (const k of ['living', 'clients', 'contracts', 'invoices', 'received']) F[k] = Array.isArray(F[k]) ? F[k] : [];
   F.living.forEach(l => { l.id = l.id || uid('LIV'); l.paid = l.paid || {}; l.atts = l.atts || []; l.freq = l.freq || 'year'; l.currency = l.currency || 'USD'; l.amount = +l.amount || 0; l.category = l.category || 'other'; });
   F.contracts.forEach(c => { c.id = c.id || uid('CON'); c.freq = c.freq || 'month'; c.currency = c.currency || 'USD'; c.amount = +c.amount || 0; });
   F.invoices.forEach(i => { i.id = i.id || uid('INV'); i.payments = (i.payments || []).map(p => ({ id: p.id || uid('PAY'), ...p, amount: +p.amount || 0, atts: p.atts || [] })); i.atts = i.atts || []; i.currency = i.currency || 'USD'; i.amount = +i.amount || 0; });
   F.clients.forEach(c => { c.id = c.id || uid('CLI'); });
+  F.received.forEach(r => { r.id = r.id || uid('RCV'); r.currency = normCur(r.currency) || 'XOF'; r.amount = +r.amount || 0; r.note = r.note || ''; r.tripId = r.tripId || null; }); // v4.3: money received from the company
   fxInitStore();
   applyPeg(db.fx.rates, db.fx.manual);
   if (!db.v33) {
@@ -3580,19 +3599,21 @@ function contractYear(c, Y) { const [a, b] = yRange(Y); return occurrences(c.sta
 function financeYear(Y) {
   const F = FIN(); const [a, b] = yRange(Y); const today = todayISO();
   const months = Array.from({ length: 12 }, () => ({ inc: 0, liv: 0, trip: 0 }));
-  let income = 0, livBudget = 0, livPaid = 0, tripOOP = 0;
+  let income = 0, livBudget = 0, livPaid = 0, tripOOP = 0, company = 0;
+  for (const r of F.received || []) if (r.date >= a && r.date <= b) { const v = econv(r) || 0; company += v; months[+r.date.slice(5, 7) - 1].co = (months[+r.date.slice(5, 7) - 1].co || 0) + v; }
   for (const i of F.invoices) for (const p of i.payments) if (p.date >= a && p.date <= b) { const v = payUsd(i, p) || 0; income += v; months[+p.date.slice(5, 7) - 1].inc += v; }
   for (const l of F.living) for (const o of livOcc(l, Y)) { const v = o.usd || 0; livBudget += v; if (o.paid) livPaid += v; months[+o.date.slice(5, 7) - 1].liv += v; }
   for (const e of db.expenses) { if (e.paidBy !== 'me' || e.local || e.date < a || e.date > b) continue; const t = tripById(e.tripId); if (t && t.reimbursed) continue; const v = econv(e) || 0; tripOOP += v; months[+e.date.slice(5, 7) - 1].trip += v; }
   let outstanding = 0, overdue = 0, nOver = 0;
   for (const i of F.invoices) { const s = invStatus(i, today); if (s === 'paid' || s === 'draft') continue; const v = econv(i, invOpen(i)) || 0; outstanding += v; if (s === 'overdue') { overdue += v; nOver++; } }
   const spend = livBudget + (F.tripOOP ? tripOOP : 0);
-  return { Y, income, livBudget, livPaid, livLeft: livBudget - livPaid, tripOOP, outstanding, overdue, nOver, net: income - spend, months };
+  return { Y, income, company, livBudget, livPaid, livLeft: livBudget - livPaid, tripOOP, outstanding, overdue, nOver, net: income + company - spend, months };
 }
 function financeYears() {
   const F = FIN(); const ys = new Set([+todayISO().slice(0, 4)]);
   for (const i of F.invoices) { ys.add(+String(i.date).slice(0, 4)); for (const p of i.payments) ys.add(+String(p.date).slice(0, 4)); }
   for (const l of F.living) if (l.due) ys.add(+l.due.slice(0, 4));
+  for (const r of F.received || []) if (r.date) ys.add(+r.date.slice(0, 4));
   return [...ys].filter(y => y > 1990 && y < 2200).sort();
 }
 
@@ -3700,6 +3721,7 @@ function renderFinance() {
     <div class="card fin-sum" id="fin-sum">
       <div class="fs-net"><span>Net ${Y}</span><b class="${S.net < 0 ? 'neg' : ''}" id="fs-net">${esc(fmtBase(S.net))}</b><small>${esc(base())}</small></div>
       ${sumLine('inc', 'Income received', S.income)}
+      ${S.company || (F.received || []).length ? sumLine('co', 'Received from company', S.company) : ''}
       ${sumLine('out', 'Living expenses', S.livBudget, `<span class="fs-sub">${esc(fmtBase(S.livPaid, true))} paid</span>`)}
       <div class="fs-line"><i class="dot trip"></i><span class="l">Trip expenses not reimbursed</span><label class="switch sm"><input type="checkbox" id="fs-trip"${F.tripOOP ? ' checked' : ''}><span></span></label><b class="${F.tripOOP ? '' : 'faint'}">${esc(fmtBase(S.tripOOP))}</b></div>
       <div class="fin-chart" aria-label="Monthly income and spending">${bars}</div>
@@ -3712,7 +3734,7 @@ function renderFinance() {
     body = `<div class="card fin-kpi"><div><span>Year total</span><b>${esc(fmtBase(S.livBudget, true))}</b></div><div><span>Paid</span><b class="g">${esc(fmtBase(S.livPaid, true))}</b></div><div><span>Remaining</span><b>${esc(fmtBase(S.livLeft, true))}</b></div><div class="kbar"><i style="width:${pct.toFixed(1)}%"></i></div></div>
       ${due.length ? `<div class="section-h"><h2>Due soon</h2><span class="muted small">next 60 days</span></div><div class="group" id="liv-due">${due.slice(0, 8).map(o => { const c = livCat(o.item.category); return `<div class="row has-icon"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><button class="body tap-a" data-liv="${esc(o.item.id)}"><div class="t">${esc(o.item.name)}</div><div class="st" style="${o.overdue ? 'color:var(--red)' : ''}">${o.overdue ? 'Overdue since ' + esc(fdate(o.date)) : 'Due ' + esc(fdate(o.date)) + ' · ' + esc(relDays(o.date))}</div></button><span class="amt">${esc(fmt(o.item.amount, o.item.currency))}${o.item.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(o.usd))}</span>` : ''}</span><button class="paybtn" data-pay="${esc(o.item.id)}|${o.date}" aria-label="Mark paid">${icon('check', 's')}</button></div>`; }).join('')}</div>` : ''}
       <div class="section-h"><h2>Living expenses</h2><button id="liv-add">Add</button></div>
-      ${byCat.length ? byCat.map(([c, list]) => `<div class="ghead">${esc(c.label)}</div><div class="group">${list.map(l => livRow(l, Y)).join('')}</div>`).join('') : `<div class="card"><div class="empty">${icon('wallet')}Your yearly budget lives here — rent, school fees, insurance, residency, car.<br><button class="btn sm" id="liv-add2" style="margin-top:14px">${icon('plus', 's')} Add living expense</button></div></div>`}
+      ${byCat.length ? `<div class="group" id="liv-groups">${byCat.map(([c, list]) => livGroupHTML(c, list, Y)).join('')}</div>` : `<div class="card"><div class="empty">${icon('wallet')}Your yearly budget lives here — rent, school fees, insurance, residency, car.<br><button class="btn sm" id="liv-add2" style="margin-top:14px">${icon('plus', 's')} Add living expense</button></div></div>`}
       <div class="foot">Personal costs, never added to trip claims. Totals in ${esc(base())} at each item's own rate.</div>`;
   } else {
     const inv = F.invoices.filter(i => String(i.date).slice(0, 4) == Y || invStatus(i) !== 'paid');
@@ -3721,6 +3743,7 @@ function renderFinance() {
     body = `<div class="card fin-kpi"><div><span>Received ${Y}</span><b class="g">${esc(fmtBase(S.income, true))}</b></div><div><span>Outstanding</span><b>${esc(fmtBase(S.outstanding, true))}</b></div><div><span>Overdue</span><b class="${S.overdue ? 'r' : ''}">${esc(fmtBase(S.overdue, true))}</b></div></div>
       <div class="section-h"><h2>Invoices</h2><button id="inv-add">New</button></div>
       ${inv.length ? `<div class="group" id="inv-list">${inv.map(invRow).join('')}</div>` : `<div class="card"><div class="empty">${icon('doc')}No invoices yet.<br><button class="btn sm" id="inv-add2" style="margin-top:14px">${icon('plus', 's')} New invoice</button></div></div>`}
+      ${companyMoneyHTML(Y)}
       <div class="section-h"><h2>Contracts</h2><button id="con-add">Add</button></div>
       ${F.contracts.length ? `<div class="group">${F.contracts.map(c => conRow(c, Y)).join('')}</div>` : `<div class="foot" style="padding-top:0">Add a contract to bill a client every month or quarter.</div>`}
       <div class="section-h"><h2>Clients</h2><button id="cli-add">Add</button></div>
@@ -3737,8 +3760,10 @@ function renderFinance() {
   $$('#fin-seg button', v).forEach(b => b.onclick = () => { state.finSeg = b.dataset.s; renderFinance(); });
   $('#fin-plus', v).onclick = () => finAddMenu();
   $('#fin-more', v).onclick = () => actionSheet(`Finance ${Y}`, [
+    { icon: 'download', color: '#ff9500', label: 'Expense report', sub: 'Excel sheet + one PDF with every bill, numbered', fn: () => openExportSheet() },
     { icon: 'printer', color: '#007aff', label: `Print ${Y} report (${base()})`, sub: 'Summary, monthly table, living costs, invoices', fn: () => printFinance(Y) },
     { icon: 'download', color: '#34c759', label: `Export ${Y} (CSV)`, sub: `${base()} and original amounts with the rate used`, fn: () => exportFinanceCSV(Y) }]);
+  bindLivGroups(v); bindCompanyMoney(v);
   $$('[data-liv]', v).forEach(b => b.onclick = () => { const l = F.living.find(x => x.id === b.dataset.liv); if (l && l.srcExp) localLivSheet(l); else openLivingEditor(l); });
   $$('[data-pay]', v).forEach(b => b.onclick = () => { const [id, d] = b.dataset.pay.split('|'); const l = F.living.find(x => x.id === id); if (!l) return; l.paid[d] = todayISO(); save(); renderFinance(); toast(`${l.name} marked paid`); });
   $$('[data-inv]', v).forEach(b => b.onclick = () => openInvoiceEditor(F.invoices.find(i => i.id === b.dataset.inv)));
@@ -3775,6 +3800,7 @@ function finAddMenu() {
   actionSheet('Add', [
     { icon: 'wallet', color: '#ff9500', label: 'Living expense', sub: 'Rent, school, insurance, residency, car…', fn: () => openLivingEditor(null) },
     { icon: 'doc', color: '#5856d6', label: 'Invoice', sub: 'Scan or upload it, or type it in', fn: () => openInvoiceEditor(null) },
+    { icon: 'building', color: '#0a84ff', label: 'Money received from company', sub: 'Transfer or advance from your employer', fn: () => openCompanyMoneyEditor(null) },
     { icon: 'pencil', color: '#30b0c7', label: 'Contract', sub: 'Recurring billing for a client', fn: () => openContractEditor(null) },
     { icon: 'person', color: '#007aff', label: 'Client', fn: () => openClientEditor(null) }]);
 }
@@ -3857,7 +3883,7 @@ function openInvoiceEditor(src, preset = {}) {
   const atts = (x.atts || []).map(a => ({ ...a })); let ctl; let draft = !!x.draft;
   const conOpts = (cli, sel) => `<option value="">— None —</option>${F.contracts.filter(c => !cli || c.clientId === cli).map(c => `<option value="${esc(c.id)}"${c.id === sel ? ' selected' : ''}>${esc(c.desc || 'Contract')} · ${esc(fmt(c.amount, c.currency))}</option>`).join('')}`;
   const got = invReceived(x); const st = src ? invStatus(src) : null;
-  openSheet({ title: isNew ? 'New invoice' : 'Invoice', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
+  openSheet({ title: isNew ? 'New invoice' : 'Edit invoice', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
     body: `${docBox('Scan or upload the invoice', 'Number, date, due date, amount and currency are read for you.')}${attsHTML(atts, 'iv-atts')}
       <div class="card" style="margin-top:14px">${amountHero('iv', x.amount, x.currency)}</div>
       <div class="group" style="margin-top:14px">
@@ -3872,7 +3898,7 @@ function openInvoiceEditor(src, preset = {}) {
         <div class="row"><span class="body st" id="iv-stx" style="color:var(--label2)"></span></div></div>
       <div class="foot">Overdue is set automatically when the due date passes.</div>
       ${!isNew ? `<div class="ghead">Payments</div><div class="group" id="iv-pays">${x.payments.length ? x.payments.map((p, k) => `<div class="row has-icon"><span class="ico" style="background:#34c759">${icon('check')}</span><span class="body"><div class="t">${esc(fmt(p.amount, x.currency))}</div><div class="st">${esc(fdate(p.date, true))}${x.currency !== base() ? ' · ≈ ' + esc(fmtBase(payUsd(x, p))) + ' · ' + esc(rateText(p.fxRate, x.currency)) + fxMark(p) : ''}${(p.atts || []).length ? ' · proof' : ''}</div></span>${(p.atts || []).length ? `<button type="button" class="btn sm gray" data-pview="${k}">View</button>` : ''}<button type="button" class="navbtn" data-pdel="${k}" aria-label="Remove payment">${icon('x', 's')}</button></div>`).join('') : `<div class="row"><span class="body st" style="color:var(--label2)">No payment yet</span></div>`}</div>
-        <div class="inv-acts">${st !== 'paid' ? `<button class="btn tinted" id="iv-pay">${icon('plus', 's')} Record payment</button><button class="btn" id="iv-full">${icon('check', 's')} Mark paid in full</button>` : ''}</div>` : ''}
+        <div class="inv-acts">${st !== 'paid' ? `<button class="btn tinted" id="iv-pay">${icon('plus', 's')} Record payment</button><button class="btn" id="iv-full">${icon('check', 's')} Mark paid in full</button>` : ''}${x.payments.length ? `<button class="btn gray" id="iv-unpaid">Mark as unpaid</button>` : ''}</div>` : ''}
       <div class="group" style="margin-top:14px"><div class="field"><label>Note</label><input id="iv-note" value="${esc(x.note || '')}" placeholder="Optional"></div></div>
       ${!isNew ? `<div class="group" style="margin-top:24px"><button class="row tap" id="iv-del"><span class="body" style="color:var(--red);text-align:center">Delete invoice</span></button></div>` : ''}`,
     onMount: b => {
@@ -3903,7 +3929,9 @@ function openInvoiceEditor(src, preset = {}) {
         if (!date.value) { toast('Enter the invoice date', 'warn'); return null; }
         if (cli.value === '__new' && !$('#iv-newcli-in', b).value.trim()) { $('#iv-newcli-in', b).focus(); toast('Enter the client name', 'warn'); return null; }
         const clientId = resolveClient(cli, $('#iv-newcli-in', b));
+        const was = src ? { paid: invStatus(src) === 'paid', amount: src.amount, cur: src.currency } : null;
         const rec = Object.assign(src || { id: x.id, createdAt: new Date().toISOString(), payments: [] }, { number: $('#iv-no', b).value.trim() || nextInvoiceNo(+date.value.slice(0, 4)), clientId, contractId: con.value || null, date: date.value, due: due.value || null, amount: Math.round(a * 100) / 100, currency: cur.value, draft, note: $('#iv-note', b).value.trim() }, ctl.result());
+        if (was && was.paid && rec.payments.length === 1 && (rec.amount !== was.amount || rec.currency !== was.cur)) { const p = rec.payments[0]; p.amount = rec.amount; stampFx(p, rec.currency, p.date); }   // v4.3: editing a paid invoice keeps it paid in full
         rec.atts = await commitAtts(atts);
         if (isNew) F.invoices.push(rec);
         save(); return rec;
@@ -3912,6 +3940,9 @@ function openInvoiceEditor(src, preset = {}) {
       $('#iv-pay', b) && ($('#iv-pay', b).onclick = async () => { const r = await collect(); if (r) openPaymentSheet(r); });
       $('#iv-full', b) && ($('#iv-full', b).onclick = async () => { const r = await collect(); if (!r) return; const left = invOpen(r); if (left > 0) { const p = { id: uid('PAY'), date: todayISO(), amount: Math.round(left * 100) / 100, atts: [], note: '' }; stampFx(p, r.currency, p.date); r.payments.push(p); } r.draft = false; save(); closeSheet(); render(); toast(`${r.number} paid in full`); scheduleRates(); });
       $$('[data-pdel]', b).forEach(btn => btn.onclick = () => { const p = src.payments[+btn.dataset.pdel]; confirmSheet('Remove payment?', `${fmt(p.amount, src.currency)} on ${fdate(p.date, true)}`, 'Remove', () => { (p.atts || []).forEach(a => Files.del(a.id).catch(() => {})); src.payments = src.payments.filter(z => z !== p); save(); render(); setTimeout(() => openInvoiceEditor(src), 300); }); });
+      $('#iv-unpaid', b) && ($('#iv-unpaid', b).onclick = async () => { const r = await collect(); if (!r) return; const n = r.payments.length, sum = invReceived(r);
+        confirmSheet('Mark as unpaid?', `Removes the ${n === 1 ? 'payment' : n + ' payments'} of ${fmt(sum, r.currency)} recorded on ${r.number}. Received and Outstanding totals update.`, 'Mark as unpaid', () => {
+          r.payments.flatMap(p => p.atts || []).forEach(a => Files.del(a.id).catch(() => {})); r.payments = []; save(); render(); toast(`${r.number} is unpaid again`); setTimeout(() => openInvoiceEditor(r), 300); }); });
       $$('[data-pview]', b).forEach(btn => btn.onclick = () => { const p = src.payments[+btn.dataset.pview]; showFile({ hasFile: true, id: p.atts[0].id }); });
       $('#iv-del', b) && ($('#iv-del', b).onclick = () => confirmSheet('Delete invoice?', `${src.number} · ${fmt(src.amount, src.currency)}`, 'Delete', () => { [...(src.atts || []), ...src.payments.flatMap(p => p.atts || [])].forEach(a => Files.del(a.id).catch(() => {})); F.invoices = F.invoices.filter(i => i.id !== src.id); save(); render(); toast('Invoice deleted'); }));
       updConv();
@@ -4002,6 +4033,7 @@ function financeRows(Y) {
     if (String(i.date) >= a && String(i.date) <= b) rows.push({ type: 'Invoice', date: i.date, name: i.number, party: clientName(i.clientId), status: STATUS[invStatus(i)].label + (invReceived(i) && invStatus(i) !== 'paid' ? ' (partial)' : ''), amount: i.amount, currency: i.currency, o: i, due: i.due || '', received: invReceived(i) });
     for (const p of i.payments) if (p.date >= a && p.date <= b) rows.push({ type: 'Payment received', date: p.date, name: i.number, party: clientName(i.clientId), status: 'Received', amount: p.amount, currency: i.currency, o: p, note: p.note || '' });
   }
+  for (const r of F.received || []) if (r.date >= a && r.date <= b) rows.push({ type: 'Received from company', date: r.date, name: r.note || 'Received from company', party: r.tripId ? tripName(tripById(r.tripId)) : '', status: 'Received', amount: r.amount, currency: r.currency, o: r, note: r.note || '' });
   return rows.sort((x, y) => x.date.localeCompare(y.date) || x.type.localeCompare(y.type));
 }
 function exportFinanceCSV(Y) {
@@ -4013,6 +4045,7 @@ function exportFinanceCSV(Y) {
   const S = financeYear(Y);
   out.push([]); out.push(['Summary ' + Y, '', '', '', '', '', '', '', '', '', '', '', '', '']);
   out.push(['Income received', '', '', '', '', '', '', '', '', '', '', '', '', S.income.toFixed(2)]);
+  out.push(['Received from company', '', '', '', '', '', '', '', '', '', '', '', '', S.company.toFixed(2)]);
   out.push(['Living expenses (year)', '', '', '', '', '', '', '', '', '', '', '', '', S.livBudget.toFixed(2)]);
   out.push(['Living expenses paid', '', '', '', '', '', '', '', '', '', '', '', '', S.livPaid.toFixed(2)]);
     out.push(['Trip expenses not reimbursed', '', '', '', FIN().tripOOP ? 'counted in net' : 'not counted', '', '', '', '', '', '', '', '', S.tripOOP.toFixed(2)]);
@@ -4026,7 +4059,7 @@ function printFinance(Y) {
   const inv = F.invoices.filter(i => String(i.date).startsWith(String(Y)) || i.payments.some(p => p.date.startsWith(String(Y))) || invStatus(i) === 'overdue').sort((a, b) => String(a.date).localeCompare(String(b.date)));
   const rate = (o, c) => c === B ? '' : esc(rateText(o.fxRate || usdPer(c), c));
   $('#print-root').innerHTML = `<h1>Finance report ${Y}</h1><div class="sub">${esc(s.name || '')}${s.name ? ' · ' : ''}All amounts in ${esc(B)} · each item at the rate of its own date</div>
-    <div class="meta"><div><b>Income received</b>${esc(fmtBase(S.income))}</div><div><b>Living expenses</b>${esc(fmtBase(S.livBudget))} (${esc(fmtBase(S.livPaid))} paid)</div><div><b>Trip expenses not reimbursed</b>${esc(fmtBase(S.tripOOP))}${F.tripOOP ? '' : ' (not in net)'}</div><div><b>Outstanding invoices</b>${esc(fmtBase(S.outstanding))}${S.overdue ? ` · ${esc(fmtBase(S.overdue))} overdue` : ''}</div><div><b>Report currency</b>${esc(B)}</div><div><b>Prepared</b>${esc(fmtD(todayISO(), { day: 'numeric', month: 'long', year: 'numeric' }))}</div></div>
+    <div class="meta"><div><b>Income received</b>${esc(fmtBase(S.income))}</div><div><b>Received from company</b>${esc(fmtBase(S.company))}</div><div><b>Living expenses</b>${esc(fmtBase(S.livBudget))} (${esc(fmtBase(S.livPaid))} paid)</div><div><b>Trip expenses not reimbursed</b>${esc(fmtBase(S.tripOOP))}${F.tripOOP ? '' : ' (not in net)'}</div><div><b>Outstanding invoices</b>${esc(fmtBase(S.outstanding))}${S.overdue ? ` · ${esc(fmtBase(S.overdue))} overdue` : ''}</div><div><b>Report currency</b>${esc(B)}</div><div><b>Prepared</b>${esc(fmtD(todayISO(), { day: 'numeric', month: 'long', year: 'numeric' }))}</div></div>
     <div class="total"><span>Net ${Y}</span><span>${esc(fmtBase(S.net))}</span></div>
     <h2>By month</h2><table><thead><tr><th>Month</th><th class="r">Income</th><th class="r">Living</th><th class="r">Trips (unreimb.)</th><th class="r">Net</th></tr></thead><tbody>${S.months.map((m, k) => `<tr><td>${M[k]}</td><td class="r">${esc(fmtBase(m.inc))}</td><td class="r">${esc(fmtBase(m.liv))}</td><td class="r">${esc(fmtBase(m.trip))}</td><td class="r">${esc(fmtBase(m.inc - m.liv - (F.tripOOP ? m.trip : 0)))}</td></tr>`).join('')}</tbody></table>
     <h2>Living expenses</h2><table><thead><tr><th>Item</th><th>Category</th><th>Frequency</th><th class="r">Amount</th><th>Rate</th><th class="r">Year ${esc(B)}</th><th class="r">Paid ${esc(B)}</th></tr></thead><tbody>${liv.map(x => `<tr><td>${esc(x.l.name)}</td><td>${esc(livCat(x.l.category).label)}</td><td>${esc(FREQS[x.l.freq].label)}${x.occ.length > 1 ? ' ×' + x.occ.length : ''}</td><td class="r">${esc(fmt(x.l.amount, x.l.currency))}</td><td class="note">${rate(x.l, x.l.currency)}</td><td class="r">${esc(fmtBase(x.total))}</td><td class="r">${esc(fmtBase(x.paid))}</td></tr>`).join('') || '<tr><td colspan="7">None</td></tr>'}</tbody><tfoot><tr><td colspan="5">Total</td><td class="r">${esc(fmtBase(S.livBudget))}</td><td class="r">${esc(fmtBase(S.livPaid))}</td></tr></tfoot></table>
@@ -4049,7 +4082,7 @@ setTimeout(() => { if (db) scheduleRates(); }, 1200);
    so there is a single source of truth: edit or delete the expense and the Living item follows; nothing can be counted twice.
    Fuel / Tolls / Maintenance go to the matching Car sub-category, everything else to Other. */
 const LOCAL_LIV = { 'Fuel': 'fuel', 'Tolls': 'tolls', 'Maintenance': 'maint' };
-const localLivCat = e => LOCAL_LIV[localCatKey(e.category)] || 'other';
+const localLivCat = e => { const k = LOCAL_LIV[localCatKey(e.category)]; if (k) return k; const g = guessLivCat([e.merchant, e.description].join(' ')); return g && g !== 'car' ? g : 'other'; }; // v4.3: a visa / residence card bought as a local expense groups with Residency & visa
 const localInLiving = e => !!(e.local && e.paidBy === 'me' && !e.claim);
 function syncLocalLiving() {
   const F = db && db.finance; if (!F || !Array.isArray(F.living)) return;
@@ -4845,6 +4878,338 @@ async function previewReportPdf(r) {
   const url = URL.createObjectURL(blob); const v = $('#viewer'); document.getElementById('toast').className = '';
   v.innerHTML = `<button class="x" aria-label="Close">${icon('x')}</button><iframe src="${url}" title="${esc(r.no)}"></iframe>`; v.classList.add('show');
   v.querySelector('.x').onclick = () => { v.classList.remove('show'); v.innerHTML = ''; URL.revokeObjectURL(url); };
+}
+
+/* ===================== VeriTrip 4.3 — grouped living costs · money from the company · expense report ===================== */
+
+/* ---------- Living expenses: one collapsed row per category ---------- */
+function livGroupHTML(c, list, Y) {
+  const open = !!(state.livOpen && state.livOpen[c.k]); const today = todayISO();
+  let usd = 0, loc = 0, due = 0; const curs = new Set();
+  for (const l of list) { const occ = livOcc(l, Y); usd += occ.reduce((t, o) => t + (o.usd || 0), 0); loc += occ.length * (+l.amount || 0); curs.add(l.currency); due += occ.filter(o => !o.paid && o.date <= today).length; }
+  const one = curs.size === 1 ? [...curs][0] : null; const n = list.length;
+  const cnt = list.every(l => l.srcExp) ? `${n} receipt${n === 1 ? '' : 's'}` : `${n} item${n === 1 ? '' : 's'}`;
+  const main = one ? fmt(loc, one) : fmtBase(usd);
+  const sub = one ? (one !== base() ? '≈ ' + fmtBase(usd) : '') : 'mixed currencies';
+  const items = list.slice().sort((a, b) => (!!a.srcExp - !!b.srcExp) || (a.srcExp ? String(b.due).localeCompare(String(a.due)) : String(a.name).localeCompare(String(b.name))));
+  return `<div class="lgrp${open ? ' open' : ''}" data-lgk="${c.k}"><button class="row tap has-icon lg-h" data-lg="${c.k}" aria-expanded="${open}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(c.label)}</div><div class="st">${esc(cnt)}${due ? ` · <span style="color:var(--orange)">${due} due</span>` : ''}</div></span><span class="amt">${esc(main)}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span><span class="lg-x" aria-hidden="true">${icon('plus', 's')}</span></button><div class="lg-items"${open ? '' : ' hidden'}>${items.map(l => livRow(l, Y)).join('')}</div></div>`;
+}
+function bindLivGroups(v) {
+  $$('[data-lg]', v).forEach(b => b.onclick = () => {
+    const k = b.dataset.lg; state.livOpen = state.livOpen || {}; state.livOpen[k] = !state.livOpen[k];
+    const g = b.closest('.lgrp'); g.classList.toggle('open', state.livOpen[k]); b.setAttribute('aria-expanded', String(state.livOpen[k])); g.querySelector('.lg-items').hidden = !state.livOpen[k];
+  });
+}
+
+/* ---------- Money received from the company ---------- */
+const RCV = () => FIN().received || (FIN().received = []);
+function cmRow(r) {
+  const t = r.tripId ? tripById(r.tripId) : null;
+  return `<button class="row tap has-icon" data-cm="${esc(r.id)}"><span class="ico" style="background:#0a84ff">${icon('building')}</span><span class="body"><div class="t">${esc(r.note || 'Received from company')}</div><div class="st">${esc(fdate(r.date, true))}${t ? ' · Trip ' + esc(tripName(t)) : ''}</div></span><span class="amt">${esc(fmt(r.amount, r.currency))}${r.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(econv(r)))}${fxMark(r)}</span>` : ''}</span></button>`;
+}
+function companyMoneyHTML(Y) {
+  const list = RCV().filter(r => String(r.date).slice(0, 4) == Y).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const tot = list.reduce((s, r) => s + (econv(r) || 0), 0);
+  return `<div class="section-h"><h2>Received from company</h2><button id="cm-add">Add</button></div>
+    ${list.length ? `<div class="group" id="cm-list">${list.map(cmRow).join('')}</div><div class="foot" id="cm-tot">${esc(fmtBase(tot))} from the company in ${Y} · counted as income, kept apart from client invoices</div>` : `<div class="foot" style="padding-top:0">Transfers and advances your employer sends you. They count as income and appear on the expense report.</div>`}`;
+}
+function bindCompanyMoney(v) {
+  $('#cm-add', v) && ($('#cm-add', v).onclick = () => openCompanyMoneyEditor(null));
+  $$('[data-cm]', v).forEach(b => b.onclick = () => openCompanyMoneyEditor(RCV().find(r => r.id === b.dataset.cm)));
+}
+function openCompanyMoneyEditor(src, preset = {}) {
+  const isNew = !src; const T = todayISO();
+  const pt = preset.tripId ? tripById(preset.tripId) : null;
+  const x = src ? { ...src } : Object.assign({ id: uid('RCV'), date: pt && pt.startDate && pt.startDate < T ? pt.startDate : T, amount: '', currency: 'XOF', note: '', tripId: null }, preset); let ctl;
+  const trips = db.trips.slice().sort((a, b) => String(b.startDate).localeCompare(String(a.startDate)));
+  openSheet({ title: isNew ? 'Received from company' : 'Edit money received', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
+    body: `<div class="card">${amountHero('cm', x.amount, x.currency)}</div>
+      <div class="group" style="margin-top:14px">
+        <div class="field"><label>Date</label><input id="cm-date" type="date" value="${esc(x.date || '')}"></div>
+        <div class="field"><label>Note</label><input id="cm-note" value="${esc(x.note || '')}" placeholder="e.g. Bank transfer TMSP"></div>
+        <div class="field"><label>Trip</label><select id="cm-trip"><option value="">— None —</option>${trips.map(t => `<option value="${esc(t.id)}"${t.id === x.tripId ? ' selected' : ''}>${esc(tripName(t))} · ${esc(pdfDMY(t.startDate))}</option>`).join('')}</select></div>
+      </div><div class="foot">Counted as income from the company in Finance and listed under "Money received" on the expense report.</div>
+      ${!isNew ? `<div class="group" style="margin-top:24px"><button class="row tap" id="cm-del"><span class="body" style="color:var(--red);text-align:center">Delete</span></button></div>` : ''}`,
+    onMount: b => {
+      const amt = $('#cm-amt', b), cur = $('#cm-cur', b), date = $('#cm-date', b);
+      const updConv = () => { const a = parseAmtStr(amt.value, cur.value); $('#cm-conv', b).textContent = a > 0 && cur.value !== base() ? `≈ ${fmtBase(a * ctl.rate() / usdPer(base()))}` : ' '; };
+      ctl = rateCtl($('#cm-fx', b), x, () => ({ cur: cur.value, date: date.value }), () => ctl && updConv());
+      amt.oninput = updConv; cur.onchange = () => ctl.upd(); date.onchange = () => ctl.upd();
+      $('#cm-del', b) && ($('#cm-del', b).onclick = () => confirmSheet('Delete this entry?', `${x.note || 'Received from company'} · ${fmt(x.amount, x.currency)}`, 'Delete', () => { FIN().received = RCV().filter(r => r.id !== src.id); save(); render(); toast('Deleted'); }));
+      $('#sheet-primary').onclick = () => {
+        const a = parseAmtStr(amt.value, cur.value);
+        if (!(a > 0)) { amt.focus(); toast('Enter the amount', 'warn'); return; }
+        if (!date.value) { toast('Enter the date', 'warn'); return; }
+        const rec = Object.assign(src || { id: x.id, createdAt: new Date().toISOString() }, { amount: Math.round(a * 100) / 100, currency: cur.value, date: date.value, note: $('#cm-note', b).value.trim(), tripId: $('#cm-trip', b).value || null }, ctl.result());
+        if (isNew) RCV().push(rec);
+        save(); closeSheet(); if (state.tab === 'finance') state.finSeg = 'income'; render(); toast(isNew ? `${fmt(rec.amount, rec.currency)} from the company added` : 'Saved'); scheduleRates();
+      };
+      updConv(); if (isNew) setTimeout(() => amt.focus(), 350);
+    } });
+}
+
+/* ---------- Expense report: Excel sheet + one PDF of numbered bills ---------- */
+/* USD = each item at its own stored rate (incl. "My exchange rates"); FCFA = that USD at the same date's XOF rate (EUR peg 655.957); XOF items: FCFA = amount. */
+const rptDMY = iso => { const s = String(iso || '').slice(0, 10).split('-'); return s.length === 3 ? `${s[2]}/${s[1]}/${s[0].slice(2)}` : ''; };
+function rptFcfa(o, amount, cur, date) {
+  if (cur === 'XOF' || cur === 'XAF') return +amount;
+  if (o && o.fxRule && o.fxRuleN > 0 && o.fxCur === cur) return amount * o.fxRuleN;   /* your rate: 1 MRU = n FCFA */
+  const usd = econv(o, amount, cur, 'USD'); if (usd == null) return null;
+  const r = fxFor('XOF', normDate(date) || todayISO()).rate; return r > 0 ? usd / r : null;
+}
+const r2 = v => v == null ? null : Math.round(v * 100) / 100, r0 = v => v == null ? null : Math.round(v);
+function rptPeriod(preset, T = todayISO()) {
+  if (preset === 'q') { const d = addMonths(T, -3); return [addDays(d, 1), T]; }
+  return [T.slice(0, 4) + '-01-01', T];
+}
+/* Collect every line of the report, in report order, and number the bills. */
+async function reportData(from, to, openingFcfa) {
+  const F = FIN(); const keys = new Set(await Files.keys().catch(() => []));
+  const rows = []; const bills = []; const today = todayISO(); const until = to < today ? to : today;
+  const inP = d => d && d >= from && d <= to;
+  const line = (o) => { o.t = 'line'; o.usd = r2(o.usd); o.fcfa = r0(o.fcfa); rows.push(o); return o; };
+  const bill = (ln, files, where) => { const f = files.filter(Boolean); if (!f.length) { ln.bill = ln.company ? 'Paid by company' : 'No bill'; return; } ln.bill = bills.length + 1; bills.push({ n: ln.bill, line: ln, files: f, where }); };
+  const expFile = e => e.previewDataUrl || (e.hasFile && keys.has(e.id)) ? { exp: e } : null;
+  const attFile = a => a && keys.has(a.id) ? { att: a } : null;
+  const sum = (list, k) => list.reduce((s, x) => s + (x[k] || 0), 0);
+  const B = { usd: 0, fcfa: 0 };
+  /* opening balance */
+  const xof0 = fxFor('XOF', from).rate; const open = { t: 'line', date: from, item: 'Opening balance', details: 'Available balance from previous period', amount: +openingFcfa || 0, cur: 'XOF', usd: r2((+openingFcfa || 0) * xof0), fcfa: r0(+openingFcfa || 0), bill: '' };
+  rows.push({ t: 'sect', label: 'Available balance from previous period' }); rows.push(open);
+  /* money received */
+  rows.push({ t: 'sect', label: 'Money received' });
+  const rec = [];
+  const cm = (F.received || []).filter(r => inP(r.date)).sort((a, b) => a.date.localeCompare(b.date));
+  if (cm.length) { rows.push({ t: 'group', label: 'Received from company' }); for (const r of cm) { const t = r.tripId ? tripById(r.tripId) : null; rec.push(line({ date: r.date, item: 'Received from company', details: [r.note, t ? 'Trip ' + tripName(t) : ''].filter(Boolean).join(' · '), amount: r.amount, cur: r.currency, usd: econv(r, r.amount, r.currency, 'USD'), fcfa: rptFcfa(r, r.amount, r.currency, r.date), bill: '' })); } }
+  const pays = []; for (const i of F.invoices) for (const p of i.payments || []) if (inP(p.date)) pays.push([i, p]);
+  pays.sort((a, b) => a[1].date.localeCompare(b[1].date));
+  if (pays.length) { rows.push({ t: 'group', label: 'Client payments (paid invoices)' }); for (const [i, p] of pays) { const ln = line({ date: p.date, item: 'Invoice ' + (i.number || ''), details: [clientName(i.clientId), p.note].filter(Boolean).join(' · '), amount: p.amount, cur: i.currency, usd: econv(p, p.amount, i.currency, 'USD'), fcfa: rptFcfa(p, p.amount, i.currency, p.date), bill: '' }); rec.push(ln); } }   /* money in carries no bill number — bills are the expense receipts */
+  if (!rec.length) rows.push({ t: 'note', label: 'Nothing received in this period' });
+  const recv = { usd: r2(sum(rec, 'usd')), fcfa: r0(sum(rec, 'fcfa')) };
+  rows.push({ t: 'sub', label: 'Total received', ...recv });
+  const bal = { usd: r2(open.usd + recv.usd), fcfa: r0(open.fcfa + recv.fcfa) };
+  rows.push({ t: 'total', label: 'Total balance', ...bal });
+  /* expenses */
+  const allExp = []; const secTot = [];
+  const section = (label, groups) => {
+    const lines = [];
+    rows.push({ t: 'sect', label });
+    if (!groups.some(g => g.lines.length)) { rows.push({ t: 'note', label: 'None in this period' }); }
+    for (const g of groups) { if (!g.lines.length) continue; rows.push({ t: 'group', label: g.label });
+      for (const fn of g.lines) { const ln = fn(); lines.push(ln); }
+      if (g.sub) { const own = lines.slice(-g.lines.length).filter(l => !l.company); rows.push({ t: 'sub', label: 'Subtotal ' + g.sub, usd: r2(sum(own, 'usd')), fcfa: r0(sum(own, 'fcfa')) }); } }
+    const own = lines.filter(l => !l.company); const tot = { usd: r2(sum(own, 'usd')), fcfa: r0(sum(own, 'fcfa')) };
+    rows.push({ t: 'sub', label: 'Total ' + label.toLowerCase(), ...tot }); secTot.push({ label, ...tot }); allExp.push(...own);
+  };
+  /* personal & living (not the local receipts — those have their own section) */
+  const liv = LIV_CATS.map(c => ({ label: c.label, lines: F.living.filter(l => l.category === c.k && !l.srcExp).map(l => {
+    const ds = occurrences(l.due, l.freq, from, until, l.end); if (!ds.length) return null;
+    let usd = 0, fc = 0; for (const d of ds) { const o = l.paid[d] && l.payFx && l.payFx[d] && l.payFx[d].fxRate > 0 ? l.payFx[d] : l; usd += econv(o, l.amount, l.currency, 'USD') || 0; fc += rptFcfa(o, l.amount, l.currency, d) || 0; }
+    const unpaid = ds.filter(d => !l.paid[d]).length;
+    return () => { const ln = line({ date: ds[0], item: l.name + (ds.length > 1 ? ' ×' + ds.length : ''), details: [FREQS[l.freq] ? FREQS[l.freq].label : '', ds.length > 1 ? rptDMY(ds[0]) + ' to ' + rptDMY(ds[ds.length - 1]) : '', unpaid ? `${unpaid} not marked paid` : '', l.note].filter(Boolean).join(' · '), amount: l.amount * ds.length, cur: l.currency, usd, fcfa: fc, kind: c.label, where: 'Living' }); bill(ln, (l.atts || []).map(attFile), 'Living'); return ln; };
+  }).filter(Boolean) }));
+  section('Personal & living expenses', liv);
+  /* trips */
+  const expLine = (e, kind, where) => () => { const co = e.paidBy === 'company';
+    const ln = line({ date: e.date, item: catOf(e.category).label, details: [e.merchant, e.description].filter(Boolean).join(' · ') + (co ? ' · Paid by company' : e.claim ? ' · Claimed from company' : ''), amount: e.amount, cur: e.currency, usd: co ? null : econv(e, e.amount, e.currency, 'USD'), fcfa: co ? null : rptFcfa(e, e.amount, e.currency, e.date), company: co, kind: catOf(e.category).label, where });
+    if (co) ln.bill = 'Paid by company'; else bill(ln, [expFile(e)], where); return ln; };
+  const trips = db.trips.filter(t => t.startDate && t.startDate <= to && (t.endDate || t.startDate) >= from).sort((a, b) => a.startDate.localeCompare(b.startDate));
+  section('Trips', trips.map(t => { const ex = db.expenses.filter(e => e.tripId === t.id && !e.local).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    return { label: `${tripName(t)}${t.purpose ? ' — ' + t.purpose : ''} · ${rptDMY(t.startDate)} to ${rptDMY(t.endDate || t.startDate)}`, sub: tripName(t), lines: ex.map(e => expLine(e, '', 'Trip ' + tripName(t))) }; }));
+  const tids = new Set(db.trips.map(t => t.id));
+  const loose = db.expenses.filter(e => !e.local && (!e.tripId || !tids.has(e.tripId)) && inP(e.date)).sort((a, b) => a.date.localeCompare(b.date));
+  if (loose.length) section('Other expenses (no trip)', [{ label: 'Not assigned to a trip', lines: loose.map(e => expLine(e, '', 'No trip')) }]);
+  /* local */
+  const LG = [['Fuel', 'Car · Fuel'], ['Tolls', 'Car · Tolls'], ['Maintenance', 'Car · Maintenance'], ['Other', 'Other']];
+  const loc = db.expenses.filter(e => e.local && e.paidBy === 'me' && inP(e.date)).sort((a, b) => a.date.localeCompare(b.date));
+  section('Local expenses', LG.map(([k, label]) => ({ label, lines: loc.filter(e => localCatKey(e.category) === k).map(e => expLine(e, '', 'Local · ' + label)) })));
+  const exp = { usd: r2(sum(secTot, 'usd')), fcfa: r0(sum(secTot, 'fcfa')) };
+  rows.push({ t: 'grand', label: 'Total expenses', ...exp });
+  const fin = { usd: r2(bal.usd - exp.usd), fcfa: r0(bal.fcfa - exp.fcfa) };
+  rows.push({ t: 'final', label: 'Final balance (total balance − total expenses)', ...fin });
+  return { from, to, opening: open, received: recv, balance: bal, expenses: exp, final: fin, sections: secTot, rows, bills, nExp: allExp.length };
+}
+
+/* --- minimal XLSX writer (stored zip, inline strings, real dates & number formats) --- */
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u) { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = CRC_T[(c ^ u[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files) {
+  const enc = new TextEncoder(); const parts = []; const cen = []; let off = 0;
+  const d = new Date(); const dt = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(), tm = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  for (const f of files) {
+    const name = enc.encode(f.name), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data, crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30)); h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true); h.setUint16(10, tm, true); h.setUint16(12, dt, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46)); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true); c.setUint16(12, tm, true); c.setUint16(14, dt, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+    cen.push(new Uint8Array(c.buffer), name); off += 30 + name.length + data.length;
+  }
+  const csz = cen.reduce((s, x) => s + x.length, 0); const e = new DataView(new ArrayBuffer(22)); e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, csz, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, new Uint8Array(e.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+const xesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+const xdate = iso => { const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number); return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 864e5); };
+function buildReportXlsx(R) {
+  const s = db.settings;
+  /* styles registry */
+  const fmts = [], fonts = ['<font><sz val="11"/><name val="Calibri"/></font>'], fills = ['<fill><patternFill patternType="none"/></fill>', '<fill><patternFill patternType="gray125"/></fill>'], xfs = [];
+  const fmtId = code => { if (!code) return 0; let i = fmts.indexOf(code); if (i < 0) { fmts.push(code); i = fmts.length - 1; } return 164 + i; };
+  const fontId = f => { const x = `<font>${f.b ? '<b/>' : ''}${f.i ? '<i/>' : ''}<sz val="${f.sz || 11}"/>${f.c ? `<color rgb="FF${f.c}"/>` : ''}<name val="Calibri"/></font>`; let i = fonts.indexOf(x); if (i < 0) { fonts.push(x); i = fonts.length - 1; } return i; };
+  const fillId = c => { if (!c) return 0; const x = `<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/><bgColor indexed="64"/></patternFill></fill>`; let i = fills.indexOf(x); if (i < 0) { fills.push(x); i = fills.length - 1; } return i; };
+  const st = (o = {}) => { const x = `<xf numFmtId="${fmtId(o.n)}" fontId="${fontId(o)}" fillId="${fillId(o.fill)}" borderId="${o.bt ? 1 : o.bb ? 2 : 0}" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"${o.h ? ` horizontal="${o.h}"` : ''}${o.wrap ? ' wrapText="1"' : ''}/></xf>`; let i = xfs.indexOf(x); if (i < 0) { xfs.push(x); i = xfs.length - 1; } return i; };
+  st({});
+  const NUSD = '#,##0.00', NFC = '#,##0', SUSD = '+#,##0.00;[Red]-#,##0.00;0.00', SFC = '+#,##0;[Red]-#,##0;0';
+  const curFmt = c => (curDec(c) ? '#,##0.00' : '#,##0') + `" ${c}"`;
+  const COLS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  const out = []; let r = 0; const merges = [];
+  const cell = (col, v, o = {}) => { const ref = COLS[col] + r; const si = st(o); if (v == null || v === '') return `<c r="${ref}" s="${si}"/>`; if (o.date) return `<c r="${ref}" s="${si}"><v>${xdate(v)}</v></c>`; if (typeof v === 'number') return `<c r="${ref}" s="${si}"><v>${v}</v></c>`; return `<c r="${ref}" s="${si}" t="inlineStr"><is><t xml:space="preserve">${xesc(v)}</t></is></c>`; };
+  const row = (cells, ht) => { r++; out.push(`<row r="${r}"${ht ? ` ht="${ht}" customHeight="1"` : ''}>${cells.map((c, k) => c == null ? '' : cell(k, ...c)).join('')}</row>`); };
+  const span = (txt, o, ht) => { row([[txt, o], ...Array(6).fill(['', o])], ht); merges.push(`A${r}:G${r}`); };
+  span('Expense report' + (s.name ? ' — ' + s.name : ''), { b: 1, sz: 15 }, 22);
+  span(`Period ${rptDMY(R.from)} to ${rptDMY(R.to)}${s.company || db.settings.reportCompany ? ' · ' + (s.company || db.settings.reportCompany) : ''}${s.employeeId ? ' · ID ' + s.employeeId : ''} · prepared ${rptDMY(todayISO())}`, { c: '555555' });
+  span('USD at each item\'s own rate (incl. your exchange rates) · FCFA = XOF at the fixed 655.957 per EUR of the same date', { i: 1, c: '777777', sz: 9 });
+  row([]);
+  const H = { b: 1, fill: 'D9D9D9', bb: 1 };
+  row([['Date', H], ['Item', H], ['Details', H], ['Amount (local)', { ...H, h: 'right' }], ['USD', { ...H, h: 'right' }], ['FCFA', { ...H, h: 'right' }], ['Bill no.', { ...H, h: 'center' }]], 18);
+  const headRow = r;
+  for (const x of R.rows) {
+    if (x.t === 'sect') { row([]); span(x.label.toUpperCase(), { b: 1, fill: 'EDEDED', sz: 12 }, 18); }
+    else if (x.t === 'group') row([['', { b: 1 }], [x.label, { b: 1 }]]);
+    else if (x.t === 'note') row([['', {}], [x.label, { i: 1, c: '888888' }]]);
+    else if (x.t === 'line') { const g = x.company ? { i: 1, c: '8E8E93' } : {};
+      row([[x.date, { ...g, n: 'dd/mm/yy', date: 1, h: 'left' }], [x.item, g], [x.details, g], [x.amount, { ...g, n: curFmt(x.cur) }], [x.usd, { ...g, n: NUSD }], [x.fcfa, { ...g, n: NFC }], [x.bill, { ...g, h: 'center', ...(x.bill === 'No bill' ? { c: 'C0392B' } : {}) }]]); }
+    else if (x.t === 'sub') row([['', { bt: 1 }], [x.label, { b: 1, bt: 1 }], ['', { bt: 1 }], ['', { bt: 1 }], [x.usd, { b: 1, n: NUSD, bt: 1 }], [x.fcfa, { b: 1, n: NFC, bt: 1 }], ['', { bt: 1 }]]);
+    else if (x.t === 'total' || x.t === 'grand') { const o = { b: 1, fill: 'D9D9D9', sz: 12 }; row([['', o], [x.label.toUpperCase(), o], ['', o], ['', o], [x.usd, { ...o, n: NUSD }], [x.fcfa, { ...o, n: NFC }], ['', o]], 20); }
+    else if (x.t === 'final') { const neg = x.fcfa < 0; const o = { b: 1, fill: neg ? 'FADBD8' : 'D5F5E3', sz: 13 }; row([]); row([['', o], ['FINAL BALANCE', o], ['Total balance − total expenses', { ...o, b: 0, sz: 10 }], ['', o], [x.usd, { ...o, n: SUSD }], [x.fcfa, { ...o, n: SFC }], [neg ? 'Owed to me' : 'In hand', { ...o, h: 'center', c: neg ? 'C0392B' : '1E8449' }]], 22); }
+  }
+  row([]); row([['', {}], [`${R.bills.length} bill${R.bills.length === 1 ? '' : 's'} attached — see "VeriTrip receipts ${R.from}-${R.to}.pdf"; each page is headed with its bill number.`, { i: 1, c: '777777', sz: 9 }]]);
+  const widths = [11, 30, 40, 18, 14, 16, 15];
+  const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:G${r}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="${headRow}" topLeftCell="A${headRow + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${widths.map((w, k) => `<col min="${k + 1}" max="${k + 1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${out.join('')}</sheetData><mergeCells count="${merges.length}">${merges.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="${fmts.length}">${fmts.map((f, i) => `<numFmt numFmtId="${164 + i}" formatCode="${xesc(f)}"/>`).join('')}</numFmts><fonts count="${fonts.length}">${fonts.join('')}</fonts><fills count="${fills.length}">${fills.join('')}</fills><borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top style="thin"><color rgb="FF999999"/></top><bottom/><diagonal/></border><border><left/><right/><top/><bottom style="thin"><color rgb="FF666666"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join('')}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const X = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  return zipStore([
+    { name: '[Content_Types].xml', data: X + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>' },
+    { name: '_rels/.rels', data: X + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>' },
+    { name: 'docProps/core.xml', data: X + `<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>Expense report ${xesc(R.from)} to ${xesc(R.to)}</dc:title><dc:creator>${xesc(s.name || 'VeriTrip')}</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString().slice(0, 19)}Z</dcterms:created></cp:coreProperties>` },
+    { name: 'xl/workbook.xml', data: X + `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Expense report" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Titles" localSheetId="0">'Expense report'!$${headRow}:$${headRow}</definedName></definedNames></workbook>` },
+    { name: 'xl/_rels/workbook.xml.rels', data: X + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
+    { name: 'xl/styles.xml', data: styles },
+    { name: 'xl/worksheets/sheet1.xml', data: sheet }]);
+}
+
+/* --- receipts PDF: cover + bill index, then every bill page headed with its number --- */
+function billHeader(b) {
+  const l = b.line; const amt = l.cur === 'USD' ? fmtPlain(l.amount, 'USD') + ' USD' : `${fmtPlain(l.usd, 'USD')} USD (${fmtPlain(l.amount, l.cur)} ${l.cur})`;
+  return `Bill ${b.n} · ${l.kind || l.item} · ${b.where} · ${rptDMY(l.date)} · ${amt}`;
+}
+const fmtPlain = (v, c) => v == null ? '—' : Number(v).toLocaleString('en-US', { minimumFractionDigits: curDec(c), maximumFractionDigits: curDec(c) });
+async function billSources(f) {   /* → [{ kind:'img', blob } | { kind:'pdf', doc, page }] without rendering yet */
+  let rec = null;
+  if (f.exp) rec = await getFile(f.exp); else if (f.att) rec = await Files.get(f.att.id);
+  if (!rec || !rec.blob) return [];
+  const isPdf = rec.type === 'application/pdf' || /\.pdf$/i.test(rec.name || '');
+  if (!isPdf) return [{ kind: 'img', blob: rec.blob }];
+  const pdfjs = await loadPdfJs(); const doc = await pdfjs.getDocument({ data: new Uint8Array(await rec.blob.arrayBuffer()) }).promise;
+  const n = Math.min(doc.numPages, 30); return Array.from({ length: n }, (_, k) => ({ kind: 'pdf', doc, page: k + 1 }));
+}
+async function sourceJpeg(src, max = 1600) {
+  let c;
+  if (src.kind === 'img') { const im = await loadImage(src.blob); c = drawScaled(im, max); im.src = ''; }
+  else { const page = await src.doc.getPage(src.page); const v1 = page.getViewport({ scale: 1 }); const vp = page.getViewport({ scale: max / Math.max(v1.width, v1.height) });
+    c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height); const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); await page.render({ canvasContext: x, viewport: vp }).promise; page.cleanup && page.cleanup(); }
+  const out = { url: c.toDataURL('image/jpeg', 0.78), w: c.width, h: c.height }; c.width = c.height = 0; return out;
+}
+async function buildReceiptsPdf(R, progress) {
+  await loadScript(LIB.jspdf); const { jsPDF } = window.jspdf; const T = pdfTxt; const s = db.settings;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true }); doc.setProperties({ title: `Receipts ${R.from} to ${R.to}`, author: s.name || '', creator: 'VeriTrip' });
+  const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight(), M = 36;
+  const font = (st, sz, c = [0, 0, 0]) => { doc.setFont('helvetica', st); doc.setFontSize(sz); doc.setTextColor(c[0], c[1], c[2]); };
+  const clip = (t, w) => { t = T(t); if (doc.getTextWidth(t) <= w) return t; while (t.length > 1 && doc.getTextWidth(t + '...') > w) t = t.slice(0, -1); return t + '...'; };
+  /* cover */
+  font('bold', 20); doc.text(T('Receipts'), M, 64);
+  font('normal', 11, [80, 80, 80]); doc.text(T(`${s.name ? s.name + ' · ' : ''}Expense report ${rptDMY(R.from)} to ${rptDMY(R.to)}`), M, 84);
+  doc.text(T(`${R.bills.length} bill${R.bills.length === 1 ? '' : 's'} · numbered as in "VeriTrip report ${R.from}-${R.to}.xlsx" · prepared ${rptDMY(todayISO())}`), M, 100);
+  const cx = [M, M + 50, M + 112, M + 262, PW - M]; let y = 128;
+  const head = () => { doc.setFillColor(230, 230, 230); doc.rect(M, y - 12, PW - 2 * M, 18, 'F'); font('bold', 9.5); ['Bill no', 'Date', 'Item', 'Trip / section'].forEach((h, k) => doc.text(T(h), cx[k] + 4, y)); doc.text(T('Amount'), cx[4] - 4, y, { align: 'right' }); y += 18; };
+  head();
+  for (const b of R.bills) {
+    if (y > PH - 40) { doc.addPage(); y = 56; head(); }
+    const l = b.line; font('normal', 9.5);
+    doc.text(String(b.n), cx[0] + 4, y); doc.text(rptDMY(l.date), cx[1] + 4, y); doc.text(clip((l.kind || l.item) + (l.details ? ' · ' + l.details : ''), cx[3] - cx[2] - 8), cx[2] + 4, y); doc.text(clip(b.where, 150), cx[3] + 4, y);
+    doc.text(T(`${fmtPlain(l.amount, l.cur)} ${l.cur}`), cx[4] - 4, y, { align: 'right' });
+    doc.setDrawColor(220, 220, 220); doc.line(M, y + 5, PW - M, y + 5); y += 17;
+  }
+  if (!R.bills.length) { font('italic', 10, [120, 120, 120]); doc.text(T('No bills attached in this period.'), M + 4, y); }
+  /* bills */
+  for (let i = 0; i < R.bills.length; i++) {
+    const b = R.bills[i]; progress && progress(`Bill ${b.n} of ${R.bills.length}…`, i / R.bills.length);
+    let srcs = []; for (const f of b.files) { try { srcs.push(...await billSources(f)); } catch (e) { console.warn('bill', b.n, e); } }
+    if (!srcs.length) srcs = [null];
+    for (let k = 0; k < srcs.length; k++) {
+      doc.addPage(); const h = billHeader(b) + (srcs.length > 1 ? ` · page ${k + 1}/${srcs.length}` : '');
+      font('bold', 12); const lines = doc.splitTextToSize(T(h), PW - 2 * M); doc.text(lines, M, 44); const top = 44 + lines.length * 15;
+      doc.setDrawColor(180, 180, 180); doc.line(M, top - 6, PW - M, top - 6);
+      if (!srcs[k]) { font('italic', 11, [150, 0, 0]); doc.text(T('The file of this bill could not be read on this device.'), M, top + 20); continue; }
+      try { const j = await sourceJpeg(srcs[k]); const bw = PW - 2 * M, bh = PH - top - M, z = Math.min(bw / j.w, bh / j.h), w = j.w * z, hh = j.h * z;
+        doc.addImage(j.url, 'JPEG', M + (bw - w) / 2, top + 4, w, hh, undefined, 'FAST'); }
+      catch (e) { console.warn('bill image', b.n, e); font('italic', 11, [150, 0, 0]); doc.text(T('This page could not be rendered.'), M, top + 20); }
+      await new Promise(r => setTimeout(r, 0));
+    }
+    for (const sx of srcs) if (sx && sx.kind === 'pdf' && sx.page === 1) { try { sx.doc.destroy(); } catch (e) {} }
+  }
+  const n = doc.getNumberOfPages(); for (let i = 1; i <= n; i++) { doc.setPage(i); font('normal', 8, [140, 140, 140]); doc.text(T(`VeriTrip receipts ${rptDMY(R.from)}-${rptDMY(R.to)}  ·  ${i}/${n}`), PW / 2, PH - 16, { align: 'center' }); }
+  return doc.output('blob');
+}
+const reportNames = (from, to) => ({ xlsx: `VeriTrip report ${from}-${to}.xlsx`, pdf: `VeriTrip receipts ${from}-${to}.pdf` });
+async function buildExpenseReport(from, to, opening, progress) {
+  const R = await reportData(from, to, opening);
+  progress && progress('Writing the Excel sheet…', 0);
+  const xlsx = buildReportXlsx(R);
+  const pdf = await buildReceiptsPdf(R, progress);
+  return { R, xlsx, pdf, names: reportNames(from, to) };
+}
+async function shareReportFiles(out) {
+  const files = [new File([out.xlsx], out.names.xlsx, { type: out.xlsx.type }), new File([out.pdf], out.names.pdf, { type: 'application/pdf' })];
+  try { if (navigator.canShare && navigator.canShare({ files })) { await navigator.share({ files, title: 'Expense report', text: `Expense report ${rptDMY(out.R.from)} to ${rptDMY(out.R.to)}` }); return 'shared'; } } catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
+  download(out.names.xlsx, out.xlsx); await new Promise(r => setTimeout(r, 600)); download(out.names.pdf, out.pdf); return 'saved';
+}
+function openExportSheet() {
+  const s = db.settings; const T = todayISO(); let preset = 'year'; let [from, to] = rptPeriod('year', T); let busy = false;
+  openSheet({ title: 'Expense report', left: { label: 'Cancel' }, right: { label: 'Export', fn: () => {} },
+    body: `<div class="seg" id="ex-seg"><button type="button" data-p="year" class="on">This year</button><button type="button" data-p="q">Last 3 months</button><button type="button" data-p="custom">Custom</button></div>
+      <div class="group" style="margin-top:14px">
+        <div class="field"><label>From</label><input id="ex-from" type="date" value="${from}"></div>
+        <div class="field"><label>To</label><input id="ex-to" type="date" value="${to}"></div>
+      </div>
+      <div class="ghead">Opening balance from previous period</div>
+      <div class="group"><div class="field"><label>FCFA</label><input id="ex-open" type="text" inputmode="decimal" placeholder="0" value="${s.reportOpening != null ? esc(groupAmt(+s.reportOpening)) : ''}"></div></div>
+      <div class="foot">${s.reportOpeningAt ? `Remembered from your export of ${esc(fdate(s.reportOpeningAt, true))}.` : 'The balance carried over from your previous report. Remembered for next time.'}</div>
+      <div class="card ex-sum" id="ex-sum"><div class="muted small">Counting…</div></div>
+      <button class="btn" id="ex-go" style="margin-top:16px">${icon('share', 's')} Export Excel + receipts PDF</button>
+      <div class="bk-prog hidden" id="ex-prog" style="margin-top:12px"><div class="spinner sm"></div><span id="ex-msg">Preparing…</span></div>
+      <div class="foot">Two files: the report sheet (local, USD and FCFA columns, bill numbers) and one PDF with every bill, each page headed with its number.</div>`,
+    onMount: b => {
+      const fi = $('#ex-from', b), ti = $('#ex-to', b), oi = $('#ex-open', b);
+      const setSeg = p => { preset = p; $$('#ex-seg button', b).forEach(x => x.classList.toggle('on', x.dataset.p === p)); };
+      let seq = 0;
+      const preview = async () => { const my = ++seq; if (!fi.value || !ti.value || fi.value > ti.value) { $('#ex-sum', b).innerHTML = '<div class="muted small">Choose a period</div>'; return; }
+        const R = await reportData(fi.value, ti.value, parseAmtStr(oi.value, 'XOF') || 0); if (my !== seq) return;
+        const v = R.final; $('#ex-sum', b).innerHTML = `<div class="ex-l"><span>Total balance</span><b>${esc(fmt(R.balance.fcfa, 'XOF'))}</b></div><div class="ex-l"><span>Total expenses</span><b>${esc(fmt(R.expenses.fcfa, 'XOF'))}</b></div><div class="ex-l"><span>Final balance</span><b class="${v.fcfa < 0 ? 'neg' : 'pos'}" id="ex-final">${v.fcfa > 0 ? '+' : ''}${esc(fmt(v.fcfa, 'XOF'))}</b></div><div class="ex-l sub"><span>${R.nExp} expense line${R.nExp === 1 ? '' : 's'} · <b id="ex-bills">${R.bills.length}</b> bill${R.bills.length === 1 ? '' : 's'}</span><span>${v.usd > 0 ? '+' : ''}${esc(fmtPlain(v.usd, 'USD'))} USD</span></div>`; };
+      $$('#ex-seg button', b).forEach(x => x.onclick = () => { setSeg(x.dataset.p); if (x.dataset.p !== 'custom') { [fi.value, ti.value] = rptPeriod(x.dataset.p, T); } else fi.focus(); preview(); });
+      fi.onchange = ti.onchange = () => { setSeg('custom'); preview(); }; oi.oninput = () => preview();
+      const go = async () => {
+        if (busy) return; if (!fi.value || !ti.value || fi.value > ti.value) return toast('Choose a valid period', 'warn');
+        const opening = parseAmtStr(oi.value, 'XOF') || 0; busy = true; $('#ex-prog', b).classList.remove('hidden'); $('#ex-go', b).disabled = true;
+        try {
+          const out = await buildExpenseReport(fi.value, ti.value, opening, (m) => { $('#ex-msg', b).textContent = m; });
+          s.reportOpening = opening; s.reportOpeningAt = todayISO(); save();
+          window.__vtLastReport = out; $('#ex-msg', b).textContent = 'Sharing…';
+          const how = await shareReportFiles(out); closeSheet(); if (how !== 'cancelled') toast(how === 'shared' ? 'Report shared' : `Saved ${out.names.xlsx} and the receipts PDF`);
+        } catch (e) { console.error(e); toast('Could not build the report — ' + String(e.message || e).slice(0, 60), 'warn'); }
+        finally { busy = false; const p = $('#ex-prog', b); p && p.classList.add('hidden'); const g = $('#ex-go', b); g && (g.disabled = false); }
+      };
+      $('#ex-go', b).onclick = go; $('#sheet-primary').onclick = go;
+      preview();
+    } });
 }
 
 /* ---------------- PWA layer (only in the pwa/ build) ---------------- */
