@@ -1475,7 +1475,7 @@ function flagBG(t) { const c = countryISO(t.country, t.city); return c ? { code:
      fxRate      USD per 1 unit of the item's currency
      fxRateDate  the date the rate really belongs to (a Sunday receipt gets Friday's rate → Friday)
      fxSrc       where it came from ('currency-api', 'frankfurter (ECB)', 'peg · …', 'manual', 'latest', 'nearest cached')
-     fxStatus    'final' | 'pending' | 'fallback' | 'manual'
+     fxStatus    'final' | 'pending' | 'fallback' | 'manual' | 'estimate' (future date, v4.3.1)
      fxCur       the currency the rate is for
    pending  = best estimate stored now; the exact rate is fetched when online (queue = all pending items, persisted with the data)
    fallback = every source was tried and none has that currency/date — estimate kept, user can type the rate
@@ -1509,8 +1509,10 @@ function fxFor(cur, date) {
   if (db.fx.manual[cur]) return { rate: usdPer(cur), src: 'manual', status: 'manual', rateDate: null };
   const future = isoOK(date) && date > todayISO(), key = pegged(cur) ? 'EUR' : cur, div = pegged(cur) ? CFA_PEG[cur] : 1;
   if (isoOK(date) && !future) { const e = hget(key, date); if (e) return { rate: e.r / div, src: (pegged(cur) ? 'peg · ' : '') + e.s, status: e.p ? 'pending' : 'final', rateDate: e.d }; }
-  const status = !isoOK(date) ? 'fallback' : future ? 'pending' : fxMissed(date, cur) ? 'fallback' : 'pending';
-  const n = isoOK(date) ? hnearest(key, date) : null;
+  /* v4.3.1: a date still in the future has no published rate yet → the latest known rate, marked as an estimate ("est."), never "pending" forever;
+     it is re-stamped (pending → exact rate of the day) once the date has passed */
+  const status = !isoOK(date) ? 'fallback' : future ? 'estimate' : fxMissed(date, cur) ? 'fallback' : 'pending';
+  const n = isoOK(date) ? hnearest(key, future ? todayISO() : date) : null;
   if (n) return { rate: n.r / div, src: (pegged(cur) ? 'peg · ' : '') + 'nearest cached', status, rateDate: n.d };
   if (pegged(cur)) return { rate: usdPer('EUR') / div, src: 'peg · latest', status, rateDate: null };
   return { rate: usdPer(cur), src: 'latest', status, rateDate: null };
@@ -1600,14 +1602,15 @@ function econv(o, amount = o.amount, cur = o.currency, to = base()) {
 const fxFmtDay = d => fmtD(d, { day: 'numeric', month: 'short', year: 'numeric' });
 function fxSrcLabel(o) {
   const st = fxStatusOf(o); if (!st) return '';
-  if (o.fxRule && o.fxSrc === 'manual-rule') return `your rate: 1 ${o.fxCur} = ${fmtN(o.fxRuleN)} FCFA` + (st === 'final' ? '' : st === 'fallback' ? ' · no FCFA→USD rate found for this date, estimate' : ' · FCFA→USD rate pending');
+  if (o.fxRule && o.fxSrc === 'manual-rule') return `your rate: 1 ${o.fxCur} = ${fmtN(o.fxRuleN)} FCFA` + (st === 'final' ? '' : st === 'fallback' ? ' · no FCFA→USD rate found for this date, estimate' : st === 'estimate' ? ' · FCFA→USD at the latest rate (estimate until the date has passed)' : ' · FCFA→USD rate pending');
   if (st === 'manual') return 'your rate';
   if (st === 'final') { const rd = o.fxRateDate || o.fxDate; return `rate of ${rd ? fxFmtDay(rd) : '—'}` + (o.fxRateDate && o.fxDate && o.fxRateDate < o.fxDate ? ' (last published before ' + fmtD(o.fxDate, { day: 'numeric', month: 'short' }) + ')' : '') + (String(o.fxSrc).startsWith('peg') ? ' · fixed EUR peg' : ''); }
   if (st === 'fallback') return 'no market rate found for this date — estimate; tap to enter your own';
+  if (st === 'estimate') return `estimate at the latest rate${o.fxRateDate ? ' (' + fxFmtDay(o.fxRateDate) + ')' : ''} — exact rate once the date has passed`;
   return o.fxDate && o.fxDate > todayISO() ? 'estimate — exact rate once the date has passed' : 'rate pending — estimate until online';
 }
 /* tiny marker for lists */
-const fxMark = o => { const st = o && o.fxCur && o.fxCur !== base() ? fxStatusOf(o) : null; const yr = st && o.fxRule && o.fxSrc === 'manual-rule' ? ' <span class="fxp yr" title="Your exchange rate (Settings → My exchange rates)">Your rate</span>' : ''; return yr + (st === 'pending' ? ' <span class="fxp" title="Exchange rate pending — updates automatically when online">rate pending</span>' : st === 'fallback' ? ` <span class="fxp est" title="No market rate found — tap the item to enter one">${o.fxRate > 0 ? 'est. rate' : 'no rate'}</span>` : ''); };
+const fxMark = o => { const st = o && o.fxCur && o.fxCur !== base() ? fxStatusOf(o) : null; const yr = st && o.fxRule && o.fxSrc === 'manual-rule' ? ' <span class="fxp yr" title="Your exchange rate (Settings → My exchange rates)">Your rate</span>' : ''; return yr + (st === 'pending' ? ' <span class="fxp" title="Exchange rate pending — updates automatically when online">rate pending</span>' : st === 'fallback' ? ` <span class="fxp est" title="No market rate found — tap the item to enter one">${o.fxRate > 0 ? 'est. rate' : 'no rate'}</span>` : st === 'estimate' ? ' <span class="fxp est" title="Future date — converted at the latest rate; the exact rate is used once the date has passed">est.</span>' : ''); };
 /* "1 USD = 655.96 XOF" for an item */
 function rateText(rate, cur, b = base()) { if (!(rate > 0)) return '—'; const x = usdPer(b) / rate; return `1 ${b} = ${x >= 100 ? x.toFixed(2) : x >= 1 ? x.toFixed(4) : x.toPrecision(4)} ${cur}`; }
 const perBase = (rate, b = base()) => rate > 0 ? +(usdPer(b) / rate).toPrecision(6) : '';
@@ -1751,7 +1754,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '4.3';
+const APP_VERSION = '4.3.1';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -3535,7 +3538,10 @@ function renderTrip() {
 function migrateV33() {
   const F = db.finance = Object.assign({ living: [], clients: [], contracts: [], invoices: [], received: [], tripOOP: false }, db.finance || {});
   for (const k of ['living', 'clients', 'contracts', 'invoices', 'received']) F[k] = Array.isArray(F[k]) ? F[k] : [];
-  F.living.forEach(l => { l.id = l.id || uid('LIV'); l.paid = l.paid || {}; l.atts = l.atts || []; l.freq = l.freq || 'year'; l.currency = l.currency || 'USD'; l.amount = +l.amount || 0; l.category = l.category || 'other'; });
+  F.living.forEach(l => { l.id = l.id || uid('LIV'); l.paid = l.paid || {}; l.atts = l.atts || []; l.freq = FREQS[l.freq] ? l.freq : (normFreq(l.freq) || 'year'); l.currency = normCur(l.currency) || 'USD'; l.amount = +l.amount || 0; l.due = normDate(l.due) || l.due; if (l.end) l.end = normDate(l.end) || l.end;
+    if (!l.srcExp && !l.createdAt) l.createdAt = new Date().toISOString();   // v4.3.1: anchors the "first year" of a recurring item (see livDates)
+    l.category = livCatNorm(l, !F.cat431); });
+  F.cat431 = true;   // v4.3.1: one-time regrouping of Other / generic Car items by their name (Car insurance → Car · Insurance); after this the user's own choice is kept
   F.contracts.forEach(c => { c.id = c.id || uid('CON'); c.freq = c.freq || 'month'; c.currency = c.currency || 'USD'; c.amount = +c.amount || 0; });
   F.invoices.forEach(i => { i.id = i.id || uid('INV'); i.payments = (i.payments || []).map(p => ({ id: p.id || uid('PAY'), ...p, amount: +p.amount || 0, atts: p.atts || [] })); i.atts = i.atts || []; i.currency = i.currency || 'USD'; i.amount = +i.amount || 0; });
   F.clients.forEach(c => { c.id = c.id || uid('CLI'); });
@@ -3553,7 +3559,9 @@ function migrateV33() {
 const LIV_CATS = [
   { k: 'medical', label: 'Medical insurance', icon: 'person', color: '#ff2d55', hint: 'Self & family' },
   { k: 'residency', label: 'Residency & visa', icon: 'id', color: '#5856d6', hint: 'Residence permit, visas' },
-  { k: 'car', label: 'Car', icon: 'car', color: '#ff9500', hint: 'Insurance, fuel, maintenance, registration' },
+  { k: 'car', label: 'Car', icon: 'car', color: '#ff9500', hint: 'Other car costs (leasing, washing…)' },
+  { k: 'carins', label: 'Car · Insurance', icon: 'car', color: '#ff9500', hint: 'Car insurance (assurance auto)' },
+  { k: 'carreg', label: 'Car · Registration', icon: 'id', color: '#ff6b00', hint: 'Carte grise, vignette, road tax, technical inspection' },
   { k: 'fuel', label: 'Car · Fuel', icon: 'car', color: '#ff9f0a', hint: 'Local fuel receipts' },
   { k: 'tolls', label: 'Car · Tolls', icon: 'pin', color: '#0a84ff', hint: 'Tolls and parking' },
   { k: 'maint', label: 'Car · Maintenance', icon: 'wrench', color: '#8e6e53', hint: 'Service, repairs, tyres' },
@@ -3561,6 +3569,16 @@ const LIV_CATS = [
   { k: 'school', label: 'School fees', icon: 'sparkles', color: '#34c759', hint: 'Tuition, canteen, transport' },
   { k: 'other', label: 'Other', icon: 'wallet', color: '#8e8e93', hint: '' }];
 const livCat = k => LIV_CATS.find(c => c.k === k) || LIV_CATS[LIV_CATS.length - 1];
+/* v4.3.1 — category of a living item, read leniently: legacy / imported labels ("Car Insurance", "insurance", "Visa", "School fees"…) map to a key;
+   with byName, an item filed under Other or the generic Car is placed by its name (Car insurance → Car · Insurance, Carte grise → Car · Registration). */
+const LIV_ALIAS = { medical: 'medical', 'medical insurance': 'medical', health: 'medical', 'health insurance': 'medical', insurance: 'medical', residency: 'residency', 'residency & visa': 'residency', visa: 'residency', residence: 'residency', 'residence permit': 'residency', car: 'car', vehicle: 'car', auto: 'car', 'car insurance': 'carins', carins: 'carins', 'car · insurance': 'carins', 'car registration': 'carreg', registration: 'carreg', carreg: 'carreg', 'car · registration': 'carreg', fuel: 'fuel', 'car · fuel': 'fuel', tolls: 'tolls', toll: 'tolls', 'car · tolls': 'tolls', maint: 'maint', maintenance: 'maint', 'car maintenance': 'maint', 'car · maintenance': 'maint', rent: 'rent', housing: 'rent', school: 'school', 'school fees': 'school', education: 'school', other: 'other' };
+function livCatNorm(l, byName) {
+  const raw = String(l.category || '').trim().toLowerCase(); let k = LIV_CATS.some(c => c.k === raw) ? raw : (LIV_ALIAS[raw] || LIV_ALIAS[raw.replace(/[_-]+/g, ' ')] || 'other');
+  if (byName && (k === 'other' || k === 'car' || raw !== k)) { const g = guessLivCat([l.name, l.note].join(' ')); if (g && (k === 'other' || (k === 'car' && CAR_SUB.has(g)) || (raw !== k && k === 'medical' && CAR_SUB.has(g)))) k = g; }
+  return k;
+}
+const CAR_SUB = new Set(['car', 'carins', 'carreg', 'fuel', 'tolls', 'maint']);
+const normFreq = f => ({ monthly: 'month', quarterly: 'quarter', yearly: 'year', annual: 'year', annually: 'year', 'one-off': 'once', oneoff: 'once', 'one off': 'once', term: 'term' })[String(f || '').trim().toLowerCase()] || null;
 const FREQS = { month: { label: 'Monthly', step: 1, per: 12 }, quarter: { label: 'Quarterly', step: 3, per: 4 }, term: { label: 'Per term', step: 4, per: 3 }, year: { label: 'Yearly', step: 12, per: 1 }, once: { label: 'One-off', step: 0, per: 1 } };
 const CON_FREQS = ['month', 'quarter', 'year', 'once'];
 function addMonths(iso, n) { const [y, m, d] = iso.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1 + n, 1)); const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate(); t.setUTCDate(Math.min(d, last)); return t.toISOString().slice(0, 10); }
@@ -3573,11 +3591,21 @@ function occurrences(anchor, freq, from, to, end) {
 }
 const yRange = Y => [`${Y}-01-01`, `${Y}-12-31`];
 const FIN = () => db.finance;
-function livOcc(l, Y) { const [a, b] = yRange(Y); return occurrences(l.due, l.freq, a, b, l.end).map(d => ({ item: l, date: d, paid: !!l.paid[d], paidOn: l.paid[d] || null, rec: l.paid[d] && l.payFx && l.payFx[d] && l.payFx[d].fxRate > 0 ? l.payFx[d] : l, usd: econv(l.paid[d] && l.payFx && l.payFx[d] && l.payFx[d].fxRate > 0 ? l.payFx[d] : l, l.amount, l.currency) })); }
+/* v4.3.1 — due dates of a living item between from..to. "Next due" is the anchor; a recurring item also has the one instalment BEFORE it
+   when that falls on/after the day the item was added (car insurance added in Oct with next due 7 Nov 2027 → the 7 Nov 2026 instalment is
+   this year's cost). Used everywhere (tiles, groups, Due soon, rows, editor, report) so all of them agree. */
+function livDates(l, from, to) {
+  const out = occurrences(l.due, l.freq, from, to, l.end); const f = FREQS[l.freq] || FREQS.year;
+  if (!l.due || !f.step || l.srcExp) return out;
+  const back = addMonths(l.due, -f.step), since = String(l.createdAt || '').slice(0, 10);
+  if (isoOK(since) && back >= since && back >= from && back <= to && !(l.end && back > l.end)) out.unshift(back);
+  return out;
+}
+function livOcc(l, Y) { const [a, b] = yRange(Y); return livDates(l, a, b).map(d => ({ item: l, date: d, paid: !!l.paid[d], paidOn: l.paid[d] || null, rec: l.paid[d] && l.payFx && l.payFx[d] && l.payFx[d].fxRate > 0 ? l.payFx[d] : l, usd: econv(l.paid[d] && l.payFx && l.payFx[d] && l.payFx[d].fxRate > 0 ? l.payFx[d] : l, l.amount, l.currency) })); }
 /* Unpaid instalments from the last year up to `days` ahead. */
 function livDue(days = 60) {
   const today = todayISO(), to = addDays(today, days), from = addDays(today, -365); const out = [];
-  for (const l of FIN().living) for (const d of occurrences(l.due, l.freq, from, to, l.end)) if (!l.paid[d]) out.push({ item: l, date: d, overdue: d < today, usd: econv(l) });
+  for (const l of FIN().living) for (const d of livDates(l, from, to)) if (!l.paid[d]) out.push({ item: l, date: d, overdue: d < today, usd: econv(l) });
   return out.sort((a, b) => a.date.localeCompare(b.date));
 }
 const clientById = id => FIN().clients.find(c => c.id === id);
@@ -3612,7 +3640,7 @@ function financeYear(Y) {
 function financeYears() {
   const F = FIN(); const ys = new Set([+todayISO().slice(0, 4)]);
   for (const i of F.invoices) { ys.add(+String(i.date).slice(0, 4)); for (const p of i.payments) ys.add(+String(p.date).slice(0, 4)); }
-  for (const l of F.living) if (l.due) ys.add(+l.due.slice(0, 4));
+  for (const l of F.living) if (l.due) { ys.add(+l.due.slice(0, 4)); if (!l.srcExp) for (const d of livDates(l, addMonths(l.due, -12), l.due)) ys.add(+d.slice(0, 4)); }
   for (const r of F.received || []) if (r.date) ys.add(+r.date.slice(0, 4));
   return [...ys].filter(y => y > 1990 && y < 2200).sort();
 }
@@ -3635,7 +3663,7 @@ function rateCtl(el, o, get, onUpd, rulesOn) {
   const upd = () => {
     const { cur, date } = calc(); el.classList.toggle('hidden', cur === base());
     if (document.activeElement !== inp) inp.value = perBase(tmp.fxRate);
-    const st = fxStatusOf(tmp); $('.fx-c', el).textContent = cur; $('.fx-s', el).textContent = '· ' + fxSrcLabel(tmp); el.dataset.status = st || ''; $('.fx-s', el).classList.toggle('pend', st === 'pending' || st === 'fallback'); $('.fx-reset', el).classList.toggle('hidden', !manual);
+    const st = fxStatusOf(tmp); $('.fx-c', el).textContent = cur; $('.fx-s', el).textContent = '· ' + fxSrcLabel(tmp); el.dataset.status = st || ''; $('.fx-s', el).classList.toggle('pend', st === 'pending' || st === 'fallback' || st === 'estimate'); $('.fx-reset', el).classList.toggle('hidden', !manual);
     const key = cur + date;
     if (!manual && cur !== 'USD' && isoOK(date) && date <= todayISO() && st !== 'final' && db.settings.autoFx && !asked.has(key) && fxOnline()) {
       asked.add(key); $('.fx-s', el).textContent = '· looking up rate of ' + fmtD(date, { day: 'numeric', month: 'short' }) + '…';
@@ -3681,7 +3709,12 @@ async function readFinanceDoc(file, progress) {
 }
 function guessLivCat(text) {
   const t = String(text || '').toLowerCase();
-  if (/carburant|fuel|essence|gasoil|diesel|vidange|garage|pneu|vignette|carte grise|registration|v[ée]hicule|vehicle|auto\b|car insurance|assurance auto/.test(t)) return 'car';
+  if (/(car|auto|vehicle|motor)\s*insurance|insurance\s*(car|auto|vehicle)|assurance\s*(auto|automobile|voiture|v[ée]hicule)|(auto|voiture|v[ée]hicule)\s*assurance/.test(t)) return 'carins';
+  if (/carte grise|vignette|registration|immatriculation|road tax|visite technique|contr[ôo]le technique/.test(t)) return 'carreg';
+  if (/carburant|fuel|essence|gasoil|diesel|petrol/.test(t)) return 'fuel';
+  if (/p[ée]age|\btoll|parking/.test(t)) return 'tolls';
+  if (/vidange|garage|pneu|tyre|tire\b|repair|r[ée]paration|entretien|car service/.test(t)) return 'maint';
+  if (/v[ée]hicule|vehicle|voiture|\bauto\b|automobile|\bcar\b/.test(t)) return 'car';
   if (/assurance|insurance|mutuelle|sant[ée]|health|medical|m[ée]dical/.test(t)) return 'medical';
   if (/s[ée]jour|residen|visa|immigration|permit/.test(t)) return 'residency';
   if (/loyer|rent\b|bail|lease|landlord|propri[ée]taire/.test(t)) return 'rent';
@@ -3730,9 +3763,9 @@ function renderFinance() {
   let body = '';
   if (seg === 'living') {
     const due = livDue(60); const pct = S.livBudget ? clamp(S.livPaid / S.livBudget * 100, 0, 100) : 0;
-    const byCat = LIV_CATS.map(c => [c, F.living.filter(l => l.category === c.k && (!l.srcExp || +l.due.slice(0, 4) === Y))]).filter(([, l]) => l.length);
+    const byCat = LIV_CATS.map(c => [c, F.living.filter(l => livCat(l.category).k === c.k && livOcc(l, Y).length)]).filter(([, l]) => l.length);   // v4.3.1: a group lists exactly the items it adds up
     body = `<div class="card fin-kpi"><div><span>Year total</span><b>${esc(fmtBase(S.livBudget, true))}</b></div><div><span>Paid</span><b class="g">${esc(fmtBase(S.livPaid, true))}</b></div><div><span>Remaining</span><b>${esc(fmtBase(S.livLeft, true))}</b></div><div class="kbar"><i style="width:${pct.toFixed(1)}%"></i></div></div>
-      ${due.length ? `<div class="section-h"><h2>Due soon</h2><span class="muted small">next 60 days</span></div><div class="group" id="liv-due">${due.slice(0, 8).map(o => { const c = livCat(o.item.category); return `<div class="row has-icon"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><button class="body tap-a" data-liv="${esc(o.item.id)}"><div class="t">${esc(o.item.name)}</div><div class="st" style="${o.overdue ? 'color:var(--red)' : ''}">${o.overdue ? 'Overdue since ' + esc(fdate(o.date)) : 'Due ' + esc(fdate(o.date)) + ' · ' + esc(relDays(o.date))}</div></button><span class="amt">${esc(fmt(o.item.amount, o.item.currency))}${o.item.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(o.usd))}</span>` : ''}</span><button class="paybtn" data-pay="${esc(o.item.id)}|${o.date}" aria-label="Mark paid">${icon('check', 's')}</button></div>`; }).join('')}</div>` : ''}
+      ${due.length ? `<div class="section-h"><h2>Due soon</h2><span class="muted small">next 60 days</span></div><div class="group" id="liv-due">${due.slice(0, 8).map(o => { const c = livCat(o.item.category); return `<div class="row has-icon"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><button class="body tap-a" data-liv="${esc(o.item.id)}"><div class="t">${esc(o.item.name)}</div><div class="st" style="${o.overdue ? 'color:var(--red)' : ''}">${o.overdue ? 'Overdue since ' + esc(fdate(o.date)) : 'Due ' + esc(fdate(o.date, o.date.slice(0, 4) !== todayISO().slice(0, 4))) + ' · ' + esc(relDays(o.date))}</div></button><span class="amt">${esc(fmt(o.item.amount, o.item.currency))}${o.item.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(o.usd))}</span>` : ''}</span><button class="paybtn" data-pay="${esc(o.item.id)}|${o.date}" aria-label="Mark paid">${icon('check', 's')}</button></div>`; }).join('')}</div>` : ''}
       <div class="section-h"><h2>Living expenses</h2><button id="liv-add">Add</button></div>
       ${byCat.length ? `<div class="group" id="liv-groups">${byCat.map(([c, list]) => livGroupHTML(c, list, Y)).join('')}</div>` : `<div class="card"><div class="empty">${icon('wallet')}Your yearly budget lives here — rent, school fees, insurance, residency, car.<br><button class="btn sm" id="liv-add2" style="margin-top:14px">${icon('plus', 's')} Add living expense</button></div></div>`}
       <div class="foot">Personal costs, never added to trip claims. Totals in ${esc(base())} at each item's own rate.</div>`;
@@ -3777,11 +3810,11 @@ function renderFinance() {
 function livRow(l, Y) {
   if (l.srcExp) { const c = livCat(l.category); const v = econv(l.payFx && l.payFx[l.due] && l.payFx[l.due].fxRate > 0 ? l.payFx[l.due] : l, l.amount, l.currency); return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(fdate(l.due))} · From receipt${l.hasReceipt ? ' · 📎' : ''}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${l.currency !== base() ? '≈ ' + esc(fmtBase(v)) + fxMark(l) : ''} <span class="pill ok">Paid</span></span></span></button>`; }
   const c = livCat(l.category); const occ = livOcc(l, Y); const paidN = occ.filter(o => o.paid).length; const today = todayISO();
-  const next = occurrences(l.due, l.freq, addDays(today, -365), addDays(today, 800), l.end).find(d => !l.paid[d]);
+  const next = livDates(l, addDays(today, -365), addDays(today, 800)).find(d => !l.paid[d]);
   const yr = occ.reduce((t, o) => t + (o.usd || 0), 0);
-  const st = `${FREQS[l.freq].label}${next ? ` · ${next < today ? 'overdue ' : 'next '}${fdate(next)}` : occ.length ? ' · all paid' : ''}${l.atts.length ? ' · 📎' : ''}`;
+  const st = `${FREQS[l.freq].label}${next ? ` · ${next < today ? 'overdue ' : 'next '}${fdate(next, next.slice(0, 4) !== today.slice(0, 4))}` : occ.length ? ' · all paid' : ''}${l.atts.length ? ' · 📎' : ''}`;
   const pill = occ.length && paidN === occ.length ? '<span class="pill ok">Paid</span>' : paidN ? `<span class="pill warn">${paidN}/${occ.length}</span>` : '';
-  return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(st)}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${occ.length > 1 ? `${esc(fmtBase(yr, true))} / yr` : l.currency !== base() ? '≈ ' + esc(fmtBase(econv(l))) + fxMark(l) : ''} ${pill}</span></span></button>`;
+  return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(st)}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${occ.length > 1 ? `${esc(fmtBase(yr, true))} / yr` : l.currency !== base() ? '≈ ' + esc(fmtBase(occ.length ? yr : econv(l))) + fxMark(occ.length ? occ[0].rec : l) : ''} ${pill}</span></span></button>`;
 }
 function invRow(i) {
   const s = invStatus(i); const col = { overdue: '#ff3b30', sent: '#5856d6', draft: '#8e8e93', paid: '#34c759' }[s]; const got = invReceived(i);
@@ -3829,11 +3862,11 @@ function openLivingEditor(src, preset = {}) {
       ${!isNew ? `<div class="group" style="margin-top:24px"><button class="row tap" id="lv-del"><span class="body" style="color:var(--red);text-align:center">Delete</span></button></div>` : ''}`,
     onMount: b => {
       const amt = $('#lv-amt', b), cur = $('#lv-cur', b), due = $('#lv-due', b), freq = $('#lv-freq', b), cat = $('#lv-cat', b);
-      const updConv = () => { const a = parseAmtStr(amt.value, cur.value); const r = ctl ? ctl.rate() : usdPer(cur.value); const n = occurrences(due.value, freq.value, ...yRange(Y), $('#lv-end', b).value).length;
+      const updConv = () => { const a = parseAmtStr(amt.value, cur.value); const r = ctl ? ctl.rate() : usdPer(cur.value); const n = livDates({ due: due.value, freq: freq.value, end: $('#lv-end', b).value, createdAt: x.createdAt || new Date().toISOString() }, ...yRange(Y)).length;
         $('#lv-conv', b).textContent = !(a > 0) ? ' ' : (cur.value === base() ? '' : `≈ ${fmtBase(a * r / usdPer(base()))}`) + (n > 1 ? `${cur.value === base() ? '' : ' · '}${fmtBase(n * a * r / usdPer(base()))} in ${Y} (${n}×)` : ''); };
       ctl = rateCtl($('#lv-fx', b), x, () => ({ cur: cur.value, date: due.value }), updConv);
       const drawPaid = () => {
-        const list = occurrences(due.value, freq.value, ...yRange(Y), $('#lv-end', b).value);
+        const list = livDates({ due: due.value, freq: freq.value, end: $('#lv-end', b).value, createdAt: x.createdAt || new Date().toISOString() }, ...yRange(Y));
         const all = list.length ? list : (due.value ? [due.value] : []);
         if (all.length <= 1) { const d = all[0]; $('#lv-paid', b).innerHTML = `<div class="row"><span class="body"><div class="t">Paid</div><div class="st">${d ? (paid[d] ? 'Paid ' + fdate(paid[d], true) : 'Due ' + fdate(d, true)) : 'Set a due date'}</div></span><label class="switch"><input type="checkbox" id="lv-paidsw"${d && paid[d] ? ' checked' : ''}${d ? '' : ' disabled'}><span></span></label></div>`;
           $('#lv-paidsw', b) && ($('#lv-paidsw', b).onchange = e => { if (e.target.checked) paid[d] = todayISO(); else delete paid[d]; drawPaid(); }); }
@@ -3867,7 +3900,8 @@ function openLivingEditor(src, preset = {}) {
         const rec = Object.assign(src || { id: x.id, createdAt: new Date().toISOString() }, { name, category: cat.value, amount: Math.round(a * 1000) / 1000, currency: cur.value, freq: freq.value, due: due.value, end: freq.value === 'once' ? '' : $('#lv-end', b).value, paid, note: $('#lv-note', b).value.trim() }, ctl.result());
         rec.atts = await commitAtts(atts);
         if (isNew) F.living.push(rec);
-        save(); closeSheet(); render(); toast(isNew ? `${name} added` : 'Saved'); scheduleRates();
+        const inY = livOcc(rec, Y).length, nx = livDates(rec, rec.due, addMonths(rec.due, 24))[0];
+        save(); closeSheet(); render(); toast(inY ? (isNew ? `${name} added` : 'Saved') : `${isNew ? name + ' added' : 'Saved'} — first due ${fdate(nx || rec.due, true)}, shown under ${(nx || rec.due).slice(0, 4)}`); scheduleRates();
       };
     } });
 }
@@ -4082,7 +4116,7 @@ setTimeout(() => { if (db) scheduleRates(); }, 1200);
    so there is a single source of truth: edit or delete the expense and the Living item follows; nothing can be counted twice.
    Fuel / Tolls / Maintenance go to the matching Car sub-category, everything else to Other. */
 const LOCAL_LIV = { 'Fuel': 'fuel', 'Tolls': 'tolls', 'Maintenance': 'maint' };
-const localLivCat = e => { const k = LOCAL_LIV[localCatKey(e.category)]; if (k) return k; const g = guessLivCat([e.merchant, e.description].join(' ')); return g && g !== 'car' ? g : 'other'; }; // v4.3: a visa / residence card bought as a local expense groups with Residency & visa
+const localLivCat = e => { const k = LOCAL_LIV[localCatKey(e.category)]; if (k) return k; const g = guessLivCat([e.merchant, e.description].join(' ')); return g && g !== 'car' && g !== 'fuel' && g !== 'tolls' && g !== 'maint' ? g : 'other'; }; // v4.3: a visa / residence card bought as a local expense groups with Residency & visa
 const localInLiving = e => !!(e.local && e.paidBy === 'me' && !e.claim);
 function syncLocalLiving() {
   const F = db && db.finance; if (!F || !Array.isArray(F.living)) return;
@@ -4890,7 +4924,7 @@ function livGroupHTML(c, list, Y) {
   const one = curs.size === 1 ? [...curs][0] : null; const n = list.length;
   const cnt = list.every(l => l.srcExp) ? `${n} receipt${n === 1 ? '' : 's'}` : `${n} item${n === 1 ? '' : 's'}`;
   const main = one ? fmt(loc, one) : fmtBase(usd);
-  const sub = one ? (one !== base() ? '≈ ' + fmtBase(usd) : '') : 'mixed currencies';
+  const sub = one ? (one !== base() ? '≈ ' + fmtBase(usd) : '') : [...curs].sort().join(' + ') + ' · ≈ total';   // v4.3.1: say which currencies the ≈ total converts
   const items = list.slice().sort((a, b) => (!!a.srcExp - !!b.srcExp) || (a.srcExp ? String(b.due).localeCompare(String(a.due)) : String(a.name).localeCompare(String(b.name))));
   return `<div class="lgrp${open ? ' open' : ''}" data-lgk="${c.k}"><button class="row tap has-icon lg-h" data-lg="${c.k}" aria-expanded="${open}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(c.label)}</div><div class="st">${esc(cnt)}${due ? ` · <span style="color:var(--orange)">${due} due</span>` : ''}</div></span><span class="amt">${esc(main)}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span><span class="lg-x" aria-hidden="true">${icon('plus', 's')}</span></button><div class="lg-items"${open ? '' : ' hidden'}>${items.map(l => livRow(l, Y)).join('')}</div></div>`;
 }
@@ -5002,8 +5036,8 @@ async function reportData(from, to, openingFcfa) {
     rows.push({ t: 'sub', label: 'Total ' + label.toLowerCase(), ...tot }); secTot.push({ label, ...tot }); allExp.push(...own);
   };
   /* personal & living (not the local receipts — those have their own section) */
-  const liv = LIV_CATS.map(c => ({ label: c.label, lines: F.living.filter(l => l.category === c.k && !l.srcExp).map(l => {
-    const ds = occurrences(l.due, l.freq, from, until, l.end); if (!ds.length) return null;
+  const liv = LIV_CATS.map(c => ({ label: c.label, lines: F.living.filter(l => livCat(l.category).k === c.k && !l.srcExp).map(l => {
+    const ds = livDates(l, from, until); if (!ds.length) return null;
     let usd = 0, fc = 0; for (const d of ds) { const o = l.paid[d] && l.payFx && l.payFx[d] && l.payFx[d].fxRate > 0 ? l.payFx[d] : l; usd += econv(o, l.amount, l.currency, 'USD') || 0; fc += rptFcfa(o, l.amount, l.currency, d) || 0; }
     const unpaid = ds.filter(d => !l.paid[d]).length;
     return () => { const ln = line({ date: ds[0], item: l.name + (ds.length > 1 ? ' ×' + ds.length : ''), details: [FREQS[l.freq] ? FREQS[l.freq].label : '', ds.length > 1 ? rptDMY(ds[0]) + ' to ' + rptDMY(ds[ds.length - 1]) : '', unpaid ? `${unpaid} not marked paid` : '', l.note].filter(Boolean).join(' · '), amount: l.amount * ds.length, cur: l.currency, usd, fcfa: fc, kind: c.label, where: 'Living' }); bill(ln, (l.atts || []).map(attFile), 'Living'); return ln; };
