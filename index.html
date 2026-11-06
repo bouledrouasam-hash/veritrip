@@ -417,13 +417,17 @@ label.row{cursor:pointer}
 .fin-year b{font-size:17px;font-variant-numeric:tabular-nums;min-width:56px;text-align:center}
 .fin-year .navbtn[disabled]{opacity:.3}
 .fin-sum{padding:16px 16px 12px}
-.fs-net{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
-.fs-net span{font-size:15px;color:var(--label2);flex:1}
-.fs-net b{font-size:30px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--green)}
-.fs-net b.neg{color:var(--red)} .fs-net small{font-size:13px;color:var(--label2)}
-.fs-line{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:15px;border-top:.5px solid var(--sep)}
-.fs-line .l{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fs-line b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-cur{display:flex;justify-content:center;margin:-2px 0 12px}
+.cur-tog{width:148px}
+.cur-tog button{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.fs-net{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.fs-net > span{font-size:15px;color:var(--label2);flex:0 0 auto}
+.fs-net b{flex:1;min-width:0;text-align:right;font-size:28px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--green);line-height:1.15}
+.fs-net b.neg{color:var(--red)}
+.fs-line{display:flex;align-items:center;gap:8px;padding:8px 0;font-size:15px;border-top:.5px solid var(--sep)}
+.fs-line .l{flex:1;min-width:0;white-space:nowrap}
+.fs-line b{flex:0 0 auto;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.fs-line .switch.sm{flex:0 0 auto;margin:0 2px}
 .fs-sub{font-size:12px;color:var(--label2);white-space:nowrap}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none}
 .dot.inc{background:var(--green)} .dot.out{background:var(--orange)} .dot.trip{background:var(--indigo)}
@@ -443,7 +447,7 @@ label.row{cursor:pointer}
 .fin-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px 16px;margin-top:14px}
 .fin-kpi div{min-width:0}
 .fin-kpi span{display:block;font-size:12px;color:var(--label2);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fin-kpi b{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-kpi b{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block}
 .fin-kpi b.g{color:var(--green)} .fin-kpi b.r{color:var(--red)}
 .fin-kpi .kbar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin-top:4px}
 .fin-kpi .kbar i{display:block;height:100%;background:var(--green);border-radius:3px}
@@ -1764,7 +1768,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '4.5';
+const APP_VERSION = '4.5.1';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -1949,11 +1953,28 @@ function fmt(v, c, compact) {
   return sign + s + ' ' + c;
 }
 const fmtBase = (v, compact) => fmt(v, base(), compact);
-/* v4.5: FCFA (or whatever base()) is primary; USD rides as a small second figure on totals. */
+/* v4.5.1: one display currency at a time (toggle $ ↔ FCFA). dualHTML/dualText stay as single-currency helpers so call sites keep working. */
 function usdOfBase(v) { if (v == null || isNaN(v) || base() === 'USD') return null; const u = conv(v, base(), 'USD'); return u == null || isNaN(u) ? null : u; }
-function dualHTML(v, compact) { const m = fmtBase(v, compact); const u = usdOfBase(v); return u == null ? esc(m) : `${esc(m)}<span class="sub">≈ ${esc(fmt(u, 'USD', compact))}</span>`; }
-function dualText(v, compact) { const m = fmtBase(v, compact); const u = usdOfBase(v); return u == null ? m : `${m} · ≈ ${fmt(u, 'USD', compact)}`; }
+function dualHTML(v, compact) { return esc(fmtBase(v, compact)); }
+function dualText(v, compact) { return fmtBase(v, compact); }
 const baseLabel = () => (base() === 'XOF' || base() === 'XAF') ? 'FCFA' : base();
+/* Apple-style $ / FCFA segmented control. Ties to settings.baseCurrency (same as Settings → Report currency). */
+const viewIsUSD = () => base() === 'USD';
+const viewIsFCFA = () => base() === 'XOF' || base() === 'XAF';
+function curToggleHTML(id = 'cur-tog') {
+  return `<div class="seg cur-tog" id="${id}" role="group" aria-label="Display currency"><button type="button" data-c="USD" class="${viewIsUSD() ? 'on' : ''}" aria-pressed="${viewIsUSD()}">$</button><button type="button" data-c="XOF" class="${viewIsFCFA() ? 'on' : ''}" aria-pressed="${viewIsFCFA()}">FCFA</button></div>`;
+}
+function bindCurToggle(root, id = 'cur-tog') {
+  const el = root.querySelector ? root.querySelector('#' + id) : $('#' + id, root);
+  if (!el) return;
+  $$('button[data-c]', el).forEach(b => b.onclick = () => {
+    const c = b.dataset.c;
+    if (c === base() || (c === 'XOF' && viewIsFCFA())) return;
+    db.settings.baseCurrency = c;
+    save();
+    render();
+  });
+}
 function rateLabel(c, b = base()) { const r = conv(1, b, c); if (r == null) return '—'; return `1 ${b} = ${r >= 100 ? r.toFixed(0) : r >= 1 ? r.toFixed(3) : r.toPrecision(4)} ${c}`; }
 async function fetchJSON(url, ms = 8000) {
   const ac = new AbortController(); const t = setTimeout(() => ac.abort(), ms);
@@ -2481,7 +2502,7 @@ function renderSettingsPage(page, $) {
 `,
     currency: () => `    <div class="ghead">Currency</div><div class="group">
       <div class="field"><label>Report currency</label><select id="s-base">${curOptions(base())}</select></div>
-    </div><div class="foot">Totals across the app are in this currency (FCFA by default). USD still shows as a small second figure; the Excel report keeps Local, FCFA and USD for the audit.</div>
+    </div><div class="foot">Totals across the app are in this currency (FCFA by default). The $ / FCFA toggle on Finance switches the same setting. The Excel report keeps Local, FCFA and USD for the audit.</div>
     <div class="ghead">My exchange rates</div><div class="group" id="s-myrates">${rateRulesHTML()}</div>
     <div class="foot">Your card is in FCFA, so your bank's rate decides what you really pay. Add the rate it gave you (1 ETB = 5 FCFA) and the dates it applied: every expense in that currency on those dates is recalculated in FCFA (and USD), everywhere in the app and in reports. Delete the rate to go back to the market rate. A rate typed on one expense still wins.</div>
     <div class="ghead">Exchange rates</div><div class="group">
@@ -3802,14 +3823,15 @@ function renderFinance() {
   const maxM = Math.max(1, ...S.months.map(m => Math.max(m.inc, spendM(m))));
   const curM = +today.slice(0, 4) === Y ? +today.slice(5, 7) - 1 : -1;
   const bars = S.months.map((m, k) => `<div class="fb-col${k === curM ? ' now' : ''}" title="${esc(fmtBase(m.inc))} in · ${esc(fmtBase(spendM(m)))} out"><div class="fb-bars"><i class="inc" style="height:${(m.inc / maxM * 100).toFixed(1)}%"></i><i class="out" style="height:${(spendM(m) / maxM * 100).toFixed(1)}%"></i></div><span>${'JFMAMJJASOND'[k]}</span></div>`).join('');
-  const sumLine = (cls, label, val, extra = '') => `<div class="fs-line"><i class="dot ${cls}"></i><span class="l">${label}</span>${extra}<b>${dualHTML(val)}</b></div>`;
+  const sumLine = (cls, label, val) => `<div class="fs-line"><i class="dot ${cls}"></i><span class="l">${label}</span><b>${dualHTML(val)}</b></div>`;
   const summary = `<div class="fin-year"><button class="navbtn circle" id="fy-prev" aria-label="Previous year"${yi <= 0 && Y <= years[0] ? ' disabled' : ''}>${icon('chevL')}</button><b id="fy-lbl">${Y}</b><button class="navbtn circle" id="fy-next" aria-label="Next year">${icon('chevR')}</button></div>
+    <div class="fin-cur">${curToggleHTML('cur-tog')}</div>
     <div class="card fin-sum" id="fin-sum">
-      <div class="fs-net"><span>Net ${Y}</span><b class="${S.net < 0 ? 'neg' : ''}" id="fs-net">${dualHTML(S.net)}</b><small>${esc(baseLabel())}</small></div>
-      ${sumLine('inc', 'Income received', S.income)}
-      ${S.company || (F.received || []).length ? sumLine('co', 'Received from company', S.company) : ''}
-      ${sumLine('out', 'Living expenses', S.livBudget, `<span class="fs-sub">${esc(dualText(S.livPaid, true))} paid</span>`)}
-      <div class="fs-line"><i class="dot trip"></i><span class="l">Trip expenses not reimbursed</span><label class="switch sm"><input type="checkbox" id="fs-trip"${F.tripOOP ? ' checked' : ''}><span></span></label><b class="${F.tripOOP ? '' : 'faint'}">${dualHTML(S.tripOOP)}</b></div>
+      <div class="fs-net"><span>Net ${Y}</span><b class="${S.net < 0 ? 'neg' : ''}" id="fs-net">${dualHTML(S.net)}</b></div>
+      ${sumLine('inc', 'Income', S.income)}
+      ${S.company || (F.received || []).length ? sumLine('co', 'From company', S.company) : ''}
+      ${sumLine('out', 'Living', S.livBudget)}
+      <div class="fs-line"><i class="dot trip"></i><span class="l">Trip expenses</span><label class="switch sm"><input type="checkbox" id="fs-trip"${F.tripOOP ? ' checked' : ''}><span></span></label><b class="${F.tripOOP ? '' : 'faint'}">${dualHTML(S.tripOOP)}</b></div>
       <div class="fin-chart" aria-label="Monthly income and spending">${bars}</div>
       <div class="fin-legend"><span><i class="dot inc"></i>Income</span><span><i class="dot out"></i>Living${F.tripOOP ? ' + trips' : ''}</span></div>
     </div>`;
@@ -3818,7 +3840,7 @@ function renderFinance() {
     const due = livDue(60); const pct = S.livBudget ? clamp(S.livPaid / S.livBudget * 100, 0, 100) : 0;
     const byCat = LIV_CATS.map(c => [c, F.living.filter(l => livCat(l.category).k === c.k && livOcc(l, Y).length)]).filter(([, l]) => l.length);   // v4.3.1: a group lists exactly the items it adds up
     body = `<div class="card fin-kpi"><div><span>Year total</span><b>${dualHTML(S.livBudget, true)}</b></div><div><span>Paid</span><b class="g">${dualHTML(S.livPaid, true)}</b></div><div><span>Remaining</span><b>${dualHTML(S.livLeft, true)}</b></div><div class="kbar"><i style="width:${pct.toFixed(1)}%"></i></div></div>
-      ${due.length ? `<div class="section-h"><h2>Due soon</h2><span class="muted small">next 60 days</span></div><div class="group" id="liv-due">${due.slice(0, 8).map(o => { const c = livCat(o.item.category); return `<div class="row has-icon"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><button class="body tap-a" data-liv="${esc(o.item.id)}"><div class="t">${esc(o.item.name)}</div><div class="st" style="${o.overdue ? 'color:var(--red)' : ''}">${o.overdue ? 'Overdue since ' + esc(fdate(o.date)) : 'Due ' + esc(fdate(o.date, o.date.slice(0, 4) !== todayISO().slice(0, 4))) + ' · ' + esc(relDays(o.date))}</div></button><span class="amt">${esc(fmt(o.item.amount, o.item.currency))}${o.item.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(o.usd))}</span>` : (usdOfBase(o.usd) != null ? `<span class="sub">≈ ${esc(fmt(usdOfBase(o.usd), 'USD'))}</span>` : '')}</span><button class="paybtn" data-pay="${esc(o.item.id)}|${o.date}" aria-label="Mark paid">${icon('check', 's')}</button></div>`; }).join('')}</div>` : ''}
+      ${due.length ? `<div class="section-h"><h2>Due soon</h2><span class="muted small">next 60 days</span></div><div class="group" id="liv-due">${due.slice(0, 8).map(o => { const c = livCat(o.item.category); return `<div class="row has-icon"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><button class="body tap-a" data-liv="${esc(o.item.id)}"><div class="t">${esc(o.item.name)}</div><div class="st" style="${o.overdue ? 'color:var(--red)' : ''}">${o.overdue ? 'Overdue since ' + esc(fdate(o.date)) : 'Due ' + esc(fdate(o.date, o.date.slice(0, 4) !== todayISO().slice(0, 4))) + ' · ' + esc(relDays(o.date))}</div></button><span class="amt">${esc(fmt(o.item.amount, o.item.currency))}${o.item.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(o.usd))}</span>` : ''}</span><button class="paybtn" data-pay="${esc(o.item.id)}|${o.date}" aria-label="Mark paid">${icon('check', 's')}</button></div>`; }).join('')}</div>` : ''}
       <div class="section-h"><h2>Living expenses</h2><button id="liv-add">Add</button></div>
       ${byCat.length ? `<div class="group" id="liv-groups">${byCat.map(([c, list]) => livGroupHTML(c, list, Y)).join('')}</div>` : `<div class="card"><div class="empty">${icon('wallet')}Your yearly budget lives here — rent, school fees, insurance, residency, car.<br><button class="btn sm" id="liv-add2" style="margin-top:14px">${icon('plus', 's')} Add living expense</button></div></div>`}
       <div class="foot">Personal costs, never added to trip claims. Totals in ${esc(baseLabel())} at each item's own rate.</div>`;
@@ -3842,6 +3864,7 @@ function renderFinance() {
   bindMe(v);
   $('#fy-prev', v).onclick = () => { state.finYear = Y - 1; renderFinance(); };
   $('#fy-next', v).onclick = () => { state.finYear = Y + 1; renderFinance(); };
+  bindCurToggle(v, 'cur-tog');
   $('#fs-trip', v).onchange = e => { F.tripOOP = e.target.checked; save(); renderFinance(); };
   $$('#fin-seg button', v).forEach(b => b.onclick = () => { state.finSeg = b.dataset.s; renderFinance(); });
   $('#fin-plus', v).onclick = () => finAddMenu();
@@ -3861,14 +3884,14 @@ function renderFinance() {
   $('#cli-add', v) && ($('#cli-add', v).onclick = () => openClientEditor(null));
 }
 function livRow(l, Y) {
-  if (l.srcExp) { const c = livCat(l.category); const v = econv(l.payFx && l.payFx[l.due] && l.payFx[l.due].fxRate > 0 ? l.payFx[l.due] : l, l.amount, l.currency); const u = l.currency === base() ? usdOfBase(v) : null; return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(fdate(l.due))} · From receipt${l.hasReceipt ? ' · 📎' : ''}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${l.currency !== base() ? '≈ ' + esc(fmtBase(v)) + fxMark(l) : u != null ? '≈ ' + esc(fmt(u, 'USD')) : ''} <span class="pill ok">Paid</span></span></span></button>`; }
+  if (l.srcExp) { const c = livCat(l.category); const v = econv(l.payFx && l.payFx[l.due] && l.payFx[l.due].fxRate > 0 ? l.payFx[l.due] : l, l.amount, l.currency); return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(fdate(l.due))} · From receipt${l.hasReceipt ? ' · 📎' : ''}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${l.currency !== base() ? '≈ ' + esc(fmtBase(v)) + fxMark(l) + ' ' : ''}<span class="pill ok">Paid</span></span></span></button>`; }
   const c = livCat(l.category); const occ = livOcc(l, Y); const paidN = occ.filter(o => o.paid).length; const today = todayISO();
   const next = livDates(l, addDays(today, -365), addDays(today, 800)).find(d => !l.paid[d]);
   const yr = occ.reduce((t, o) => t + (o.usd || 0), 0);
   const st = `${FREQS[l.freq].label}${next ? ` · ${next < today ? 'overdue ' : 'next '}${fdate(next, next.slice(0, 4) !== today.slice(0, 4))}` : occ.length ? ' · all paid' : ''}${l.atts.length ? ' · 📎' : ''}`;
   const pill = occ.length && paidN === occ.length ? '<span class="pill ok">Paid</span>' : paidN ? `<span class="pill warn">${paidN}/${occ.length}</span>` : '';
-  const oneV = occ.length ? yr : econv(l); const uOne = l.currency === base() ? usdOfBase(oneV) : null;
-  return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(st)}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${occ.length > 1 ? `${esc(dualText(yr, true))} / yr` : l.currency !== base() ? '≈ ' + esc(fmtBase(oneV)) + fxMark(occ.length ? occ[0].rec : l) : uOne != null ? '≈ ' + esc(fmt(uOne, 'USD')) + fxMark(occ.length ? occ[0].rec : l) : ''} ${pill}</span></span></button>`;
+  const oneV = occ.length ? yr : econv(l); const mark = fxMark(occ.length ? occ[0].rec : l);
+  return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(st)}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${occ.length > 1 ? `${esc(dualText(yr, true))} / yr` : l.currency !== base() ? '≈ ' + esc(fmtBase(oneV)) : ''}${mark} ${pill}</span></span></button>`;
 }
 function invRow(i) {
   const s = invStatus(i); const col = { overdue: '#ff3b30', sent: '#5856d6', draft: '#8e8e93', paid: '#34c759' }[s]; const got = invReceived(i);
@@ -5040,12 +5063,10 @@ function livGroupHTML(c, list, Y) {
   const one = curs.size === 1 ? [...curs][0] : null; const n = list.length;
   const cnt = list.every(l => l.srcExp) ? `${n} receipt${n === 1 ? '' : 's'}` : `${n} item${n === 1 ? '' : 's'}`;
   const main = one ? fmt(loc, one) : fmtBase(usd);
-  /* v4.5: when the group is already in the base currency (FCFA), still show ≈ USD underneath */
+  /* v4.5.1: one display currency — show ≈ base only when the group is in another currency */
   let sub = '';
-  if (one) {
-    if (one !== base()) sub = '≈ ' + fmtBase(usd);
-    else { const u = usdOfBase(usd); if (u != null) sub = '≈ ' + fmt(u, 'USD'); }
-  } else sub = [...curs].sort().join(' + ') + ' · ≈ total';
+  if (one) { if (one !== base()) sub = '≈ ' + fmtBase(usd); }
+  else sub = [...curs].sort().join(' + ');
   const items = list.slice().sort((a, b) => (!!a.srcExp - !!b.srcExp) || (a.srcExp ? String(b.due).localeCompare(String(a.due)) : String(a.name).localeCompare(String(b.name))));
   return `<div class="lgrp${open ? ' open' : ''}" data-lgk="${c.k}"><button class="row tap has-icon lg-h" data-lg="${c.k}" aria-expanded="${open}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(c.label)}</div><div class="st">${esc(cnt)}${due ? ` · <span style="color:var(--orange)">${due} due</span>` : ''}</div></span><span class="amt">${esc(main)}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span><span class="lg-x" aria-hidden="true">${icon('plus', 's')}</span></button><div class="lg-items"${open ? '' : ' hidden'}>${items.map(l => livRow(l, Y)).join('')}</div></div>`;
 }
@@ -5060,8 +5081,8 @@ function bindLivGroups(v) {
 const RCV = () => FIN().received || (FIN().received = []);
 function cmRow(r) {
   const t = r.tripId ? tripById(r.tripId) : null;
-  const v = econv(r); const u = r.currency === base() ? usdOfBase(v) : null;
-  return `<button class="row tap has-icon" data-cm="${esc(r.id)}"><span class="ico" style="background:#0a84ff">${icon('building')}</span><span class="body"><div class="t">${esc(r.note || 'Received from company')}</div><div class="st">${esc(fdate(r.date, true))}${t ? ' · Trip ' + esc(tripName(t)) : ''}</div></span><span class="amt">${esc(fmt(r.amount, r.currency))}${r.currency !== base() && v != null ? `<span class="sub">≈ ${esc(fmtBase(v))}${fxMark(r)}</span>` : u != null ? `<span class="sub">≈ ${esc(fmt(u, 'USD'))}</span>` : ''}</span></button>`;
+  const v = econv(r);
+  return `<button class="row tap has-icon" data-cm="${esc(r.id)}"><span class="ico" style="background:#0a84ff">${icon('building')}</span><span class="body"><div class="t">${esc(r.note || 'Received from company')}</div><div class="st">${esc(fdate(r.date, true))}${t ? ' · Trip ' + esc(tripName(t)) : ''}</div></span><span class="amt">${esc(fmt(r.amount, r.currency))}${r.currency !== base() && v != null ? `<span class="sub">≈ ${esc(fmtBase(v))}${fxMark(r)}</span>` : ''}</span></button>`;
 }
 function companyMoneyHTML(Y) {
   const list = RCV().filter(r => String(r.date).slice(0, 4) == Y).sort((a, b) => String(b.date).localeCompare(String(a.date)));
