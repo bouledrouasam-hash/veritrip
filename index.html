@@ -116,6 +116,9 @@ svg.i.s{width:17px;height:17px} svg.i.l{width:28px;height:28px}
 .row .val{color:var(--label2);text-align:right;white-space:nowrap}
 .row .amt{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .row .amt .sub{display:block;font-size:13px;color:var(--label2);margin-top:2px}
+.reimb .v .sub,.fs-net b .sub,.hero .stat b .sub,.fin-kpi b .sub,.pamt .sub,.dayh .num .sub,.muted.num .sub{display:block;font-size:13px;font-weight:500;color:var(--label2);margin-top:2px;letter-spacing:0}
+.reimb .v{white-space:normal}
+.reimb .v .sub{font-size:17px;font-weight:600}
 .chev{color:var(--label3)}
 .ico{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#fff;flex:none}
 .ico svg{width:19px;height:19px;stroke-width:2}
@@ -1617,7 +1620,7 @@ function fxSrcLabel(o) {
   return o.fxDate && o.fxDate > todayISO() ? 'estimate — exact rate once the date has passed' : 'rate pending — estimate until online';
 }
 /* tiny marker for lists */
-const fxMark = o => { const st = o && o.fxCur && o.fxCur !== base() ? fxStatusOf(o) : null; const yr = st && o.fxRule && o.fxSrc === 'manual-rule' ? ' <span class="fxp yr" title="Your exchange rate (Settings → My exchange rates)">Your rate</span>' : ''; return yr + (st === 'pending' ? ' <span class="fxp" title="Exchange rate pending — updates automatically when online">rate pending</span>' : st === 'fallback' ? ` <span class="fxp est" title="No market rate found — tap the item to enter one">${o.fxRate > 0 ? 'est. rate' : 'no rate'}</span>` : st === 'estimate' ? ' <span class="fxp est" title="Future date — converted at the latest rate; the exact rate is used once the date has passed">est.</span>' : ''); };
+const fxMark = o => { const st0 = o && o.fxCur ? fxStatusOf(o) : null; const st = st0 && (o.fxCur !== base() || st0 === 'estimate' || st0 === 'pending' || st0 === 'fallback') ? st0 : null; const yr = st && o.fxRule && o.fxSrc === 'manual-rule' ? ' <span class="fxp yr" title="Your exchange rate (Settings → My exchange rates)">Your rate</span>' : ''; return yr + (st === 'pending' ? ' <span class="fxp" title="Exchange rate pending — updates automatically when online">rate pending</span>' : st === 'fallback' ? ` <span class="fxp est" title="No market rate found — tap the item to enter one">${o.fxRate > 0 ? 'est. rate' : 'no rate'}</span>` : st === 'estimate' ? ' <span class="fxp est" title="Future date — converted at the latest rate; the exact rate is used once the date has passed">est.</span>' : ''); };
 /* "1 USD = 655.96 XOF" for an item */
 function rateText(rate, cur, b = base()) { if (!(rate > 0)) return '—'; const x = usdPer(b) / rate; return `1 ${b} = ${x >= 100 ? x.toFixed(2) : x >= 1 ? x.toFixed(4) : x.toPrecision(4)} ${cur}`; }
 const perBase = (rate, b = base()) => rate > 0 ? +(usdPer(b) / rate).toPrecision(6) : '';
@@ -1761,7 +1764,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '4.4';
+const APP_VERSION = '4.5';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -1806,7 +1809,7 @@ const KEY = 'veritrip_v3';
 const OLD = { trips: 'veritrip_saved_trips_v2', exp: 'veritrip_saved_expenses_v2', cur: 'veritrip_saved_currency_v2', theme: 'theme' };
 const DEFAULT_SETTINGS = () => {
   let tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
-  return { baseCurrency: 'USD', theme: 'auto', name: '', company: '', employeeId: '', homeIata: TZ_HOME[tz] || '',
+  return { baseCurrency: 'XOF', theme: 'auto', name: '', company: '', employeeId: '', homeIata: TZ_HOME[tz] || '',
     ai: { provider: 'none', key: '', model: '' }, travelBuffer: 1, autoFx: true, onboarded: false, engineerTitle: '', reportLang: 'en', engineerSign: '',
     reportCompany: 'TMSP', reportSub: 'Trading Medical Systems Private Co. Ltd.', reportLogoMode: 'default', reportLogoData: '', homeCountry: "Côte d'Ivoire", homeCurrency: 'XOF', fxRules: [] };
 };
@@ -1860,6 +1863,7 @@ function normalizeDB() {
   db.fx.manual = db.fx.manual || {};
   migrateV32();
   migrateV33();
+  migrateV45();
   migrateV36();
   syncLocalLiving();   // v3.9: every local expense is in Finance → Living (also migrates 3.8 data)
   try { fxStampAll(); } catch (err) { console.warn('VeriTrip: rate rules', err); }   // v4.1.1: every saved expense is matched against "My exchange rates" on every start / update / restore
@@ -1941,9 +1945,15 @@ function fmt(v, c, compact) {
   const s = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
   const sign = v < 0 ? '−' : '';
   if (c === 'USD') return sign + '$' + s; if (c === 'EUR') return sign + '€' + s; if (c === 'GBP') return sign + '£' + s;
+  if (c === 'XOF' || c === 'XAF') return sign + s + ' FCFA';
   return sign + s + ' ' + c;
 }
 const fmtBase = (v, compact) => fmt(v, base(), compact);
+/* v4.5: FCFA (or whatever base()) is primary; USD rides as a small second figure on totals. */
+function usdOfBase(v) { if (v == null || isNaN(v) || base() === 'USD') return null; const u = conv(v, base(), 'USD'); return u == null || isNaN(u) ? null : u; }
+function dualHTML(v, compact) { const m = fmtBase(v, compact); const u = usdOfBase(v); return u == null ? esc(m) : `${esc(m)}<span class="sub">≈ ${esc(fmt(u, 'USD', compact))}</span>`; }
+function dualText(v, compact) { const m = fmtBase(v, compact); const u = usdOfBase(v); return u == null ? m : `${m} · ≈ ${fmt(u, 'USD', compact)}`; }
+const baseLabel = () => (base() === 'XOF' || base() === 'XAF') ? 'FCFA' : base();
 function rateLabel(c, b = base()) { const r = conv(1, b, c); if (r == null) return '—'; return `1 ${b} = ${r >= 100 ? r.toFixed(0) : r >= 1 ? r.toFixed(3) : r.toPrecision(4)} ${c}`; }
 async function fetchJSON(url, ms = 8000) {
   const ac = new AbortController(); const t = setTimeout(() => ac.abort(), ms);
@@ -2157,7 +2167,7 @@ function tripRow(t, onToday) {
   return `<button class="row tap has-icon" data-trip="${esc(t.id)}"><span class="ico" style="background:${t.color}">${icon(t.type === 'LOCAL' ? 'pin' : 'plane')}</span>
    <span class="body"><div class="t">${esc(tripName(t))}${t.country ? `<span class="muted" style="font-size:15px">, ${esc(t.country)}</span>` : ''}</div>
    <div class="st">${esc(fmtRange(t.startDate, t.endDate))} · ${tripLen(t)} day${tripLen(t) > 1 ? 's' : ''}${t.purpose ? ' · ' + esc(t.purpose) : ''}</div>
-   <div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${right}<span class="pill">${esc(fmtBase(tot.reimb))} to claim</span></div></span>
+   <div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${right}<span class="pill">${esc(dualText(tot.reimb))} to claim</span></div></span>
    ${icon('chevR', 's chev')}</button>`;
 }
 function bindRows(root) {
@@ -2234,7 +2244,7 @@ function renderCalendar() {
   const sel = state.calSel; const selTrips = tripsOn(sel); const selExp = (expByDay[sel] || []).slice().sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const meTotal = selExp.filter(claimable).reduce((s, e) => s + (econv(e) || 0), 0);
   const r = resolveTrip(sel);
-  const panel = `<div class="section-h"><h2>${esc(fmtD(sel, { weekday: 'long', day: 'numeric', month: 'long' }))}</h2>${meTotal ? `<span class="muted num">${esc(fmtBase(meTotal))}</span>` : ''}</div>
+  const panel = `<div class="section-h"><h2>${esc(fmtD(sel, { weekday: 'long', day: 'numeric', month: 'long' }))}</h2>${meTotal ? `<span class="muted num">${dualHTML(meTotal)}</span>` : ''}</div>
     ${selTrips.length ? `<div class="group">${selTrips.map(t => `<button class="row tap" data-trip="${esc(t.id)}"><span class="dot" style="background:${t.color}"></span><span class="body"><div class="t">${esc(tripName(t))}</div><div class="st">Day ${daysBetween(t.startDate, sel) + 1} of ${tripLen(t)}${sel === t.startDate ? ' · travel day (arrival)' : sel === t.endDate ? ' · travel day (departure)' : ''}</div></span>${icon('chevR', 's chev')}</button>`).join('')}</div>`
       : r.trip ? `<div class="foot" style="padding-top:0">Not inside a trip. Expenses added here go to <b>${esc(tripName(r.trip))}</b> as a travel day.</div>` : `<div class="foot" style="padding-top:0">No trip on this day.</div>`}
     ${selExp.length ? `<div class="group" style="margin-top:10px">${selExp.map(e => expenseRow(e, { showDate: false })).join('')}</div>` : `<div class="card" style="margin-top:10px"><div class="empty" style="padding:22px">No expenses on this day.</div></div>`}
@@ -2265,12 +2275,12 @@ function renderCalendar() {
 const quickHTML = () => `<button class="btn addr" id="q-add">${icon('camera')} Add receipt</button>`;
 /** Local expense entry (fuel, car, parking … at home). Same Add receipt menu (Take photo / Choose photo or file / Type it in) as everywhere else. */
 function localExpenseSheet() { receiptSheet({ local: true }, 'Local expense'); }
-/** Thin "previous trip" card (v4.0): flag · city + dates · purpose · USD spent. */
+/** Thin "previous trip" card (v4.0): flag · city + dates · purpose · FCFA spent (USD secondary). */
 function prevCard(t) {
   const c = countryISO(t.country, t.city); const tot = tripTotals(t);
   return `<button class="pcard" data-trip="${esc(t.id)}"><span class="pflag">${(c && flagSVG(c)) || icon('plane', 's')}</span>
     <span class="pbody"><span class="pt">${esc(tripName(t))}<span class="pd">${esc(fmtRange(t.startDate, t.endDate))}</span></span>${t.purpose ? `<span class="pp">${esc(t.purpose)}</span>` : ''}</span>
-    <span class="pamt num">${esc(fmtBase(tot.reimb))}</span></button>`;
+    <span class="pamt num">${dualHTML(tot.reimb)}</span></button>`;
 }
 function renderTrips() {
   const v = $('#v-trips');
@@ -2287,7 +2297,7 @@ function renderTrips() {
       <div class="k">${icon('plane', 's')} On trip</div>
       <div class="city">${esc(tripName(t))}</div><div class="dates">${esc(fmtRange(t.startDate, t.endDate))}${t.purpose ? ' · ' + esc(t.purpose) : ''}</div>
       <div class="daysl">Day ${dayN} of ${L} · ${L - dayN > 0 ? `${L - dayN} day${L - dayN > 1 ? 's' : ''} left` : 'last day'}</div>
-      <div class="stats s2"><div class="stat"><b>${esc(fmtBase(tot.reimb, true))}</b><span>Spent so far</span></div><div class="stat"><b>${esc(fmtBase(Math.round(tot.reimb / clamp(dayN, 1, L))).replace(/[.,]00$/, ''))}/day</b><span>Daily average</span></div></div>
+      <div class="stats s2"><div class="stat"><b>${dualHTML(tot.reimb, true)}</b><span>Spent so far</span></div><div class="stat"><b>${esc(fmtBase(Math.round(tot.reimb / clamp(dayN, 1, L))).replace(/[.,]00$/, ''))}/day</b><span>Daily average</span></div></div>
       <div class="progress"><i style="width:${clamp(dayN / L * 100, 4, 100)}%"></i></div></button>`
       + (cur.length > 1 ? `<div class="foot">Also active: ${cur.slice(1).map(x => esc(tripName(x))).join(', ')}. New expenses go to the trip matching the receipt's currency.</div>` : '');
   } else {
@@ -2295,7 +2305,7 @@ function renderTrips() {
     const fb = flagBG({ country: homeCountry() }); const nx = upcoming[0];
     hero = `<div class="hero${fb ? ' flagged' : ''}" id="hero-local" style="${fb ? `--tint:${fb.tint}` : ''}">${fb ? fb.html : ''}
       <div class="k">${icon('pin', 's')} Local</div><div class="city">${esc(homeCountry())}</div>
-      <div class="dates muted">${lm.length ? `${esc(D(mk + '-01').toLocaleDateString('en-GB', { month: 'long' }))} · ${lm.length} expense${lm.length > 1 ? 's' : ''} · ${esc(fmtBase(sum))} · in Living expenses` : 'Snap a fuel, car or parking receipt — it goes straight to Living expenses'}</div>
+      <div class="dates muted">${lm.length ? `${esc(D(mk + '-01').toLocaleDateString('en-GB', { month: 'long' }))} · ${lm.length} expense${lm.length > 1 ? 's' : ''} · ${esc(dualText(sum))} · in Living expenses` : 'Snap a fuel, car or parking receipt — it goes straight to Living expenses'}</div>
       ${nx ? `<div class="dates muted" style="margin-top:4px;font-size:13px">Next trip: ${esc(tripName(nx))} · ${esc(relDays(nx.startDate))}</div>` : ''}</div>`;
   }
   const att = todayAttention(today);
@@ -2328,7 +2338,7 @@ function pastTripsHTML() {
   if (q) past = past.filter(t => [tripName(t), t.country, t.purpose, t.location, t.startDate, fmtRange(t.startDate, t.endDate)].join(' ').toLowerCase().includes(q));
   if (!past.length) return `<div class="card"><div class="empty">${icon('suitcase')}${q ? 'No trip matches your search.' : 'No previous trips.'}</div></div>`;
   const byYear = {}; past.forEach(t => (byYear[t.startDate.slice(0, 4)] = byYear[t.startDate.slice(0, 4)] || []).push(t));
-  return Object.keys(byYear).sort().reverse().map(y => `<div class="ghead" style="display:flex;justify-content:space-between"><span>${y}</span><span class="num">${esc(fmtBase(byYear[y].reduce((s, t) => s + tripTotals(t).reimb, 0)))} claimed</span></div><div class="group">${byYear[y].map(tripRow).join('')}</div>`).join('');
+  return Object.keys(byYear).sort().reverse().map(y => `<div class="ghead" style="display:flex;justify-content:space-between"><span>${y}</span><span class="num">${esc(dualText(byYear[y].reduce((s, t) => s + tripTotals(t).reimb, 0)))} claimed</span></div><div class="group">${byYear[y].map(tripRow).join('')}</div>`).join('');
 }
 function renderPastTrips(v) {
   const n = db.trips.filter(t => tripStatus(t) === 'past').length;
@@ -2356,7 +2366,7 @@ function renderExpenses() {
     `<div class="ltitle">Expenses</div>
     <label class="search">${icon('search', 's')}<input id="exp-q" type="search" placeholder="Search merchant, trip, amount…" value="${esc(state.expQuery)}"></label>
     <div class="chips">${filters.map(([k, l]) => `<button class="chip${f === k ? ' on' : ''}" data-f="${k}">${l}</button>`).join('')}</div>
-    <div class="foot" style="padding:0 4px 4px">${list.length} item${list.length === 1 ? '' : 's'} · <span class="num">${esc(fmtBase(total))}</span> out-of-pocket</div>
+    <div class="foot" style="padding:0 4px 4px">${list.length} item${list.length === 1 ? '' : 's'} · <span class="num">${esc(dualText(total))}</span> out-of-pocket</div>
     ${f === 'local' ? `<div class="foot" style="padding:0 4px 8px">Local expenses you paid yourself are recorded in Finance → Living expenses (Fuel / Tolls / Maintenance / Other).</div>` : ''}
     ${!list.length ? `<div class="card"><div class="empty">${icon('receipt')}Nothing here.</div></div>` : ''}
     ${Object.keys(months).sort().reverse().map(m => `<div class="ghead">${esc(D(m + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }))}</div><div class="group">${months[m].map(e => expenseRow(e)).join('')}</div>`).join('')}`;
@@ -2471,15 +2481,15 @@ function renderSettingsPage(page, $) {
 `,
     currency: () => `    <div class="ghead">Currency</div><div class="group">
       <div class="field"><label>Report currency</label><select id="s-base">${curOptions(base())}</select></div>
-    </div><div class="foot">Reports and Finance are in this currency (USD by default).</div>
+    </div><div class="foot">Totals across the app are in this currency (FCFA by default). USD still shows as a small second figure; the Excel report keeps Local, FCFA and USD for the audit.</div>
     <div class="ghead">My exchange rates</div><div class="group" id="s-myrates">${rateRulesHTML()}</div>
-    <div class="foot">Your card is in FCFA, so your bank's rate decides what you really pay. Add the rate it gave you (1 ETB = 5 FCFA) and the dates it applied: every expense in that currency on those dates is recalculated in USD, everywhere in the app and in reports. Delete the rate to go back to the market rate. A rate typed on one expense still wins.</div>
+    <div class="foot">Your card is in FCFA, so your bank's rate decides what you really pay. Add the rate it gave you (1 ETB = 5 FCFA) and the dates it applied: every expense in that currency on those dates is recalculated in FCFA (and USD), everywhere in the app and in reports. Delete the rate to go back to the market rate. A rate typed on one expense still wins.</div>
     <div class="ghead">Exchange rates</div><div class="group">
       <div class="row"><span class="body"><div class="t">Update rates automatically</div><div class="st">${db.fx.updatedAt ? 'Updated ' + esc(new Date(db.fx.updatedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + ' · ' + esc(db.fx.source) : 'Using built-in rates'}</div></span><label class="switch"><input type="checkbox" id="s-autofx"${s.autoFx ? ' checked' : ''}><span></span></label></div>
       <div id="fx-status"></div>
       <button class="row tap" id="s-fxnow"><span class="body" style="color:var(--blue)">Update rates now</span></button>
     </div><div class="foot">Every item keeps its own currency and the market rate of <b>its own date</b>. Receipts saved offline use an estimate marked “rate pending” and are corrected automatically when you are back online. Weekend dates use the last published rate. Sources: currency-api (daily, all African currencies) and ECB via Frankfurter. XOF and XAF use the fixed peg of 655.957 per EUR. A rate you type on an item is never overwritten.</div>
-    <div class="ghead">Today's rates (1 ${esc(base())} = …)</div><div class="group" id="s-rates">${usedCurs.filter(c => c !== base()).map(c => `<div class="field"><label>${c}${db.fx.manual[c] ? ' <span class="pill" style="font-size:10px">manual</span>' : ''}</label><input type="number" step="any" inputmode="decimal" data-rate="${c}" value="${+(conv(1, base(), c) || 0).toPrecision(6)}"></div>`).join('')}</div>
+    <div class="ghead">Today's rates (1 ${esc(baseLabel())} = …)</div><div class="group" id="s-rates">${usedCurs.filter(c => c !== base()).map(c => `<div class="field"><label>${c}${db.fx.manual[c] ? ' <span class="pill" style="font-size:10px">manual</span>' : ''}</label><input type="number" step="any" inputmode="decimal" data-rate="${c}" value="${+(conv(1, base(), c) || 0).toPrecision(6)}"></div>`).join('')}</div>
     <div class="foot">Used for new items until the rate of their date is found. Edit a rate to lock it for every item in that currency. <button class="linkbtn small" id="s-unlock">Unlock all</button></div>
 `,
     trips: () => `    <div class="ghead">Travel days</div><div class="group">
@@ -2515,7 +2525,7 @@ function renderSettingsPage(page, $) {
   const rules = fxRules().length;
   const main = `<div class="group" id="set-main">
       ${srow('profile', '#007aff', 'person', 'Profile', [s.name || 'Name', s.company].filter(Boolean).join(' · '))}
-      ${srow('currency', '#34c759', 'coin', 'Currency &amp; rates', `${base()} reports${rules ? ` · ${rules} of my rate${rules === 1 ? '' : 's'}` : ''}`)}
+      ${srow('currency', '#34c759', 'coin', 'Currency &amp; rates', `${baseLabel()} reports${rules ? ` · ${rules} of my rate${rules === 1 ? '' : 's'}` : ''}`)}
       ${srow('trips', '#ff9500', 'suitcase', 'Trips', `Travel-day buffer ${+s.travelBuffer ? s.travelBuffer + ' day' + (+s.travelBuffer > 1 ? 's' : '') : 'off'}`)}
       ${srow('data', '#8e8e93', 'download', 'Data &amp; backup', 'Backup, export, restore')}
       ${srow('about', '#5856d6', 'info', 'About', 'VeriTrip ' + APP_VERSION)}
@@ -3127,9 +3137,9 @@ async function printReport(t) {
   const imgs = [];
   for (const [i, e] of me.entries()) { const r = await getFile(e); if (r && r.thumb && r.type !== 'application/pdf') { let src = r.thumb; if (r.blob && r.type.startsWith('image/')) src = await blobToDataUrl(r.blob); imgs.push(`<figure><img src="${src}"><figcaption>#${i + 1} · ${esc(fmtD(e.date))} · ${esc(e.merchant)} · ${esc(fmt(e.amount, e.currency))}</figcaption></figure>`); } else if (r && r.thumb) imgs.push(`<figure><img src="${r.thumb}"><figcaption>#${i + 1} · ${esc(e.merchant)} (PDF, page 1)</figcaption></figure>`); }
   $('#print-root').innerHTML = `<h1>Travel expense claim</h1><div class="sub">${esc(tripName(t))}${t.country ? ', ' + esc(t.country) : ''} · ${esc(fmtRange(t.startDate, t.endDate))} (${tripLen(t)} days)</div>
-    <div class="meta"><div><b>Employee</b>${esc(s.name || '—')}${s.employeeId ? ' · ' + esc(s.employeeId) : ''}</div><div><b>Company</b>${esc(s.company || '—')}</div><div><b>Purpose</b>${esc(t.purpose || '—')}</div><div><b>Booking</b>${esc([t.pnr && 'PNR ' + t.pnr, (t.flights || []).join(', '), t.hotelInfo].filter(Boolean).join(' · ') || '—')}</div><div><b>Claim currency</b>${esc(base())}</div><div><b>Prepared</b>${esc(fmtD(todayISO(), { day: 'numeric', month: 'long', year: 'numeric' }))}</div></div>
+    <div class="meta"><div><b>Employee</b>${esc(s.name || '—')}${s.employeeId ? ' · ' + esc(s.employeeId) : ''}</div><div><b>Company</b>${esc(s.company || '—')}</div><div><b>Purpose</b>${esc(t.purpose || '—')}</div><div><b>Booking</b>${esc([t.pnr && 'PNR ' + t.pnr, (t.flights || []).join(', '), t.hotelInfo].filter(Boolean).join(' · ') || '—')}</div><div><b>Claim currency</b>${esc(baseLabel())}</div><div><b>Prepared</b>${esc(fmtD(todayISO(), { day: 'numeric', month: 'long', year: 'numeric' }))}</div></div>
     <div class="total"><span>Total to reimburse</span><span>${esc(fmtBase(tot.reimb))}</span></div>
-    <h2>Out-of-pocket expenses</h2><table><thead><tr><th>#</th><th>Date</th><th>Merchant</th><th>Category</th><th>Paid with</th><th class="r">Amount</th><th class="r">${esc(base())}</th><th>Rcpt</th></tr></thead><tbody>${me.map(row).join('') || '<tr><td colspan="8">None</td></tr>'}</tbody><tfoot><tr><td colspan="6">Total</td><td class="r">${esc(fmtBase(tot.reimb))}</td><td></td></tr></tfoot></table>
+    <h2>Out-of-pocket expenses</h2><table><thead><tr><th>#</th><th>Date</th><th>Merchant</th><th>Category</th><th>Paid with</th><th class="r">Amount</th><th class="r">${esc(baseLabel())}</th><th>Rcpt</th></tr></thead><tbody>${me.map(row).join('') || '<tr><td colspan="8">None</td></tr>'}</tbody><tfoot><tr><td colspan="6">Total</td><td class="r">${esc(fmtBase(tot.reimb))}</td><td></td></tr></tfoot></table>
     <h2>Summary by category</h2><table><tbody>${Object.entries(tot.byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(catOf(k).label)}</td><td class="r">${esc(fmtBase(v))}</td></tr>`).join('')}</tbody></table>
     <h2>Exchange rates used</h2><table><tbody>${Object.entries(tot.byCur).map(([c, x]) => `<tr><td>${esc(c === base() ? '—' : rateText(x.base / x.local * usdPer(base()), c) + (x.n > 1 ? ' (avg)' : ''))}</td><td class="r">${esc(fmt(x.local, c))}</td><td class="r">${esc(fmtBase(x.base))}</td></tr>`).join('')}</tbody></table><div class="note">Each expense is converted at the rate of its own date (historical rates where available; XOF/XAF at the fixed peg of 655.957 per EUR; rates you entered are kept).</div>
     ${co.length ? `<h2>Paid by the company (for reference, not claimed)</h2><table><tbody>${co.map(e => `<tr><td>${esc(fmtD(e.date, { day: '2-digit', month: 'short' }))}</td><td>${esc(e.merchant)}</td><td>${esc(catOf(e.category).label)}</td><td>${esc(e.paymentMethod)}</td><td class="r">${esc(e.amount ? fmt(e.amount, e.currency) : '')}</td></tr>`).join('')}</tbody></table>` : ''}
@@ -3516,17 +3526,17 @@ function renderTrip() {
   const remind = needF || needH ? `<button class="remind" id="tr-remind">${icon('info', 's')}<span>${needF && needH ? 'Add the flight and hotel the company booked' : needF ? 'Add the flight details' : 'Add the hotel details'} <b>— takes a few seconds</b></span>${icon('chevR', 's chev')}</button>` : '';
   const byDay = {}; list.forEach(e => (byDay[e.date] = byDay[e.date] || []).push(e));
   const dayLabel = d => `${fmtD(d, { weekday: 'short', day: 'numeric', month: 'short' })}${d >= t.startDate && d <= t.endDate ? ` · Day ${daysBetween(t.startDate, d) + 1}` : ''}`;
-  const listHTML = list.length ? Object.keys(byDay).sort().map(d => `<div class="dayh"><span>${esc(dayLabel(d))}</span><span class="num">${esc(fmtBase(byDay[d].filter(e => e.paidBy === 'me').reduce((s, e) => s + (econv(e) || 0), 0)))}</span></div><div class="group">${byDay[d].map(e => expenseRow(e, { showDate: false, showTrip: false, simple: true })).join('')}</div>`).join('')
+  const listHTML = list.length ? Object.keys(byDay).sort().map(d => `<div class="dayh"><span>${esc(dayLabel(d))}</span><span class="num">${dualHTML(byDay[d].filter(e => e.paidBy === 'me').reduce((s, e) => s + (econv(e) || 0), 0))}</span></div><div class="group">${byDay[d].map(e => expenseRow(e, { showDate: false, showTrip: false, simple: true })).join('')}</div>`).join('')
     : `<div class="card"><div class="empty">${icon('receipt')}No expenses yet.</div></div>`;
   const catEntries = Object.entries(tot.byCat).sort((a, b) => b[1] - a[1]); const curs = Object.entries(tot.byCur);
   const details = `<details class="tdetails" id="tr-details"${state.tripDetailsOpen ? ' open' : ''}><summary>Details</summary>
     <div class="ghead">Summary</div><div class="group">
-      <div class="row"><span class="body">Company paid</span><span class="num muted">${esc(fmtBase(tot.company, true))}</span></div>
-      <div class="row"><span class="body">Average per day</span><span class="num muted">${esc(fmtBase(tot.reimb / clamp(daysBetween(t.startDate, todayISO()) + 1, 1, L), true))}</span></div>
-      ${catEntries.map(([k, val]) => { const c = catOf(k); return `<div class="row"><span class="body"><span class="dot" style="background:${c.color};width:8px;height:8px;margin-right:8px"></span>${esc(c.label)}</span><span class="num muted">${esc(fmtBase(val))}</span></div>`; }).join('')}</div>
+      <div class="row"><span class="body">Company paid</span><span class="num muted">${dualHTML(tot.company, true)}</span></div>
+      <div class="row"><span class="body">Average per day</span><span class="num muted">${dualHTML(tot.reimb / clamp(daysBetween(t.startDate, todayISO()) + 1, 1, L), true)}</span></div>
+      ${catEntries.map(([k, val]) => { const c = catOf(k); return `<div class="row"><span class="body"><span class="dot" style="background:${c.color};width:8px;height:8px;margin-right:8px"></span>${esc(c.label)}</span><span class="num muted">${dualHTML(val)}</span></div>`; }).join('')}</div>
     <div class="ghead">Currencies &amp; exchange rates</div><div class="group">
       <div class="row"><span class="body">Local currency</span><span class="muted">${esc(t.defaultCurrency)}</span></div>
-      ${curs.map(([c, x]) => `<div class="row"><span class="body"><div class="t num">${esc(fmt(x.local, c))}</div><div class="st">${esc(rateLabel(c))}</div></span><span class="num muted">${esc(fmtBase(x.base))}</span></div>`).join('')}</div>
+      ${curs.map(([c, x]) => `<div class="row"><span class="body"><div class="t num">${esc(fmt(x.local, c))}</div><div class="st">${esc(rateLabel(c))}</div></span><span class="num muted">${dualHTML(x.base)}</span></div>`).join('')}</div>
     <div class="foot">Rates: ${db.fx.updatedAt ? 'live, updated ' + esc(new Date(db.fx.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : 'built-in defaults'} · edit in Settings.${tot.unconverted ? ` ${tot.unconverted} item(s) need a rate.` : ''}</div>
     ${t.purpose || t.notes ? `<div class="ghead">Notes</div><div class="group"><div class="row"><span class="body" style="white-space:pre-wrap">${esc([t.purpose, t.notes].filter(Boolean).join('\n'))}</span></div></div>` : ''}
   </details>`;
@@ -3534,7 +3544,7 @@ function renderTrip() {
     `<div class="thero${tfb ? ' flagged' : ''}"${tfb ? ` style="--tint:${tfb.tint}"` : ''}>${tfb ? tfb.html : ''}<div class="ltitle">${flag && !tfb ? `<span class="flag">${flag}</span>` : ''}${esc(tripName(t))}</div>
       <div class="lsub" style="margin-bottom:14px">${esc(fmtRange(t.startDate, t.endDate))} · <b>${esc(tripDayText(t))}</b>${travel ? '' : ' · Local'}${t.clientId ? ' · ' + esc(clientName(t.clientId)) : ''}</div></div>
     ${remind}
-    <div class="reimb"><div class="k">To reimburse</div><div class="v">${esc(fmtBase(tot.reimb))}</div><div class="s">${mine.length} receipt${mine.length === 1 ? '' : 's'}${tot.noReceipt ? ` · ${tot.noReceipt} without photo` : ''}</div></div>
+    <div class="reimb"><div class="k">To reimburse</div><div class="v">${dualHTML(tot.reimb)}</div><div class="s">${mine.length} receipt${mine.length === 1 ? '' : 's'}${tot.noReceipt ? ` · ${tot.noReceipt} without photo` : ''}</div></div>
     ${travel ? `<div class="btiles">${bookingTile(t, 'flight')}${bookingTile(t, 'hotel')}</div>` : ''}
     <div class="btnrow" style="margin-top:10px"><button class="btn tinted" id="tr-addr">${icon('plus', 's')} Add expense</button><button class="btn tinted" id="tr-report">${icon('wrench', 's')} Submit report</button></div>
     ${treps.length ? `<div class="section-h"><h2>Service reports</h2></div><div class="group" id="tr-reps">${treps.map(r => reportRow(r)).join('')}</div>` : ''}
@@ -3566,6 +3576,18 @@ function renderTrip() {
 /* ===================== VeriTrip 3.3 — USD reporting · historical FX · Finance ===================== */
 
 /* ---------- Migration to 3.3 ---------- */
+function migrateV45() {
+  /* v4.5: FCFA is the primary display currency (local contracts, daily spend, card statements).
+     One-time flip from the v3.3 USD default; the setting stays changeable in Settings → Currency.
+     The Excel expense report still keeps its Local / USD / FCFA columns for the final audit. */
+  if (db.v45) return;
+  const was = db.settings.baseCurrency;
+  db.settings.baseCurrency = 'XOF';
+  db.v45 = true;
+  if (was && was !== 'XOF' && (db.expenses.length || db.trips.length || (db.finance && ((db.finance.living || []).length || (db.finance.invoices || []).length))))
+    pendingToast = 'Totals are now in FCFA — USD still shows underneath; the Excel report keeps Local, FCFA and USD';
+}
+
 function migrateV33() {
   const F = db.finance = Object.assign({ living: [], clients: [], contracts: [], invoices: [], received: [], tripOOP: false }, db.finance || {});
   for (const k of ['living', 'clients', 'contracts', 'invoices', 'received']) F[k] = Array.isArray(F[k]) ? F[k] : [];
@@ -3679,7 +3701,7 @@ function financeYears() {
 /* ---------- Shared bits: amount parsing, rate row, attachments ---------- */
 function parseAmtStr(str, cur) { const s = String(str || '').trim(); if (!s) return null; const r = P.parseNumberToken(s.replace(/\s+/g, ' ').replace(/[^\d., ]/g, '').trim(), cur); return r != null ? r : (parseFloat(s.replace(/\s/g, '').replace(',', '.')) || null); }
 const curSel = (id, sel) => `<select id="${id}" aria-label="Currency">${Object.keys(P.CURRENCIES).map(c => `<option${c === sel ? ' selected' : ''}>${c}</option>`).join('')}</select>`;
-function fxRowHTML(id) { return `<div class="fx-row" id="${id}"><span class="fx-l">1 ${esc(base())} =</span><input type="text" inputmode="decimal" class="fx-in" aria-label="Exchange rate"><span class="fx-c"></span><span class="fx-s"></span><button type="button" class="linkbtn small fx-reset hidden">Reset to market rate</button></div>`; }
+function fxRowHTML(id) { return `<div class="fx-row" id="${id}"><span class="fx-l">1 ${esc(baseLabel())} =</span><input type="text" inputmode="decimal" class="fx-in" aria-label="Exchange rate"><span class="fx-c"></span><span class="fx-s"></span><button type="button" class="linkbtn small fx-reset hidden">Reset to market rate</button></div>`; }
 /* Editable exchange-rate control. get() → { cur, date }. The rate follows the item's date and currency; a typed rate is "manual" and kept. */
 function rateCtl(el, o, get, onUpd, rulesOn) {
   const { cur: origCur } = get(); const manualCur = origCur;
@@ -3780,14 +3802,14 @@ function renderFinance() {
   const maxM = Math.max(1, ...S.months.map(m => Math.max(m.inc, spendM(m))));
   const curM = +today.slice(0, 4) === Y ? +today.slice(5, 7) - 1 : -1;
   const bars = S.months.map((m, k) => `<div class="fb-col${k === curM ? ' now' : ''}" title="${esc(fmtBase(m.inc))} in · ${esc(fmtBase(spendM(m)))} out"><div class="fb-bars"><i class="inc" style="height:${(m.inc / maxM * 100).toFixed(1)}%"></i><i class="out" style="height:${(spendM(m) / maxM * 100).toFixed(1)}%"></i></div><span>${'JFMAMJJASOND'[k]}</span></div>`).join('');
-  const sumLine = (cls, label, val, extra = '') => `<div class="fs-line"><i class="dot ${cls}"></i><span class="l">${label}</span>${extra}<b>${esc(fmtBase(val))}</b></div>`;
+  const sumLine = (cls, label, val, extra = '') => `<div class="fs-line"><i class="dot ${cls}"></i><span class="l">${label}</span>${extra}<b>${dualHTML(val)}</b></div>`;
   const summary = `<div class="fin-year"><button class="navbtn circle" id="fy-prev" aria-label="Previous year"${yi <= 0 && Y <= years[0] ? ' disabled' : ''}>${icon('chevL')}</button><b id="fy-lbl">${Y}</b><button class="navbtn circle" id="fy-next" aria-label="Next year">${icon('chevR')}</button></div>
     <div class="card fin-sum" id="fin-sum">
-      <div class="fs-net"><span>Net ${Y}</span><b class="${S.net < 0 ? 'neg' : ''}" id="fs-net">${esc(fmtBase(S.net))}</b><small>${esc(base())}</small></div>
+      <div class="fs-net"><span>Net ${Y}</span><b class="${S.net < 0 ? 'neg' : ''}" id="fs-net">${dualHTML(S.net)}</b><small>${esc(baseLabel())}</small></div>
       ${sumLine('inc', 'Income received', S.income)}
       ${S.company || (F.received || []).length ? sumLine('co', 'Received from company', S.company) : ''}
-      ${sumLine('out', 'Living expenses', S.livBudget, `<span class="fs-sub">${esc(fmtBase(S.livPaid, true))} paid</span>`)}
-      <div class="fs-line"><i class="dot trip"></i><span class="l">Trip expenses not reimbursed</span><label class="switch sm"><input type="checkbox" id="fs-trip"${F.tripOOP ? ' checked' : ''}><span></span></label><b class="${F.tripOOP ? '' : 'faint'}">${esc(fmtBase(S.tripOOP))}</b></div>
+      ${sumLine('out', 'Living expenses', S.livBudget, `<span class="fs-sub">${esc(dualText(S.livPaid, true))} paid</span>`)}
+      <div class="fs-line"><i class="dot trip"></i><span class="l">Trip expenses not reimbursed</span><label class="switch sm"><input type="checkbox" id="fs-trip"${F.tripOOP ? ' checked' : ''}><span></span></label><b class="${F.tripOOP ? '' : 'faint'}">${dualHTML(S.tripOOP)}</b></div>
       <div class="fin-chart" aria-label="Monthly income and spending">${bars}</div>
       <div class="fin-legend"><span><i class="dot inc"></i>Income</span><span><i class="dot out"></i>Living${F.tripOOP ? ' + trips' : ''}</span></div>
     </div>`;
@@ -3795,16 +3817,16 @@ function renderFinance() {
   if (seg === 'living') {
     const due = livDue(60); const pct = S.livBudget ? clamp(S.livPaid / S.livBudget * 100, 0, 100) : 0;
     const byCat = LIV_CATS.map(c => [c, F.living.filter(l => livCat(l.category).k === c.k && livOcc(l, Y).length)]).filter(([, l]) => l.length);   // v4.3.1: a group lists exactly the items it adds up
-    body = `<div class="card fin-kpi"><div><span>Year total</span><b>${esc(fmtBase(S.livBudget, true))}</b></div><div><span>Paid</span><b class="g">${esc(fmtBase(S.livPaid, true))}</b></div><div><span>Remaining</span><b>${esc(fmtBase(S.livLeft, true))}</b></div><div class="kbar"><i style="width:${pct.toFixed(1)}%"></i></div></div>
-      ${due.length ? `<div class="section-h"><h2>Due soon</h2><span class="muted small">next 60 days</span></div><div class="group" id="liv-due">${due.slice(0, 8).map(o => { const c = livCat(o.item.category); return `<div class="row has-icon"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><button class="body tap-a" data-liv="${esc(o.item.id)}"><div class="t">${esc(o.item.name)}</div><div class="st" style="${o.overdue ? 'color:var(--red)' : ''}">${o.overdue ? 'Overdue since ' + esc(fdate(o.date)) : 'Due ' + esc(fdate(o.date, o.date.slice(0, 4) !== todayISO().slice(0, 4))) + ' · ' + esc(relDays(o.date))}</div></button><span class="amt">${esc(fmt(o.item.amount, o.item.currency))}${o.item.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(o.usd))}</span>` : ''}</span><button class="paybtn" data-pay="${esc(o.item.id)}|${o.date}" aria-label="Mark paid">${icon('check', 's')}</button></div>`; }).join('')}</div>` : ''}
+    body = `<div class="card fin-kpi"><div><span>Year total</span><b>${dualHTML(S.livBudget, true)}</b></div><div><span>Paid</span><b class="g">${dualHTML(S.livPaid, true)}</b></div><div><span>Remaining</span><b>${dualHTML(S.livLeft, true)}</b></div><div class="kbar"><i style="width:${pct.toFixed(1)}%"></i></div></div>
+      ${due.length ? `<div class="section-h"><h2>Due soon</h2><span class="muted small">next 60 days</span></div><div class="group" id="liv-due">${due.slice(0, 8).map(o => { const c = livCat(o.item.category); return `<div class="row has-icon"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><button class="body tap-a" data-liv="${esc(o.item.id)}"><div class="t">${esc(o.item.name)}</div><div class="st" style="${o.overdue ? 'color:var(--red)' : ''}">${o.overdue ? 'Overdue since ' + esc(fdate(o.date)) : 'Due ' + esc(fdate(o.date, o.date.slice(0, 4) !== todayISO().slice(0, 4))) + ' · ' + esc(relDays(o.date))}</div></button><span class="amt">${esc(fmt(o.item.amount, o.item.currency))}${o.item.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(o.usd))}</span>` : (usdOfBase(o.usd) != null ? `<span class="sub">≈ ${esc(fmt(usdOfBase(o.usd), 'USD'))}</span>` : '')}</span><button class="paybtn" data-pay="${esc(o.item.id)}|${o.date}" aria-label="Mark paid">${icon('check', 's')}</button></div>`; }).join('')}</div>` : ''}
       <div class="section-h"><h2>Living expenses</h2><button id="liv-add">Add</button></div>
       ${byCat.length ? `<div class="group" id="liv-groups">${byCat.map(([c, list]) => livGroupHTML(c, list, Y)).join('')}</div>` : `<div class="card"><div class="empty">${icon('wallet')}Your yearly budget lives here — rent, school fees, insurance, residency, car.<br><button class="btn sm" id="liv-add2" style="margin-top:14px">${icon('plus', 's')} Add living expense</button></div></div>`}
-      <div class="foot">Personal costs, never added to trip claims. Totals in ${esc(base())} at each item's own rate.</div>`;
+      <div class="foot">Personal costs, never added to trip claims. Totals in ${esc(baseLabel())} at each item's own rate.</div>`;
   } else {
     const inv = F.invoices.filter(i => String(i.date).slice(0, 4) == Y || invStatus(i) !== 'paid');
     const order = { overdue: 0, sent: 1, draft: 2, paid: 3 };
     inv.sort((a, b) => (order[invStatus(a)] - order[invStatus(b)]) || String(b.date).localeCompare(String(a.date)));
-    body = `<div class="card fin-kpi"><div><span>Received ${Y}</span><b class="g">${esc(fmtBase(S.income, true))}</b></div><div><span>Outstanding</span><b>${esc(fmtBase(S.outstanding, true))}</b></div><div><span>Overdue</span><b class="${S.overdue ? 'r' : ''}">${esc(fmtBase(S.overdue, true))}</b></div></div>
+    body = `<div class="card fin-kpi"><div><span>Received ${Y}</span><b class="g">${dualHTML(S.income, true)}</b></div><div><span>Outstanding</span><b>${dualHTML(S.outstanding, true)}</b></div><div><span>Overdue</span><b class="${S.overdue ? 'r' : ''}">${dualHTML(S.overdue, true)}</b></div></div>
       <div class="section-h"><h2>Invoices</h2><button id="inv-add">New</button></div>
       ${inv.length ? `<div class="group" id="inv-list">${inv.map(invRow).join('')}</div>` : `<div class="card"><div class="empty">${icon('doc')}No invoices yet.<br><button class="btn sm" id="inv-add2" style="margin-top:14px">${icon('plus', 's')} New invoice</button></div></div>`}
       ${companyMoneyHTML(Y)}
@@ -3813,7 +3835,7 @@ function renderFinance() {
       <div class="section-h"><h2>Clients</h2><button id="cli-add">Add</button></div>
       ${F.clients.length ? `<div class="group">${F.clients.slice().sort((a, b) => a.name.localeCompare(b.name)).map(cliRow).join('')}</div>` : `<div class="foot" style="padding-top:0">Clients are also created when you type a new name on an invoice.</div>`}`;
   }
-  v.innerHTML = navbar('Finance', '', `<button class="navbtn circle" id="fin-more" aria-label="Export">${icon('share')}</button>${meBtn()}${plusBtn('fin-plus')}`) + `<div class="ltitle">Finance</div><div class="lsub">Income and living costs · in ${esc(base())}</div>
+  v.innerHTML = navbar('Finance', '', `<button class="navbtn circle" id="fin-more" aria-label="Export">${icon('share')}</button>${meBtn()}${plusBtn('fin-plus')}`) + `<div class="ltitle">Finance</div><div class="lsub">Income and living costs · in ${esc(baseLabel())}</div>
     ${summary}
     <div class="seg fin-seg" id="fin-seg"><button data-s="living" class="${seg === 'living' ? 'on' : ''}">Living</button><button data-s="income" class="${seg === 'income' ? 'on' : ''}">Income</button></div>
     ${body}`;
@@ -3825,8 +3847,8 @@ function renderFinance() {
   $('#fin-plus', v).onclick = () => finAddMenu();
   $('#fin-more', v).onclick = () => actionSheet(`Finance ${Y}`, [
     { icon: 'download', color: '#ff9500', label: 'Expense report', sub: 'Excel sheet + one PDF with every bill, numbered', fn: () => openExportSheet() },
-    { icon: 'printer', color: '#007aff', label: `Print ${Y} report (${base()})`, sub: 'Summary, monthly table, living costs, invoices', fn: () => printFinance(Y) },
-    { icon: 'download', color: '#34c759', label: `Export ${Y} (CSV)`, sub: `${base()} and original amounts with the rate used`, fn: () => exportFinanceCSV(Y) }]);
+    { icon: 'printer', color: '#007aff', label: `Print ${Y} report (${baseLabel()})`, sub: 'Summary, monthly table, living costs, invoices', fn: () => printFinance(Y) },
+    { icon: 'download', color: '#34c759', label: `Export ${Y} (CSV)`, sub: `${baseLabel()} and original amounts with the rate used`, fn: () => exportFinanceCSV(Y) }]);
   bindLivGroups(v); bindCompanyMoney(v);
   $$('[data-liv]', v).forEach(b => b.onclick = () => { const l = F.living.find(x => x.id === b.dataset.liv); if (l && l.srcExp) localLivSheet(l); else openLivingEditor(l); });
   $$('[data-pay]', v).forEach(b => b.onclick = () => { const [id, d] = b.dataset.pay.split('|'); const l = F.living.find(x => x.id === id); if (!l) return; l.paid[d] = todayISO(); save(); renderFinance(); toast(`${l.name} marked paid`); });
@@ -3839,13 +3861,14 @@ function renderFinance() {
   $('#cli-add', v) && ($('#cli-add', v).onclick = () => openClientEditor(null));
 }
 function livRow(l, Y) {
-  if (l.srcExp) { const c = livCat(l.category); const v = econv(l.payFx && l.payFx[l.due] && l.payFx[l.due].fxRate > 0 ? l.payFx[l.due] : l, l.amount, l.currency); return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(fdate(l.due))} · From receipt${l.hasReceipt ? ' · 📎' : ''}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${l.currency !== base() ? '≈ ' + esc(fmtBase(v)) + fxMark(l) : ''} <span class="pill ok">Paid</span></span></span></button>`; }
+  if (l.srcExp) { const c = livCat(l.category); const v = econv(l.payFx && l.payFx[l.due] && l.payFx[l.due].fxRate > 0 ? l.payFx[l.due] : l, l.amount, l.currency); const u = l.currency === base() ? usdOfBase(v) : null; return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(fdate(l.due))} · From receipt${l.hasReceipt ? ' · 📎' : ''}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${l.currency !== base() ? '≈ ' + esc(fmtBase(v)) + fxMark(l) : u != null ? '≈ ' + esc(fmt(u, 'USD')) : ''} <span class="pill ok">Paid</span></span></span></button>`; }
   const c = livCat(l.category); const occ = livOcc(l, Y); const paidN = occ.filter(o => o.paid).length; const today = todayISO();
   const next = livDates(l, addDays(today, -365), addDays(today, 800)).find(d => !l.paid[d]);
   const yr = occ.reduce((t, o) => t + (o.usd || 0), 0);
   const st = `${FREQS[l.freq].label}${next ? ` · ${next < today ? 'overdue ' : 'next '}${fdate(next, next.slice(0, 4) !== today.slice(0, 4))}` : occ.length ? ' · all paid' : ''}${l.atts.length ? ' · 📎' : ''}`;
   const pill = occ.length && paidN === occ.length ? '<span class="pill ok">Paid</span>' : paidN ? `<span class="pill warn">${paidN}/${occ.length}</span>` : '';
-  return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(st)}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${occ.length > 1 ? `${esc(fmtBase(yr, true))} / yr` : l.currency !== base() ? '≈ ' + esc(fmtBase(occ.length ? yr : econv(l))) + fxMark(occ.length ? occ[0].rec : l) : ''} ${pill}</span></span></button>`;
+  const oneV = occ.length ? yr : econv(l); const uOne = l.currency === base() ? usdOfBase(oneV) : null;
+  return `<button class="row tap has-icon" data-liv="${esc(l.id)}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(l.name)}</div><div class="st">${esc(st)}</div></span><span class="amt">${esc(fmt(l.amount, l.currency))}<span class="sub">${occ.length > 1 ? `${esc(dualText(yr, true))} / yr` : l.currency !== base() ? '≈ ' + esc(fmtBase(oneV)) + fxMark(occ.length ? occ[0].rec : l) : uOne != null ? '≈ ' + esc(fmt(uOne, 'USD')) + fxMark(occ.length ? occ[0].rec : l) : ''} ${pill}</span></span></button>`;
 }
 function invRow(i) {
   const s = invStatus(i); const col = { overdue: '#ff3b30', sent: '#5856d6', draft: '#8e8e93', paid: '#34c759' }[s]; const got = invReceived(i);
@@ -4083,7 +4106,7 @@ function financeCardsHTML() {
   const dueSum = due.reduce((s, o) => s + (o.usd || 0), 0); const late = due.filter(o => o.overdue).length;
   const overSum = over.reduce((s, i) => s + (econv(i, invOpen(i)) || 0), 0);
   const card = (id, col, ic, title, sub, amt, warn) => `<button class="fcard" id="${id}"><span class="fc-h"><span class="ico" style="background:${col}">${icon(ic, 's')}</span><span class="fc-t${warn ? ' r' : ''}">${esc(title)}</span></span><b>${esc(amt)}</b><span class="fc-s">${esc(sub)}</span></button>`;
-  return `<div class="fcards${due.length && over.length ? '' : ' one'}">${due.length ? card('fc-due', '#ff9500', 'wallet', `${due.length} bill${due.length > 1 ? 's' : ''} due${late ? ` · ${late} late` : ''}`, `${due[0].item.name} · ${fdate(due[0].date)}`, fmtBase(dueSum, true), late) : ''}${over.length ? card('fc-over', '#ff3b30', 'doc', `${over.length} overdue invoice${over.length > 1 ? 's' : ''}`, `${over[0].number} · ${clientName(over[0].clientId)}`, fmtBase(overSum, true), true) : ''}</div>`;
+  return `<div class="fcards${due.length && over.length ? '' : ' one'}">${due.length ? card('fc-due', '#ff9500', 'wallet', `${due.length} bill${due.length > 1 ? 's' : ''} due${late ? ` · ${late} late` : ''}`, `${due[0].item.name} · ${fdate(due[0].date)}`, dualText(dueSum, true), late) : ''}${over.length ? card('fc-over', '#ff3b30', 'doc', `${over.length} overdue invoice${over.length > 1 ? 's' : ''}`, `${over[0].number} · ${clientName(over[0].clientId)}`, dualText(overSum, true), true) : ''}</div>`;
 }
 function bindFinanceCards(v) {
   $('#fc-due', v) && ($('#fc-due', v).onclick = () => go('finance', { finSeg: 'living', finYear: +todayISO().slice(0, 4) }));
@@ -4367,7 +4390,7 @@ function renderClientPage() {
   v.innerHTML = svcNav(c.name, `<button class="navbtn circle" id="svc-edit" aria-label="Edit client">${icon('pencil')}</button>`) +
     `<div class="ltitle">${esc(c.name)}</div><div class="lsub">${esc([c.address, cityLine(c)].filter(Boolean).join(' · ') || 'No address yet')}</div>
     ${info.length ? `<div class="group">${info.map(([k, val]) => `<div class="row"><span class="body"><div class="st" style="margin:0 0 2px">${k}</div><div style="white-space:pre-wrap">${esc(val)}</div></span></div>`).join('')}</div>` : ''}
-    <div class="cstats"><div><b>${s.machines.length}</b><span>Machines</span></div><div><b>${reps.length}</b><span>Reports</span></div><div><b class="num">${esc(fmtBase(s.got, true))}</b><span>Received (${esc(base())})</span></div></div>
+    <div class="cstats"><div><b>${s.machines.length}</b><span>Machines</span></div><div><b>${reps.length}</b><span>Reports</span></div><div><b class="num">${esc(fmtBase(s.got, true))}</b><span>Received (${esc(baseLabel())})</span></div></div>
     <div class="section-h"><h2>Machines</h2></div>
     <div class="group">${s.machines.map(machineRow).join('')}<button class="row tap has-icon" id="cp-addm"><span class="ico" style="background:var(--fill2);color:var(--blue)">${icon('plus')}</span><span class="body" style="color:var(--blue)">Add machine</span></button></div>
     <div class="section-h"><h2>Service reports</h2></div>
@@ -5017,7 +5040,12 @@ function livGroupHTML(c, list, Y) {
   const one = curs.size === 1 ? [...curs][0] : null; const n = list.length;
   const cnt = list.every(l => l.srcExp) ? `${n} receipt${n === 1 ? '' : 's'}` : `${n} item${n === 1 ? '' : 's'}`;
   const main = one ? fmt(loc, one) : fmtBase(usd);
-  const sub = one ? (one !== base() ? '≈ ' + fmtBase(usd) : '') : [...curs].sort().join(' + ') + ' · ≈ total';   // v4.3.1: say which currencies the ≈ total converts
+  /* v4.5: when the group is already in the base currency (FCFA), still show ≈ USD underneath */
+  let sub = '';
+  if (one) {
+    if (one !== base()) sub = '≈ ' + fmtBase(usd);
+    else { const u = usdOfBase(usd); if (u != null) sub = '≈ ' + fmt(u, 'USD'); }
+  } else sub = [...curs].sort().join(' + ') + ' · ≈ total';
   const items = list.slice().sort((a, b) => (!!a.srcExp - !!b.srcExp) || (a.srcExp ? String(b.due).localeCompare(String(a.due)) : String(a.name).localeCompare(String(b.name))));
   return `<div class="lgrp${open ? ' open' : ''}" data-lgk="${c.k}"><button class="row tap has-icon lg-h" data-lg="${c.k}" aria-expanded="${open}"><span class="ico" style="background:${c.color}">${icon(c.icon)}</span><span class="body"><div class="t">${esc(c.label)}</div><div class="st">${esc(cnt)}${due ? ` · <span style="color:var(--orange)">${due} due</span>` : ''}</div></span><span class="amt">${esc(main)}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span><span class="lg-x" aria-hidden="true">${icon('plus', 's')}</span></button><div class="lg-items"${open ? '' : ' hidden'}>${items.map(l => livRow(l, Y)).join('')}</div></div>`;
 }
@@ -5032,13 +5060,14 @@ function bindLivGroups(v) {
 const RCV = () => FIN().received || (FIN().received = []);
 function cmRow(r) {
   const t = r.tripId ? tripById(r.tripId) : null;
-  return `<button class="row tap has-icon" data-cm="${esc(r.id)}"><span class="ico" style="background:#0a84ff">${icon('building')}</span><span class="body"><div class="t">${esc(r.note || 'Received from company')}</div><div class="st">${esc(fdate(r.date, true))}${t ? ' · Trip ' + esc(tripName(t)) : ''}</div></span><span class="amt">${esc(fmt(r.amount, r.currency))}${r.currency !== base() ? `<span class="sub">≈ ${esc(fmtBase(econv(r)))}${fxMark(r)}</span>` : ''}</span></button>`;
+  const v = econv(r); const u = r.currency === base() ? usdOfBase(v) : null;
+  return `<button class="row tap has-icon" data-cm="${esc(r.id)}"><span class="ico" style="background:#0a84ff">${icon('building')}</span><span class="body"><div class="t">${esc(r.note || 'Received from company')}</div><div class="st">${esc(fdate(r.date, true))}${t ? ' · Trip ' + esc(tripName(t)) : ''}</div></span><span class="amt">${esc(fmt(r.amount, r.currency))}${r.currency !== base() && v != null ? `<span class="sub">≈ ${esc(fmtBase(v))}${fxMark(r)}</span>` : u != null ? `<span class="sub">≈ ${esc(fmt(u, 'USD'))}</span>` : ''}</span></button>`;
 }
 function companyMoneyHTML(Y) {
   const list = RCV().filter(r => String(r.date).slice(0, 4) == Y).sort((a, b) => String(b.date).localeCompare(String(a.date)));
   const tot = list.reduce((s, r) => s + (econv(r) || 0), 0);
   return `<div class="section-h"><h2>Received from company</h2><button id="cm-add">Add</button></div>
-    ${list.length ? `<div class="group" id="cm-list">${list.map(cmRow).join('')}</div><div class="foot" id="cm-tot">${esc(fmtBase(tot))} from the company in ${Y} · counted as income, kept apart from client invoices</div>` : `<div class="foot" style="padding-top:0">Transfers and advances your employer sends you. They count as income and appear on the expense report.</div>`}`;
+    ${list.length ? `<div class="group" id="cm-list">${list.map(cmRow).join('')}</div><div class="foot" id="cm-tot">${esc(dualText(tot))} from the company in ${Y} · counted as income, kept apart from client invoices</div>` : `<div class="foot" style="padding-top:0">Transfers and advances your employer sends you. They count as income and appear on the expense report.</div>`}`;
 }
 function bindCompanyMoney(v) {
   $('#cm-add', v) && ($('#cm-add', v).onclick = () => openCompanyMoneyEditor(null));
