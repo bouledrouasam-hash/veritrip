@@ -1275,6 +1275,12 @@ window.VERITRIP_PWA = true;
     return /(expedia|egencia|amex gbt|american express global|cwt|carlson wagonlit|bcd travel|fcm travel|company paid|pay[ée] par (la |l')?(soci[ée]t[ée]|entreprise)|corporate (card|account|billing)|bill to company|factur[ée] [àa] (la soci[ée]t[ée]|l'entreprise)|prepaid|pr[ée]pay[ée]|already paid|d[ée]j[àa] pay[ée]|paid in full)/i.test(text);
   }
 
+  /* v4.4 — real evidence that a hotel stay was paid (or will be paid) by the company / an agency / in advance.
+     A hotel bill settled at the desk ("Payé", "Espèces", "paid in full") is NOT evidence: those default to "I paid". */
+  function hotelCompanyPaid(text) {
+    return /(expedia|egencia|hotels\.com\s+(?:business|corporate)|amex gbt|american express global|\bcwt\b|carlson wagonlit|bcd travel|fcm travel|travel agency|agence de voyages?|company paid|paid by (?:the )?company|pay[ée]e? par (?:la |l')?(?:soci[ée]t[ée]|entreprise|employeur)|pris en charge par (?:la |l')?(?:soci[ée]t[ée]|entreprise)|corporate (?:card|account|billing|rate booking)|bill(?:ed)? to (?:the )?company|factur[ée]e? [àa] (?:la soci[ée]t[ée]|l'entreprise)|direct billing|\bprepaid\b|pre-paid|pr[ée]pay[ée]e?)/i.test(text);
+  }
+
   function pickRef(text) {
     const m = text.match(/(?:facture|re[çc]u|ticket|invoice|receipt|bill|bon|note|transaction|txn|ref(?:[ée]rence)?)\s*(?:n[°o]\.?|no\.?|#|num(?:[ée]ro)?|id)?\s*[:#]?\s*([A-Z0-9][A-Z0-9\-\/]{2,19})/i);
     if (m && /\d/.test(m[1]) && !/^\d{1,2}[\/\-]\d{1,2}/.test(m[1])) return { value: m[1], conf: 0.6 };
@@ -1296,7 +1302,8 @@ window.VERITRIP_PWA = true;
         merchant: vendor, date, amount: total, currency: cur,
         category: docType === 'TICKET' ? { value: 'Flights', conf: 0.9 } : docType === 'HOTEL' ? { value: 'Lodging', conf: 0.9 } : cat
       },
-      companyPaid: docType !== 'RECEIPT' ? true : isCompanyPaid(text),
+      /* v4.4: only an e-ticket is assumed company-booked; a hotel bill / booking (or a receipt read as Hotel) needs real evidence */
+      companyPaid: docType === 'TICKET' ? true : docType === 'HOTEL' || cat.value === 'Lodging' ? hotelCompanyPaid(text) : isCompanyPaid(text),
       ref: pickRef(text),
       text
     };
@@ -1315,7 +1322,7 @@ window.VERITRIP_PWA = true;
 
   const api = { CURRENCIES, DEFAULT_FX_TO_USD, PLACES, IATA, AIRLINES, normalizeText, findDates, pickReceiptDate, parseNumberToken,
     amountsInLine, pickTotal, detectCurrency, detectPlace, placeFromIata, guessCategory, pickVendor, detectDocType,
-    parseTicket, parseHotel, isCompanyPaid, pickRef, findRoute, extractAll, addDays, daysBetween };
+    parseTicket, parseHotel, isCompanyPaid, hotelCompanyPaid, pickRef, findRoute, extractAll, addDays, daysBetween };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.VTParse = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -1754,7 +1761,7 @@ const uid = p => p + '-' + Date.now().toString(36).toUpperCase() + Math.random()
 const addDays = P.addDays, daysBetween = P.daysBetween;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const APP_VERSION = '4.3.1';
+const APP_VERSION = '4.4';
 const LIB = Object.assign({
   tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
   pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -1801,7 +1808,7 @@ const DEFAULT_SETTINGS = () => {
   let tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
   return { baseCurrency: 'USD', theme: 'auto', name: '', company: '', employeeId: '', homeIata: TZ_HOME[tz] || '',
     ai: { provider: 'none', key: '', model: '' }, travelBuffer: 1, autoFx: true, onboarded: false, engineerTitle: '', reportLang: 'en', engineerSign: '',
-    reportCompany: 'TMSP', reportSub: 'Trading Medical Systems Private', reportLogoMode: 'default', reportLogoData: '', homeCountry: "Côte d'Ivoire", homeCurrency: 'XOF', fxRules: [] };
+    reportCompany: 'TMSP', reportSub: 'Trading Medical Systems Private Co. Ltd.', reportLogoMode: 'default', reportLogoData: '', homeCountry: "Côte d'Ivoire", homeCurrency: 'XOF', fxRules: [] };
 };
 let db, pendingToast = null;
 
@@ -2030,7 +2037,8 @@ function autoAssignInto(t) {
 function tripWindow(t, e) {
   const buf = +db.settings.travelBuffer || 0;
   let lo = addDays(t.startDate, -buf), hi = addDays(t.endDate, buf);
-  if (e && e.paidBy === 'company' && (e.category === 'Flights' || e.category === 'Lodging' || e.id === t.flightExpId || e.id === t.hotelExpId)) {
+  /* the booked flight / hotel dates widen the window for the trip's flight & hotel, whoever paid them (v4.4: a self-paid hotel too) */
+  if (e && ((e.paidBy === 'company' && (e.category === 'Flights' || e.category === 'Lodging')) || (e.id && (e.id === t.flightExpId || e.id === t.hotelExpId)))) {
     for (const d of [t.flightOut, t.flightBack, t.hotelIn, t.hotelOut]) if (d) { const a = addDays(d, -buf), b = addDays(d, buf); if (a < lo) lo = a; if (b > hi) hi = b; }
   }
   return [lo, hi];
@@ -2454,7 +2462,6 @@ function renderSettingsPage(page, $) {
       <div class="field"><label>Home currency</label><select id="s-hcur">${curOptions(homeCur())}</select></div>
       <div class="foot" style="margin-top:-6px">Used by the Local card on the Trips page for fuel, car and other expenses at home.</div>
       <div class="field"><label>Job title</label><input id="s-title" value="${esc(s.engineerTitle)}" placeholder="e.g. Field Service Engineer CT/MR"></div>
-      <div class="field"><label>Report language</label><select id="s-rlang"><option value="en"${s.reportLang !== 'fr' ? ' selected' : ''}>English</option><option value="fr"${s.reportLang === 'fr' ? ' selected' : ''}>Français</option></select></div>
       <div class="field"><label>Report company</label><input id="s-rco" value="${esc(s.reportCompany)}" placeholder="Name in the report header"></div>
       <div class="field"><label>Report subtitle</label><input id="s-rsub" value="${esc(s.reportSub)}" placeholder="Under the company name"></div>
       <div class="field"><label>Report logo</label><select id="s-rlogo"><option value="default"${s.reportLogoMode === 'default' ? ' selected' : ''}>Canon Medical (default)</option><option value="custom"${s.reportLogoMode === 'custom' ? ' selected' : ''}>${s.reportLogoData ? 'My logo' : 'Upload image…'}</option><option value="none"${s.reportLogoMode === 'none' ? ' selected' : ''}>No logo</option></select><input type="file" id="s-rlogo-in" accept="image/*" hidden></div>
@@ -2520,7 +2527,6 @@ function renderSettingsPage(page, $) {
   $$('[data-setpage]', v).forEach(b => b.onclick = () => { state.setPage = b.dataset.setpage; renderSettings(); window.scrollTo(0, 0); });
   if ($('#s-storage', v).nodeType) { try { navigator.storage.estimate().then(x => { const el = document.getElementById('s-storage'); if (el) el.textContent = x && x.usage != null ? (x.usage > 1048576 ? (x.usage / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(x.usage / 1024)) + ' KB') : 'n/a'; }).catch(() => {}); } catch (e) { const el = document.getElementById('s-storage'); if (el) el.textContent = 'n/a'; } }
   $('#s-clients', v).onclick = () => svcOpen('clients'); $('#s-reports', v).onclick = () => svcOpen('reports'); $('#s-parts', v).onclick = partsSheet;
-  $('#s-rlang', v).onchange = e => { s.reportLang = e.target.value; save(); };
   $('#s-esig', v).onclick = async () => { const x = await sigPad('Engineer signature', s.name); if (x === null) return; s.engineerSign = x; save(); renderSettings(); };
   bindText('#s-title', 'engineerTitle');
   bindText('#s-rco', 'reportCompany'); bindText('#s-rsub', 'reportSub');
@@ -2674,7 +2680,8 @@ function openTripEditor(x, opt = {}) {
       ${f('tp-pnr', 'PNR', x.pnr, 'placeholder="Booking reference" style="text-transform:uppercase"', 'pnr')}
       ${f('tp-flights', 'Flights', (x.flights || []).join(', ') || x.airlineInfo, 'placeholder="e.g. HF740, HF741"', 'flights')}
       ${f('tp-hotel', 'Hotel', x.hotelInfo, 'placeholder="Hotel name"', 'hotel')}</div>
-    ${ci ? `<div class="group" style="margin-top:14px"><div class="row"><span class="body"><div class="t">Add booking as company-paid item</div><div class="st">${esc(ci.category === 'Lodging' ? 'Hotel' : 'Flight')} · keeps the document with the trip, not reimbursed</div></span><label class="switch"><input type="checkbox" id="tp-ci" checked><span></span></label></div>
+    ${ci ? `<div class="group" style="margin-top:14px"><div class="row"><span class="body"><div class="t">Add booking to the trip</div><div class="st" id="tp-ci-sub">${esc(ci.category === 'Lodging' ? 'Hotel' : 'Flight')} · ${ci.paidBy === 'me' ? 'you paid it — added to your claim' : 'keeps the document with the trip, not reimbursed'}</div></span><label class="switch"><input type="checkbox" id="tp-ci" checked><span></span></label></div>
+      <div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="tp-ci-paid"><button data-p="company" class="${ci.paidBy === 'me' ? '' : 'on'}">Company paid</button><button data-p="me" class="${ci.paidBy === 'me' ? 'on' : ''}">I paid</button></div></div>
       <div class="field${confCls(conf.amount)}" id="tp-ci-amt-f">${confTag(conf.amount)}<label>Amount</label><input id="tp-ci-amt" inputmode="decimal" value="${ci.amount ? esc(ci.amount) : ''}" placeholder="optional"><select id="tp-ci-cur" style="flex:none;width:auto;margin-left:6px">${Object.keys(P.CURRENCIES).map(c => `<option${c === ci.currency ? ' selected' : ''}>${c}</option>`).join('')}</select></div></div>` : ''}
     <div class="ghead">Colour</div><div class="group"><div class="color-pick" id="tp-color">${TRIP_COLORS.map(c => `<button data-c="${c}" style="background:${c}" class="${c === x.color ? 'on' : ''}" aria-label="colour"></button>`).join('')}</div></div>
     <div class="group" style="margin-top:14px"><div class="field stack"><label>Notes</label><textarea id="tp-notes" placeholder="Site, contact, ticket number…">${esc(x.notes || '')}</textarea></div></div>
@@ -2687,6 +2694,8 @@ function openTripEditor(x, opt = {}) {
       $$('#tp-type button', b).forEach(btn => btn.onclick = () => { type = btn.dataset.v; $$('#tp-type button', b).forEach(z => z.classList.toggle('on', z === btn)); });
       $$('#tp-target button', b).forEach(btn => btn.onclick = () => { target = btn.dataset.t; $$('#tp-target button', b).forEach(z => z.classList.toggle('on', z === btn)); $('#sheet-primary').textContent = target === 'update' ? 'Save' : 'Create'; });
       if (match) $('#sheet-primary').textContent = 'Save';
+      let ciPaid = ci && ci.paidBy === 'me' ? 'me' : 'company';   /* v4.4: the user's "I paid" sticks */
+      $$('#tp-ci-paid button', b).forEach(btn => btn.onclick = () => { ciPaid = btn.dataset.p; $$('#tp-ci-paid button', b).forEach(z => z.classList.toggle('on', z === btn)); $('#tp-ci-sub', b).textContent = `${ci.category === 'Lodging' ? 'Hotel' : 'Flight'} · ${ciPaid === 'me' ? 'you paid it — added to your claim' : 'keeps the document with the trip, not reimbursed'}`; });
       $$('#tp-color button', b).forEach(btn => btn.onclick = () => { color = btn.dataset.c; $$('#tp-color button', b).forEach(z => z.classList.toggle('on', z === btn)); });
       const city = $('#tp-city', b), country = $('#tp-country', b), cur = $('#tp-cur', b), s = $('#tp-start', b), e = $('#tp-end', b);
       city.onchange = () => { const p = P.detectPlace(city.value); if (p && p.city.toLowerCase() === city.value.trim().toLowerCase()) { if (!country.value) country.value = p.country; cur.value = p.currency; } };
@@ -2712,7 +2721,7 @@ function openTripEditor(x, opt = {}) {
         if (ci && $('#tp-ci', b) && $('#tp-ci', b).checked) {
           const a = P.parseNumberToken($('#tp-ci-amt', b).value, $('#tp-ci-cur', b).value);
           const rec = syncExpense({ id: uid('EXP'), tripId: t.id, date: ci.date || t.startDate, merchant: ci.merchant || (ci.category === 'Lodging' ? vals.hotelInfo : 'Flight'), description: ci.description || '', category: ci.category,
-            amount: a || 0, currency: $('#tp-ci-cur', b).value, paidBy: 'company', paymentMethod: ci.paymentMethod || 'Company Paid', refCode: vals.pnr || ci.refCode || '', source: ci.source || 'ocr', createdAt: new Date().toISOString(),
+            amount: a || 0, currency: $('#tp-ci-cur', b).value, paidBy: ciPaid, paymentMethod: ciPaid === 'me' ? (ci.myMethod || 'Cash') : (ci.paymentMethod || 'Company Paid'), refCode: vals.pnr || ci.refCode || '', source: ci.source || 'ocr', createdAt: new Date().toISOString(),
             fileType: opt.fileRec ? (opt.fileRec.type === 'application/pdf' ? 'PDF' : 'IMAGE') : null, fileName: opt.fileRec ? opt.fileRec.name : '', hasFile: !!opt.fileRec });
           db.expenses.push(rec); if (ci.category === 'Lodging') t.hotelExpId = rec.id; else t.flightExpId = rec.id; if (opt.fileRec) Files.put(rec.id, opt.fileRec).catch(() => {});
         }
@@ -2865,7 +2874,7 @@ function aiPrompt(hint) {
 "ticket":{"pnr":string|null,"airline":string|null,"flights":[string],"segments":[{"from":"IATA","to":"IATA","date":"YYYY-MM-DD"}]}|null,
 "hotel":{"name":string|null,"checkIn":"YYYY-MM-DD"|null,"checkOut":"YYYY-MM-DD"|null,"confirmation":string|null}|null,
 "confidence":{"merchant":0-1,"date":0-1,"total":0-1,"currency":0-1}}
-Rules: total = grand total actually paid (TOTAL TTC / Net à payer / Montant total), never subtotal, HT, TVA, cash given or change. Dates on French/African documents are day-first (dd/mm/yyyy). FCFA/CFA: West Africa (Côte d'Ivoire, Senegal, Mali, Burkina, Niger, Togo, Benin, Guinea-Bissau) = XOF; Central Africa (Cameroon, Congo, Gabon, Chad, CAR, Equatorial Guinea) = XAF. DH = MAD, DA = DZD, DT = TND, KSh = KES, ₦ = NGN. paidByCompany is true for Expedia/agency/corporate prepaid bookings. Use null when unreadable — never guess numbers.`;
+Rules: total = grand total actually paid (TOTAL TTC / Net à payer / Montant total), never subtotal, HT, TVA, cash given or change. Dates on French/African documents are day-first (dd/mm/yyyy). FCFA/CFA: West Africa (Côte d'Ivoire, Senegal, Mali, Burkina, Niger, Togo, Benin, Guinea-Bissau) = XOF; Central Africa (Cameroon, Congo, Gabon, Chad, CAR, Equatorial Guinea) = XAF. DH = MAD, DA = DZD, DT = TND, KSh = KES, ₦ = NGN. paidByCompany is true only when the document shows the company, a travel agency or a prepaid booking paid it (Expedia, agency, corporate account, \"prepaid\", \"payé par la société\"); a hotel bill or receipt settled at the desk (cash, card, mobile money) is false. Use null when unreadable — never guess numbers.`;
 }
 function parseAiJson(s) { s = String(s || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim(); const i = s.indexOf('{'), j = s.lastIndexOf('}'); return JSON.parse(s.slice(i, j + 1)); }
 async function aiCall(prompt, images = [], pdfBytes = null, ms = 60000) {
@@ -2904,7 +2913,12 @@ const validISO = d => typeof d === 'string' && /^\d{4}-\d\d-\d\d$/.test(d) && !i
 function mergeAI(ai, local, opts) {
   const c = ai.confidence || {}; const F = local.fields; const fld = (v, cf, fb) => (v != null && v !== '' ? { value: v, conf: clamp(+cf || 0.85, 0.3, 0.97) } : fb);
   const docType = ['RECEIPT', 'TICKET', 'HOTEL'].includes(ai.docType) ? ai.docType : local.docType;
-  const out = { ...local, docType, companyPaid: typeof ai.paidByCompany === 'boolean' ? ai.paidByCompany || docType !== 'RECEIPT' : local.companyPaid, aiDescription: ai.description || '' };
+  /* v4.4: an e-ticket stays company-booked; a hotel (bill or booking) is "I paid" unless the document shows company / agency / prepaid payment.
+     When there is a text layer it must show that evidence; for a photo read only by AI, the AI's answer is the evidence. */
+  const lodging = docType === 'HOTEL' || ai.category === 'Lodging' || (local.fields && local.fields.category && local.fields.category.value === 'Lodging');
+  const txt = String(local.text || ''); const hasTxt = txt.replace(/\s/g, '').length >= 40;
+  const companyPaid = docType === 'TICKET' ? true : lodging ? (P.hotelCompanyPaid(txt) || (ai.paidByCompany === true && !hasTxt)) : typeof ai.paidByCompany === 'boolean' ? ai.paidByCompany : local.companyPaid;
+  const out = { ...local, docType, companyPaid, aiDescription: ai.description || '' };
   out.fields = {
     merchant: fld(ai.merchant, c.merchant, F.merchant), date: fld(validISO(ai.date) ? ai.date : null, c.date, F.date),
     amount: fld(typeof ai.total === 'number' && ai.total > 0 ? ai.total : (P.parseNumberToken(String(ai.total || ''), ai.currency) || null), c.total, F.amount),
@@ -2956,7 +2970,8 @@ async function nextFile() {
   }
   const methodLabel = { ai: 'Read by AI — please check', 'pdf-text': 'Read from PDF text', 'pdf+ocr': 'Scanned PDF · on-device OCR', local: 'On-device OCR — please check' }[res.method] || '';
   const queueLeft = fileQueue.length; const onDone = () => nextFile();
-  if (res.docType === 'TICKET' || res.docType === 'HOTEL') return reviewTripDoc(res, { methodLabel, queueLeft, onDone });
+  /* v4.4: a hotel bill with no sign of company / agency / prepaid payment is a normal expense the user paid → expense editor (Hotel, I paid) */
+  if (res.docType === 'TICKET' || (res.docType === 'HOTEL' && res.companyPaid)) return reviewTripDoc(res, { methodLabel, queueLeft, onDone });
   reviewReceipt(res, { methodLabel, queueLeft, onDone });
 }
 function reviewReceipt(res, o) {
@@ -2992,7 +3007,8 @@ function reviewTripDoc(res, o) {
     pnr: v(T.pnr) || (match && match.pnr) || '', flights: v(T.flights) || (match ? match.flights : []), airlineInfo: v(T.airline) || '', hotelInfo: isHotel ? (v(H.hotel) || '') : (match ? match.hotelInfo : ''), notes: match ? match.notes : (T.route ? 'Route: ' + T.route.value + (T.airline ? ' · ' + T.airline.value : '') : '') };
   const ci = { category: isHotel ? 'Lodging' : 'Flights', amount: res.fields.amount.value || '', currency: res.fields.currency.value || cur, date: start,
     merchant: isHotel ? (v(H.hotel) || 'Hotel') : (v(T.airline) || 'Flight'), description: isHotel ? `${H.nights ? H.nights + ' nights' : 'Hotel stay'}${H.confirmation ? ' · conf. ' + H.confirmation.value : ''}` : (T.route ? T.route.value : ''),
-    refCode: v(T.pnr) || v(H.confirmation) || '', paymentMethod: /expedia/i.test(res.text) ? 'Expedia (Company Paid)' : /agency|agence|egencia|bcd|cwt|fcm/i.test(res.text) ? 'Travel Agency' : 'Company Paid', source: res.method };
+    refCode: v(T.pnr) || v(H.confirmation) || '', paymentMethod: /expedia/i.test(res.text) ? 'Expedia (Company Paid)' : /agency|agence|egencia|bcd|cwt|fcm/i.test(res.text) ? 'Travel Agency' : 'Company Paid', source: res.method,
+    paidBy: isHotel && !res.companyPaid ? 'me' : 'company', myMethod: /mobile money|orange money|wave|m-?pesa|mtn momo|moov money/i.test(res.text) ? 'Mobile Money' : /visa|mastercard|carte bancaire|card ending|\*{4}\s?\d{4}/i.test(res.text) ? 'Personal Card' : 'Cash' };
   if (!match) {
     const B = emptyBooking(isHotel ? 'hotel' : 'flight'); applyDocToBooking(B, res);
     return newTripWizard({ type: 'TRAVEL', city, country, cur, start, end, [isHotel ? 'hotel' : 'flight']: B });
@@ -3172,7 +3188,7 @@ function init() {
   moveInlinePreviews();
   if (db.settings.autoFx && (!db.fx.updatedAt || Date.now() - Date.parse(db.fx.updatedAt) > 12 * 3600e3)) refreshRates(false).then(ok => ok && render());
   window.PWA && PWA.init();
-  window.VeriTrip = { db: () => db, ruleFor, fxRules, rulesClashing, applyRateRules, fxStatusOf, fxMark, tripTotals, resolveTrip, extractDocument, parseICS, icsToCandidates, render, go, financeYear, invStatus, ensureRates, fxFor, econv, livDue, readFinanceDoc, buildReportPdf, machineById, reportById, svcOpen, openReportFlow, reportSheet, exportReportsCSV, partsToOrder, SR_L, SR_BOXES, reportBrand, pdfTxt };
+  window.VeriTrip = { db: () => db, ruleFor, fxRules, rulesClashing, applyRateRules, fxStatusOf, fxMark, tripTotals, resolveTrip, extractDocument, parseICS, icsToCandidates, render, go, financeYear, invStatus, ensureRates, fxFor, econv, livDue, readFinanceDoc, buildReportPdf, machineById, reportById, svcOpen, openReportFlow, reportSheet, exportReportsCSV, partsToOrder, SR_FORM, srView, reportBrand, pdfTxt };
 }
 
 /* ================= v3.2 — trip wizard, flight & hotel, add-receipt options, simple trip screen ================= */
@@ -3189,8 +3205,11 @@ const isTravel = t => t && t.type !== 'LOCAL';
 const linkedExp = (t, id, cat) => db.expenses.find(e => e.id === id && e.tripId === t.id) || db.expenses.find(e => e.tripId === t.id && e.paidBy === 'company' && e.category === cat);
 const flightExp = t => linkedExp(t, t.flightExpId, 'Flights');
 const hotelExp = t => linkedExp(t, t.hotelExpId, 'Lodging');
+/* v4.4: a flight / hotel the user paid himself is a normal claimable expense: it stays in the trip's expense list (only company-paid bookings live in the tile) */
+const coBooking = (e) => !!(e && e.paidBy === 'company');
+const selfHotel = t => db.expenses.find(e => e.tripId === t.id && e.category === 'Lodging' && e.paidBy === 'me');
 const hasFlight = t => !!(t.flightSkip || (t.flights || []).length || t.pnr || t.route || t.airlineInfo || flightExp(t));
-const hasHotel = t => !!(t.hotelSkip || t.hotelInfo || hotelExp(t));
+const hasHotel = t => !!(t.hotelSkip || t.hotelInfo || hotelExp(t) || db.expenses.some(e => e.tripId === t.id && e.category === 'Lodging'));
 const needsBookings = t => isTravel(t) && (!hasFlight(t) || !hasHotel(t));
 
 /* One-time migration for v3.2: decide Travel vs Local for existing trips. */
@@ -3249,15 +3268,16 @@ function addMenu(ctx = {}) {
 
 /* ---------- booking drafts (flight / hotel) ---------- */
 function emptyBooking(kind, t) {
-  const B = { kind, mode: null, amount: '', currency: '', fileRec: null, preview: null, fileName: '', method: '', warnings: [], conf: {} };
+  const B = { kind, mode: null, paidBy: 'company', amount: '', currency: '', fileRec: null, preview: null, fileName: '', method: '', warnings: [], conf: {} };
   if (kind === 'flight') Object.assign(B, { route: '', out: '', back: '', nos: '', pnr: '', airline: '' });
   else Object.assign(B, { name: '', cin: '', cout: '', ref: '' });
   if (t) {
     const e = kind === 'flight' ? flightExp(t) : hotelExp(t);
     if (kind === 'flight') Object.assign(B, { route: t.route || '', out: t.flightOut || '', back: t.flightBack || '', nos: (t.flights || []).join(', ') || (t.airlineInfo && !/[a-z]{4}/i.test(t.airlineInfo) ? t.airlineInfo : ''), pnr: t.pnr || '', airline: t.airline || (t.airlineInfo && /[a-z]{4}/i.test(t.airlineInfo) ? t.airlineInfo : '') });
     else Object.assign(B, { name: t.hotelInfo || (e && e.merchant !== 'Hotel' ? e.merchant : '') || '', cin: t.hotelIn || '', cout: t.hotelOut || '', ref: t.hotelRef || '' });
-    if (e) Object.assign(B, { amount: +e.amount ? String(e.amount) : '', currency: e.currency, expId: e.id, hasFile: e.hasFile, fileName: e.fileName || '' });
+    if (e) Object.assign(B, { amount: +e.amount ? String(e.amount) : '', currency: e.currency, expId: e.id, hasFile: e.hasFile, fileName: e.fileName || '', paidBy: e.paidBy === 'me' ? 'me' : 'company' });
     B.skip = kind === 'flight' ? !!t.flightSkip : !!t.hotelSkip;
+    if (kind === 'hotel' && !e && selfHotel(t)) B.paidBy = 'me';
   }
   return B;
 }
@@ -3274,7 +3294,13 @@ function bookingFormHTML(B, cur) {
       ${f('bk-nos', 'Flight no.', B.nos, 'placeholder="HF500, HF501" autocapitalize="characters"', 'nos')}${f('bk-pnr', 'PNR', B.pnr, 'placeholder="Booking ref." autocapitalize="characters" style="text-transform:uppercase"', 'pnr')}`
       : `${f('bk-name', 'Hotel', B.name, 'placeholder="Hotel name"', 'name')}${f('bk-cin', 'Check-in', B.cin, 'type="date"', 'cin')}${f('bk-cout', 'Check-out', B.cout, 'type="date"', 'cout')}`}
       <div class="field${confCls(B.conf.amount)}">${confTag(B.conf.amount)}<label>Price</label><input id="bk-amt" inputmode="decimal" value="${esc(B.amount ? groupAmt(+B.amount) : '')}" placeholder="optional"><select id="bk-cur" style="flex:none;width:auto;margin-left:6px">${Object.keys(P.CURRENCIES).map(c => `<option${c === (B.currency || cur) ? ' selected' : ''}>${c}</option>`).join('')}</select></div></div>
-    <div class="foot">${icon('building', 's')} Company paid — kept with the trip, never added to what you claim.</div>`;
+    <div class="group" style="margin-top:14px"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="bk-paid"><button data-p="company" class="${B.paidBy === 'me' ? '' : 'on'}">Company paid</button><button data-p="me" class="${B.paidBy === 'me' ? 'on' : ''}">I paid</button></div></div></div>
+    <div class="foot" id="bk-paid-foot">${bkPaidFoot(B.paidBy)}</div>`;
+}
+const bkPaidFoot = p => p === 'me' ? `${icon('wallet', 's')} You paid — added to the trip's expenses to claim.` : `${icon('building', 's')} Company paid — kept with the trip, never added to what you claim.`;
+/* v4.4: Company paid / I paid switch of the booking form (the user's choice is kept on the draft) */
+function bindBookingPaid(root, B) {
+  $$('#bk-paid button', root).forEach(btn => btn.onclick = () => { B.paidBy = btn.dataset.p; $$('#bk-paid button', root).forEach(z => z.classList.toggle('on', z === btn)); const f = $('#bk-paid-foot', root); if (f) f.innerHTML = bkPaidFoot(B.paidBy); });
 }
 function readBookingForm(root, B) {
   const g = id => { const el = $('#' + id, root); return el ? el.value.trim() : ''; };
@@ -3282,6 +3308,7 @@ function readBookingForm(root, B) {
   else Object.assign(B, { name: g('bk-name'), cin: g('bk-cin'), cout: g('bk-cout') });
   const cur = g('bk-cur'); const raw = g('bk-amt'); let a = raw ? P.parseNumberToken(raw.replace(/\s+/g, ' ').replace(/[^\d., ]/g, '').trim(), cur) : null; if (raw && a == null) a = parseFloat(raw.replace(/\s/g, '').replace(',', '.')) || null;
   B.amount = a ? String(a) : ''; B.currency = cur;
+  const on = $('#bk-paid button.on', root); if (on) B.paidBy = on.dataset.p;
   return B;
 }
 /* Read an e-ticket / hotel booking into booking drafts. Returns the extraction result. */
@@ -3293,6 +3320,7 @@ async function readBookingDoc(file, progress) {
 function applyDocToBooking(B, res) {
   const v = x => x && x.value; const c = x => (x ? x.conf : 0);
   Object.assign(B, { fileRec: res.fileRec, preview: res.preview, fileName: res.fileRec ? res.fileRec.name : '', method: res.methodLabel, warnings: res.warnings || [], mode: 'doc' });
+  if (B.kind === 'hotel') B.paidBy = res.companyPaid ? 'company' : 'me';   /* v4.4: a hotel bill with no company / agency / prepaid evidence = I paid */
   if (res.fields && res.fields.amount && res.fields.amount.value) { B.amount = String(res.fields.amount.value); B.currency = res.fields.currency.value || B.currency; B.conf.amount = res.fields.amount.conf; }
   if (B.kind === 'flight') {
     const T = res.ticket || {};
@@ -3323,7 +3351,8 @@ function commitBooking(t, B) {
   const nights = !isF && B.cin && B.cout ? daysBetween(B.cin, B.cout) : 0;
   const vals = { tripId: t.id, date: (isF ? B.out : B.cin) || t.startDate, merchant: isF ? (B.airline || (t.flights && t.flights[0] ? 'Flight ' + t.flights.join(' · ') : 'Flight')) : (B.name || 'Hotel'),
     description: isF ? (B.route || '') : (nights > 0 ? `${nights} night${nights > 1 ? 's' : ''}` : 'Hotel stay') + (B.ref ? ' · conf. ' + B.ref : ''), category: isF ? 'Flights' : 'Lodging',
-    amount: +B.amount || 0, currency: B.currency || t.defaultCurrency, paidBy: 'company', paymentMethod: 'Company Paid', refCode: isF ? B.pnr : (B.ref || '') };
+    amount: +B.amount || 0, currency: B.currency || t.defaultCurrency, paidBy: B.paidBy === 'me' ? 'me' : 'company', paymentMethod: B.paidBy === 'me' ? (e && e.paidBy === 'me' && !PAY_CO.includes(e.paymentMethod) ? e.paymentMethod : 'Cash') : 'Company Paid', refCode: isF ? B.pnr : (B.ref || '') };
+  if (B.paidBy === 'me' && !e && !(+B.amount) && !B.fileRec) return null;   /* nothing to claim yet: keep only the booking details */
   if (B.fileRec) Object.assign(vals, { fileType: B.fileRec.type === 'application/pdf' ? 'PDF' : 'IMAGE', fileName: B.fileRec.name, hasFile: true, previewDataUrl: B.preview || null });
   if (e) Object.assign(e, syncExpense({ ...e, ...vals }));
   else { e = syncExpense({ id: uid('EXP'), createdAt: new Date().toISOString(), source: B.fileRec ? 'ocr' : 'manual', hasFile: false, ...vals }); db.expenses.push(e); }
@@ -3393,7 +3422,7 @@ function newTripWizard(pre = {}) {
       openSheet({ title: kind === 'flight' ? 'Flight' : 'Hotel', left: { label: 'Back', fn: () => { readBookingForm($('#sheet-b'), B); W.step--; draw(); } }, right: { label: s === 3 ? 'Create' : 'Next', fn: () => {} },
         body: `${dots()}${bookingFormHTML(B, W.cur)}<button class="btn gray" id="wz-later" style="margin-top:18px">Add later</button>`,
         onMount: b => {
-          bindFileInputs(b, fs => { readBookingForm(b, B); onDoc(fs, kind, b); });
+          bindFileInputs(b, fs => { readBookingForm(b, B); onDoc(fs, kind, b); }); bindBookingPaid(b, B);
           const next = () => { if (s === 3) finish(); else { W.step = 3; draw(); } };
           $('#sheet-primary').onclick = () => { readBookingForm(b, B); B.mode = bookingFilled(B) ? (B.fileRec ? 'doc' : 'manual') : 'later'; if (kind === 'hotel' && B.cin && B.cout && B.cout < B.cin) { toast('Check-out is before check-in', 'warn'); return; } next(); };
           $('#wz-later', b).onclick = () => { Object.assign(W[kind], emptyBooking(kind), { mode: 'later' }); next(); };
@@ -3432,6 +3461,7 @@ function bookingSheet(t, kind) {
         try { const res = await readBookingDoc(fs[0], (m, p) => { const el = $('#bk-msg'); if (el) el.textContent = m + (p != null ? ` ${Math.round(clamp(p, 0, 1) * 100)}%` : ''); }); applyDocToBooking(B, res); draw(); }
         catch (err) { console.warn(err); $('#bk-prog', b).classList.add('hidden'); toast('Could not read it — enter the details', 'warn'); }
       });
+      bindBookingPaid(b, B);
       $('#bk-view', b) && ($('#bk-view', b).onclick = () => { const e = db.expenses.find(x => x.id === B.expId); if (e) showFile(e); });
       $('#sheet-primary').onclick = () => {
         readBookingForm(b, B); B.skip = $('#bk-skip', b).checked;
@@ -3456,18 +3486,19 @@ function tripDayText(t) {
   return `${L} day${L > 1 ? 's' : ''} · ended`;
 }
 function bookingTile(t, kind) {
-  const isF = kind === 'flight'; const e = isF ? flightExp(t) : hotelExp(t);
+  const isF = kind === 'flight'; const e = isF ? flightExp(t) : (hotelExp(t) || selfHotel(t));
+  const paidTxt = e && e.paidBy === 'me' ? 'You paid · in expenses' : 'Company paid';
   const skip = isF ? t.flightSkip : t.hotelSkip; const has = isF ? hasFlight(t) : hasHotel(t);
   let main, sub;
   if (!has) { main = isF ? 'Add flight' : 'Add hotel'; sub = 'Scan or enter'; }
   else if (skip && !(isF ? (t.route || (t.flights || []).length || t.pnr) : t.hotelInfo) && !e) { main = isF ? 'No flight' : 'No hotel'; sub = 'Not needed'; }
   else if (isF) {
     main = t.route || ((t.flights || []).length ? t.flights.join(' · ') : (t.airlineInfo || (e && e.merchant) || 'Flight'));
-    sub = [t.route && (t.flights || []).length ? t.flights[0] : null, t.flightOut ? fmtD(t.flightOut, { day: 'numeric', month: 'short' }) + (t.flightBack ? ' – ' + fmtD(t.flightBack, { day: 'numeric', month: 'short' }) : '') : null, !t.flightOut && t.pnr ? 'PNR ' + t.pnr : null].filter(Boolean).join(' · ') || (e && e.description) || 'Company paid';
+    sub = [t.route && (t.flights || []).length ? t.flights[0] : null, t.flightOut ? fmtD(t.flightOut, { day: 'numeric', month: 'short' }) + (t.flightBack ? ' – ' + fmtD(t.flightBack, { day: 'numeric', month: 'short' }) : '') : null, !t.flightOut && t.pnr ? 'PNR ' + t.pnr : null].filter(Boolean).join(' · ') || (e && e.description) || paidTxt;
   } else {
     main = t.hotelInfo || (e && e.merchant) || 'Hotel';
     const ci = t.hotelIn, co = t.hotelOut; const n = ci && co ? daysBetween(ci, co) : 0;
-    sub = ci ? `${fmtD(ci, { day: 'numeric', month: 'short' })}${co ? ' – ' + fmtD(co, { day: 'numeric', month: 'short' }) : ''}${n > 0 ? ` · ${n} night${n > 1 ? 's' : ''}` : ''}` : (e && e.description) || 'Company paid';
+    sub = ci ? `${fmtD(ci, { day: 'numeric', month: 'short' })}${co ? ' – ' + fmtD(co, { day: 'numeric', month: 'short' }) : ''}${n > 0 ? ` · ${n} night${n > 1 ? 's' : ''}` : ''}` : (e && e.description) || paidTxt;
   }
   return `<button class="btile${has ? '' : ' empty'}" id="tr-${kind}"><div class="k">${icon(isF ? 'plane' : 'bed', 's')} ${isF ? 'Flight' : 'Hotel'}${e && e.hasFile ? `<span class="att">${icon('doc', 's')}</span>` : ''}</div><div class="m">${has ? '' : icon('plus', 's')}${esc(main)}</div><div class="s">${esc(sub)}</div></button>`;
 }
@@ -3476,7 +3507,7 @@ function renderTrip() {
   if (!t) { go('trips'); return; }
   const tot = tripTotals(t); const L = tripLen(t);
   const fe = flightExp(t), he = hotelExp(t);
-  const list = expensesOf(t).filter(e => e !== fe && e !== he).sort((a, b) => (a.date + a.createdAt).localeCompare(b.date + b.createdAt));
+  const list = expensesOf(t).filter(e => !((e === fe || e === he) && coBooking(e))).sort((a, b) => (a.date + a.createdAt).localeCompare(b.date + b.createdAt));
   const mine = list.filter(e => e.paidBy === 'me');
   const fromLabel = { calendar: 'Calendar', expenses: 'Expenses', settings: 'Settings' }[state.from] || 'Trips';
   const flag = flagOf(t.country); const travel = isTravel(t); const tfb = flagBG(t);
@@ -4141,10 +4172,22 @@ function localLivSheet(l) { // tap on a living item that comes from a local expe
 /* ===================== VeriTrip 3.7 — Clients · Machines · Service reports (data + client/machine screens) ===================== */
 const MTYPES = [
   { k: 'CT', label: 'CT', color: '#007aff' }, { k: 'MR', label: 'MR', color: '#5856d6' }, { k: 'XR', label: 'X-ray', color: '#ff9500' },
-  { k: 'US', label: 'Ultrasound', color: '#30b0c7' }, { k: 'OT', label: 'Other', color: '#8e8e93' }];
-const mtype = k => MTYPES.find(x => x.k === k) || MTYPES[4];
-const JOB_TYPES = [['pm', 'Preventive maintenance'], ['cm', 'Corrective repair'], ['inst', 'Installation'], ['insp', 'Inspection'], ['other', 'Other']];
-const jobLabel = k => (JOB_TYPES.find(j => j[0] === k) || JOB_TYPES[4])[1];
+  { k: 'US', label: 'Ultrasound', color: '#30b0c7' }, { k: 'XA', label: 'Angio', color: '#ff2d55' }, { k: 'OT', label: 'Other', color: '#8e8e93' }];
+const mtype = k => MTYPES.find(x => x.k === k) || MTYPES.find(x => x.k === 'OT');
+/* v4.4: call types of the TMSP form (Form TMSP-SR-01 Rev. 02) */
+const JOB_TYPES = [['cm', 'Corrective (breakdown)'], ['pm', 'Preventive maintenance'], ['inst', 'Installation'], ['app', 'Application'], ['insp', 'Inspection'], ['other', 'Other']];
+const jobLabel = k => (JOB_TYPES.find(j => j[0] === k) || JOB_TYPES.find(j => j[0] === 'other'))[1];
+/* v4.4: new-form choices. Coverage: Warranty / Service contract / Billable. On arrival: Down / Partially operational / Operational.
+   After service: Fully operational / Partially operational / Down: awaiting parts / Down: further visit required. */
+const COVERAGE = [['warranty', 'Warranty'], ['contract', 'Contract'], ['billable', 'Billable']];
+const ARRIVAL = [['down', 'Down'], ['partial', 'Partial'], ['up', 'Operational']];
+const OUTCOME = [['up', 'Operational'], ['partial', 'Partial'], ['parts', 'Awaiting parts'], ['revisit', 'Further visit']];
+const OUTCOME_STATUS = { up: 'ok', partial: 'limited', parts: 'down', revisit: 'down' };
+/* old records (before 4.4) are read in the new form's terms; nothing is guessed beyond what the old fields said */
+const machineCoverage = m => !m ? '' : m.coverage || (m.warranty === 'yes' ? 'warranty' : m.contract && m.contract !== 'No' ? 'contract' : '');
+const srCoverageOf = r => r.coverage || (r.warranty === 'yes' ? 'warranty' : r.contract && r.contract !== 'No' ? 'contract' : '');
+const srArrivalOf = r => r.arrival || (r.sysDown === 'yes' ? 'down' : '');
+const srOutcomeOf = r => r.outcome || ({ ok: 'up', limited: 'partial' }[r.status]) || (r.status === 'down' ? ((r.parts || []).some(p => p.required) ? 'parts' : 'revisit') : '');
 const CONTRACTS = ['No', 'Yes', 'Full', 'Labour only', 'Parts only'];
 const MSTATUS = [['ok', 'Operational', 'ok'], ['limited', 'Limited', 'warn'], ['down', 'Down', 'red']];
 const mstatus = k => MSTATUS.find(s => s[0] === k) || MSTATUS[0];
@@ -4157,14 +4200,16 @@ function migrateV36() {
   FIN().clients.forEach(c => { for (const k of ['address', 'city', 'country', 'contact', 'phone', 'email', 'note', 'reportedBy']) c[k] = c[k] == null ? '' : String(c[k]); });
   db.machines.forEach(m => {
     m.id = m.id || uid('MCH'); m.type = MTYPES.some(x => x.k === m.type) ? m.type : 'OT'; m.model = m.model || ''; m.serial = m.serial || ''; m.notes = m.notes || ''; m.dept = m.dept || ''; m.warranty = m.warranty === 'yes' ? 'yes' : 'no'; m.contract = m.contract || 'No';
+    for (const k of ['software', 'installDate', 'contractNo', 'modalityOther', 'coverage']) m[k] = m[k] == null ? '' : String(m[k]);
     m.readings = (Array.isArray(m.readings) ? m.readings : []).map(r => ({ id: r.id || uid('RD'), kind: r.kind === 'helium' ? 'helium' : 'slice', value: +r.value, date: r.date || todayISO(), reportId: r.reportId || null, note: r.note || '', at: r.at || '' })).filter(r => isFinite(r.value));
     m.createdAt = m.createdAt || new Date().toISOString(); machineRecalc(m);
   });
   db.reports.forEach(r => {
-    r.id = r.id || uid('SR'); r.parts = (r.parts || []).map(p => ({ id: p.id || uid('PT'), name: p.name || '', pn: p.pn || '', qty: +p.qty || 1, required: !!p.required, ordered: !!p.ordered, exch: !!p.exch }));
+    r.id = r.id || uid('SR'); r.parts = (r.parts || []).map(p => ({ id: p.id || uid('PT'), name: p.name || '', pn: p.pn || '', qty: +p.qty || 1, required: !!p.required, ordered: !!p.ordered, exch: !!p.exch, notes: p.notes || '', priority: p.priority === 'urgent' || p.priority === 'normal' ? p.priority : '' }));
     r.photos = r.photos || []; r.status = r.status || 'ok'; r.job = r.job || 'other'; r.work = r.work || ''; r.remarks = r.remarks || ''; r.snap = r.snap || {};
     r.fault = r.fault || ''; r.warranty = r.warranty === 'yes' ? 'yes' : r.warranty === 'no' ? 'no' : ''; r.contract = r.contract == null ? '' : r.contract; r.sysDown = r.sysDown === 'yes' || r.sysDown === 'no' ? r.sysDown : (r.status === 'down' ? 'yes' : 'no'); r.downHours = r.downHours || '';
     r.dept = r.dept || ''; r.reportedBy = r.reportedBy || ''; r.travel = r.travel == null ? '' : String(r.travel); r.signClientName = r.signClientName || '';
+    for (const k of ['diagnosis', 'arrival', 'outcome', 'followUp', 'pending', 'jobOther', 'coverage', 'contractNo', 'signClientTitle', 'hexMeter', 'tubeCounter']) r[k] = r[k] == null ? '' : String(r[k]);   /* v4.4 form fields */
     r.final = !!r.final; r.lang = r.lang === 'fr' ? 'fr' : 'en'; r.createdAt = r.createdAt || new Date().toISOString();
   });
 }
@@ -4192,8 +4237,13 @@ function createMachine(o) {
   const serial = String(o.serial || '').trim();
   const ex = serial && db.machines.find(m => m.clientId === o.clientId && m.serial.toLowerCase() === serial.toLowerCase());
   if (ex) return ex;
-  const m = { id: uid('MCH'), clientId: o.clientId, type: o.type || 'OT', model: String(o.model || '').trim(), serial, notes: String(o.notes || '').trim(), dept: String(o.dept || '').trim(), warranty: o.warranty === 'yes' ? 'yes' : 'no', contract: o.contract || 'No', readings: [], createdAt: new Date().toISOString() };
+  const m = { id: uid('MCH'), clientId: o.clientId, type: o.type || 'OT', model: String(o.model || '').trim(), serial, notes: String(o.notes || '').trim(), dept: String(o.dept || '').trim(), warranty: o.warranty === 'yes' ? 'yes' : 'no', contract: o.contract || 'No', software: String(o.software || '').trim(), installDate: o.installDate || '', contractNo: String(o.contractNo || '').trim(), modalityOther: String(o.modalityOther || '').trim(), coverage: o.coverage || '', readings: [], createdAt: new Date().toISOString() };
   machineRecalc(m); db.machines.push(m); return m;
+}
+/* coverage on a machine; the pre-4.4 warranty / contract fields follow it so older screens and exports stay right */
+function setMachineCoverage(m, cov) {
+  m.coverage = cov || ''; m.warranty = cov === 'warranty' ? 'yes' : 'no';
+  m.contract = cov === 'contract' ? (m.contract && m.contract !== 'No' ? m.contract : 'Yes') : 'No';
 }
 const machineLabel = m => m ? [m.model || 'Machine', m.serial ? 'SN ' + m.serial : ''].filter(Boolean).join(' · ') : '';
 const cityLine = c => [c.city, c.country].filter(Boolean).join(', ');
@@ -4371,7 +4421,7 @@ function openClientEditor(src, opt = {}) {
 
 /* ---------- Machine editor + history ---------- */
 function openMachineEditor(src, opt = {}) {
-  const isNew = !src; const m0 = src || { clientId: opt.clientId, type: opt.type || 'CT', model: '', serial: '', notes: '', dept: '', warranty: 'no', contract: 'No', readings: [] };
+  const isNew = !src; const m0 = src || { clientId: opt.clientId, type: opt.type || 'CT', model: '', serial: '', notes: '', dept: '', warranty: 'no', contract: 'No', software: '', installDate: '', contractNo: '', modalityOther: '', coverage: '', readings: [] };
   let type = m0.type;
   const client = clientById(m0.clientId);
   const f = (id, label, val, extra = '') => `<div class="field"><label>${label}</label><input id="${id}" value="${esc(val || '')}" ${extra}></div>`;
@@ -4388,8 +4438,10 @@ function openMachineEditor(src, opt = {}) {
   openSheet({ title: isNew ? 'New machine' : 'Machine', left: { label: 'Cancel' }, right: { label: isNew ? 'Add' : 'Save', fn: () => {} },
     body: `${client ? `<div class="foot" style="margin:0 4px 8px">${esc(client.name)}</div>` : ''}<div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="mc-type">${MTYPES.map(t => `<button data-k="${t.k}" class="${t.k === type ? 'on' : ''}">${t.label}</button>`).join('')}</div></div>
       ${f('mc-model', 'Model', m0.model, 'placeholder="e.g. TSX-303A"')}${f('mc-serial', 'Serial no.', m0.serial, 'placeholder="Serial number" autocapitalize="characters"')}${f('mc-notes', 'Room / site', m0.notes, 'placeholder="e.g. Radiology, room 2"')}${f('mc-dept', 'Department', m0.dept, 'placeholder="e.g. Radiology"')}
-      <div class="row" style="padding:10px 16px"><span class="body">Warranty</span><div class="seg" style="width:140px" id="mc-war"><button data-k="no" class="${m0.warranty === 'yes' ? '' : 'on'}">No</button><button data-k="yes" class="${m0.warranty === 'yes' ? 'on' : ''}">Yes</button></div></div>
-      <div class="field"><label>Service contract</label><select id="mc-contract">${CONTRACTS.map(c => `<option${c === (m0.contract || 'No') ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
+      <div class="field ${type === 'OT' ? '' : 'hidden'}" id="mc-oth-f"><label>Modality</label><input id="mc-oth" value="${esc(m0.modalityOther || '')}" placeholder="e.g. Mammography"></div>
+      ${f('mc-sw', 'Software version', m0.software, 'placeholder="Optional"')}<div class="field"><label>Installed</label><input id="mc-inst" type="date" value="${esc(m0.installDate || '')}"></div>
+      <div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="mc-cov">${COVERAGE.map(([k, l]) => `<button data-k="${k}" class="${machineCoverage(m0) === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      ${f('mc-cno', 'Contract no.', m0.contractNo, 'placeholder="Optional"')}
       <div class="field" id="mc-rd-f"><label id="mc-rd-l">Counter</label><input id="mc-rd" inputmode="decimal" placeholder=""></div></div>
       <div class="foot" id="mc-rd-foot"></div>${hist()}
       ${!isNew ? `<div class="group" style="margin-top:24px"><button class="row tap" id="mc-del"><span class="body" style="color:var(--red);text-align:center">Delete machine</span></button></div>` : ''}`,
@@ -4400,8 +4452,8 @@ function openMachineEditor(src, opt = {}) {
         $('#mc-rd-l', b).textContent = k === 'helium' ? 'Helium level %' : 'Slice counter'; $('#mc-rd', b).value = cur == null ? '' : cur; $('#mc-rd', b).placeholder = k === 'helium' ? 'e.g. 62' : 'e.g. 1250000';
         $('#mc-rd-foot', b).textContent = k ? (isNew ? 'Optional starting value. Reports update it on every visit.' : 'Changing it adds a manual entry to the history.') : '';
       };
-      $$('#mc-type button', b).forEach(btn => btn.onclick = () => { type = btn.dataset.k; $$('#mc-type button', b).forEach(z => z.classList.toggle('on', z === btn)); rdUI(); }); rdUI();
-      let war = m0.warranty === 'yes' ? 'yes' : 'no'; $$('#mc-war button', b).forEach(btn => btn.onclick = () => { war = btn.dataset.k; $$('#mc-war button', b).forEach(z => z.classList.toggle('on', z === btn)); });
+      $$('#mc-type button', b).forEach(btn => btn.onclick = () => { type = btn.dataset.k; $$('#mc-type button', b).forEach(z => z.classList.toggle('on', z === btn)); $('#mc-oth-f', b).classList.toggle('hidden', type !== 'OT'); rdUI(); }); rdUI();
+      let cov = machineCoverage(m0); $$('#mc-cov button', b).forEach(btn => btn.onclick = () => { cov = cov === btn.dataset.k ? '' : btn.dataset.k; $$('#mc-cov button', b).forEach(z => z.classList.toggle('on', z.dataset.k === cov)); });
       bindSvcRows(b);
       $$('[data-rep]', b).forEach(x => x.onclick = () => { closeSheet(); setTimeout(() => reportSheet(x.dataset.rep), 300); });
       $('#sheet-primary').onclick = () => {
@@ -4409,7 +4461,8 @@ function openMachineEditor(src, opt = {}) {
         const serial = $('#mc-serial', b).value.trim();
         const dup = db.machines.find(x => x !== src && x.clientId === m0.clientId && serial && x.serial.toLowerCase() === serial.toLowerCase()); if (dup) return toast('This serial number already exists for this client', 'warn');
         const m = isNew ? createMachine({ clientId: m0.clientId, type, model, serial, notes: $('#mc-notes', b).value }) : Object.assign(src, { type, model, serial, notes: $('#mc-notes', b).value.trim() });
-        Object.assign(m, { dept: $('#mc-dept', b).value.trim(), warranty: war, contract: $('#mc-contract', b).value });
+        Object.assign(m, { dept: $('#mc-dept', b).value.trim(), software: $('#mc-sw', b).value.trim(), installDate: $('#mc-inst', b).value, contractNo: $('#mc-cno', b).value.trim(), modalityOther: type === 'OT' ? $('#mc-oth', b).value.trim() : '' });
+        setMachineCoverage(m, cov);
         const k = readingKind(type), raw = $('#mc-rd', b).value.replace(/[\s,]/g, '');
         if (k && raw !== '' && isFinite(+raw) && +raw !== (k === 'slice' ? m.lastSlice : m.lastHelium)) addReading(m, k, +raw, todayISO(), null, 'Manual');
         save(); closeSheet(); toast(isNew ? 'Machine added' : 'Saved'); if (opt.onDone) opt.onDone(m); else render();
@@ -4465,18 +4518,23 @@ function sigPad(title, name) {
   });
 }
 
-/* ---------- Report flow (3 steps in one sheet) ---------- */
+/* ---------- Report flow (3 steps in one sheet) — v4.4: every field of the TMSP form (Form TMSP-SR-01 Rev. 02) ---------- */
 function openReportFlow(opt = {}) {
   const ed = opt.report ? reportById(opt.report) : null; const t = tripById(opt.tripId || (ed && ed.tripId));
   const dflt = tripDefaultDate(t);
-  SR = ed ? { id: ed.id, step: 1, tripId: ed.tripId, clientId: ed.clientId, machineId: ed.machineId, newMachine: null, newClient: null, date: ed.date, timeIn: ed.timeIn || '', timeOut: ed.timeOut || '',
-      job: ed.job, work: ed.work, remarks: ed.remarks, parts: ed.parts.map(p => ({ ...p })), status: ed.status, readNew: ed.sliceAfter != null ? String(ed.sliceAfter) : ed.heliumAfter != null ? String(ed.heliumAfter) : '',
-      engineer: ed.engineer, title: ed.engineerTitle || '', photos: ed.photos.map(p => ({ ...p })), signClient: ed.signClient || '', signClientName: ed.signClientName || '', signEng: ed.signEng || '', lang: ed.lang, ack: false,
-      fault: ed.fault || '', warranty: ed.warranty || 'no', contract: ed.contract || 'No', sysDown: ed.sysDown || 'no', downHours: ed.downHours || '', visitNo: ed.visitNo == null ? '' : String(ed.visitNo), dept: ed.dept || '', reportedBy: ed.reportedBy || '', travel: ed.travel || '',
-      contact: (ed.snap || {}).contact || '', phone: (ed.snap || {}).phone || '', email: (ed.snap || {}).email || '', defFor: ed.machineId }
-    : { id: null, step: 1, tripId: t ? t.id : null, clientId: opt.clientId || (t && t.clientId) || '', machineId: opt.machineId || '', newMachine: null, newClient: null, date: dflt, timeIn: '', timeOut: '',
-      job: 'pm', work: '', remarks: '', parts: [], status: 'ok', readNew: '', engineer: db.settings.name || '', title: db.settings.engineerTitle || '', photos: [], signClient: '', signClientName: '', signEng: db.settings.engineerSign || '', lang: db.settings.reportLang || 'en', ack: false,
-      fault: '', warranty: 'no', contract: 'No', sysDown: 'no', downHours: '', visitNo: '', dept: '', reportedBy: '', travel: '', contact: '', phone: '', email: '', defFor: null };
+  if (ed) { const s = ed.snap || {}, m0 = machineById(ed.machineId);
+    SR = { id: ed.id, step: 1, tripId: ed.tripId, clientId: ed.clientId, machineId: ed.machineId, newMachine: null, newClient: null, date: ed.date, timeIn: ed.timeIn || '', timeOut: ed.timeOut || '',
+      job: ed.job, jobOther: ed.jobOther || '', work: ed.work, remarks: ed.remarks, parts: ed.parts.map(p => ({ ...p, notes: p.notes || (p.exch ? 'Exchange' : '') })), status: ed.status, readNew: ed.sliceAfter != null ? String(ed.sliceAfter) : ed.heliumAfter != null ? String(ed.heliumAfter) : '',
+      engineer: ed.engineer, title: ed.engineerTitle || '', photos: ed.photos.map(p => ({ ...p })), signClient: ed.signClient || '', signClientName: ed.signClientName || '', signClientTitle: ed.signClientTitle || '', signEng: ed.signEng || '', lang: ed.lang, ack: false,
+      fault: ed.fault || '', diagnosis: ed.diagnosis || '', arrival: srArrivalOf(ed), outcome: srOutcomeOf(ed) || 'up', followUp: ed.followUp || '', pending: ed.pending || '',
+      coverage: srCoverageOf(ed), contractNo: ed.contractNo || (m0 && m0.contractNo) || '', software: s.software || (m0 && m0.software) || '', installDate: s.installDate || (m0 && m0.installDate) || '', modalityOther: s.modalityOther || (m0 && m0.modalityOther) || '',
+      hexMeter: ed.hexMeter || '', tubeCounter: ed.tubeCounter || '',
+      warranty: ed.warranty || 'no', contract: ed.contract || 'No', sysDown: ed.sysDown || 'no', downHours: ed.downHours || '', visitNo: ed.visitNo == null ? '' : String(ed.visitNo), dept: ed.dept || '', reportedBy: ed.reportedBy || '', travel: ed.travel || '',
+      contact: s.contact || '', phone: s.phone || '', email: s.email || '', defFor: ed.machineId };
+  } else SR = { id: null, step: 1, tripId: t ? t.id : null, clientId: opt.clientId || (t && t.clientId) || '', machineId: opt.machineId || '', newMachine: null, newClient: null, date: dflt, timeIn: '', timeOut: '',
+      job: 'pm', jobOther: '', work: '', remarks: '', parts: [], status: 'ok', readNew: '', engineer: db.settings.name || '', title: db.settings.engineerTitle || '', photos: [], signClient: '', signClientName: '', signClientTitle: '', signEng: db.settings.engineerSign || '', lang: db.settings.reportLang || 'en', ack: false,
+      fault: '', diagnosis: '', arrival: '', outcome: 'up', followUp: 'no', pending: '', coverage: '', contractNo: '', software: '', installDate: '', modalityOther: '', hexMeter: '', tubeCounter: '',
+      warranty: 'no', contract: 'No', sysDown: 'no', downHours: '', visitNo: '', dept: '', reportedBy: '', travel: '', contact: '', phone: '', email: '', defFor: null };
   if (SR.machineId && !SR.clientId) { const m = machineById(SR.machineId); if (m) SR.clientId = m.clientId; }
   srDraw();
 }
@@ -4487,6 +4545,7 @@ function srApplyDefaults() {
   const c = clientById(SR.clientId), m = srMachine();
   SR.contact = c ? c.contact || '' : ''; SR.phone = c ? c.phone || '' : ''; SR.email = c ? c.email || '' : ''; SR.reportedBy = c ? c.reportedBy || c.contact || '' : '';
   SR.dept = (m && m.dept) || db.settings.lastDept || ''; SR.warranty = m ? m.warranty || 'no' : 'no'; SR.contract = m ? m.contract || 'No' : 'No';
+  SR.coverage = machineCoverage(m); SR.contractNo = m ? m.contractNo || '' : ''; SR.software = m ? m.software || '' : ''; SR.installDate = m ? m.installDate || '' : ''; SR.modalityOther = m ? m.modalityOther || '' : '';
   SR.visitNo = String(m ? db.reports.filter(r => r.machineId === m.id && r.id !== SR.id).length + 1 : 1);
 }
 const srMachine = () => SR.machineId && SR.machineId !== '__new' ? machineById(SR.machineId) : null;
@@ -4503,16 +4562,19 @@ function srGrab() {
   if (SR.step === 1) {
     SR.clientId = g('sr-cli') !== undefined ? g('sr-cli') : SR.clientId; SR.machineId = g('sr-mch') !== undefined ? g('sr-mch') : SR.machineId;
     if (SR.clientId === '__new') SR.newClient = { name: g('sr-nc-name') || '', address: g('sr-nc-address') || '', city: g('sr-nc-city') || '', country: g('sr-nc-country') || '' };
-    for (const [k, id] of [['contact', 'sr-contact'], ['phone', 'sr-phone'], ['email', 'sr-email'], ['visitNo', 'sr-visit'], ['dept', 'sr-dept'], ['reportedBy', 'sr-repby']]) if (g(id) !== undefined) SR[k] = g(id);
+    for (const [k, id] of [['contact', 'sr-contact'], ['phone', 'sr-phone'], ['email', 'sr-email'], ['visitNo', 'sr-visit'], ['dept', 'sr-dept'], ['software', 'sr-sw'], ['installDate', 'sr-inst'], ['contractNo', 'sr-cno'], ['modalityOther', 'sr-oth'], ['hexMeter', 'sr-hex'], ['tubeCounter', 'sr-tube']]) if (g(id) !== undefined) SR[k] = g(id);
     if (SR.machineId === '__new' || SR.clientId === '__new') SR.newMachine = Object.assign(SR.newMachine || { type: 'CT' }, { model: g('sr-nm-model') || '', serial: g('sr-nm-serial') || '', notes: g('sr-nm-notes') || '' });
     if (g('sr-read') !== undefined) SR.readNew = g('sr-read'); if (g('sr-date') !== undefined) SR.date = g('sr-date') || SR.date;
   } else if (SR.step === 2) {
-    SR.job = g('sr-job') || SR.job; SR.fault = g('sr-fault') ?? SR.fault; SR.work = g('sr-work') ?? SR.work; SR.remarks = g('sr-rem') ?? SR.remarks; SR.contract = g('sr-contract') || SR.contract; SR.downHours = g('sr-dh') ?? SR.downHours;
+    SR.job = g('sr-job') || SR.job; SR.jobOther = g('sr-jobo') ?? SR.jobOther; SR.fault = g('sr-fault') ?? SR.fault; SR.diagnosis = g('sr-diag') ?? SR.diagnosis; SR.work = g('sr-work') ?? SR.work; SR.remarks = g('sr-rem') ?? SR.remarks; SR.pending = g('sr-pend') ?? SR.pending;
   } else {
-    SR.date = g('sr-d') || SR.date; SR.timeIn = g('sr-ti') ?? SR.timeIn; SR.timeOut = g('sr-to') ?? SR.timeOut; SR.travel = g('sr-trv') ?? SR.travel; SR.engineer = g('sr-eng') ?? SR.engineer; SR.title = g('sr-title') ?? SR.title; SR.signClientName = g('sr-scn') ?? SR.signClientName; SR.lang = g('sr-lang') || SR.lang;
+    SR.date = g('sr-d') || SR.date; SR.timeIn = g('sr-ti') ?? SR.timeIn; SR.timeOut = g('sr-to') ?? SR.timeOut; SR.engineer = g('sr-eng') ?? SR.engineer; SR.title = g('sr-title') ?? SR.title; SR.signClientName = g('sr-scn') ?? SR.signClientName; SR.signClientTitle = g('sr-sct') ?? SR.signClientTitle;
   }
 }
 const num = v => { const s = String(v ?? '').replace(/[\s,]/g, ''); return s !== '' && isFinite(+s) ? +s : null; };
+const segHTML = (id, opts, cur, extra = '') => `<div class="seg" style="flex:1" id="${id}"${extra}>${opts.map(([k, l]) => `<button data-k="${k}" class="${k === cur ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+/* a segmented choice that can also be cleared by tapping the selected one again (form boxes may stay empty) */
+function bindSeg(root, id, get, set, clearable) { $$('#' + id + ' button', root).forEach(x => x.onclick = () => { const k = clearable && get() === x.dataset.k ? '' : x.dataset.k; set(k); $$('#' + id + ' button', root).forEach(z => z.classList.toggle('on', z.dataset.k === k)); }); }
 
 const srSetCountryHTML = () => `<div class="field"><label>Country</label><select id="sr-setcountry">${countryOpts('', 'Set country…')}</select></div>`;
 function srStep1() {
@@ -4542,17 +4604,25 @@ function srStep1Mount(b) {
     if (SR.machineId) srApplyDefaults();
     const type = srType(); const kind = readingKind(type); const nm = SR.newMachine || {};
     const prev = m && kind ? prevReading(m, kind, SR.date, SR.id) : null;
+    const tube = type === 'XR' || type === 'XA' || type === 'OT';
     box.innerHTML = `<div class="group" style="margin-top:14px">${newCli ? '' : `<div class="field"><label>Machine</label><select id="sr-mch"><option value="">Select machine…</option>${ms.map(x => `<option value="${esc(x.id)}"${x.id === SR.machineId ? ' selected' : ''}>${esc(mtype(x.type).label + ' · ' + (x.model || 'Machine') + (x.serial ? ' · SN ' + x.serial : ''))}</option>`).join('')}<option value="__new"${isNewM ? ' selected' : ''}>＋ Add new machine…</option></select></div>`}
       ${m ? `<div class="row"><span class="body"><div class="st" style="margin:0 0 2px">Model</div><div id="sr-m-model">${esc(m.model)}</div></span></div><div class="row"><span class="body"><div class="st" style="margin:0 0 2px">Serial no.</div><div id="sr-m-serial">${esc(m.serial || '—')}</div></span></div>${m.notes ? `<div class="row"><span class="body"><div class="st" style="margin:0 0 2px">Room / site</div><div>${esc(m.notes)}</div></span></div>` : ''}` : ''}
       ${isNewM ? `<div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="sr-nm-type">${MTYPES.map(x => `<button data-k="${x.k}" class="${x.k === (nm.type || 'CT') ? 'on' : ''}">${x.label}</button>`).join('')}</div></div>
         <div class="field"><label>Model</label><input id="sr-nm-model" placeholder="e.g. TSX-303A" value="${esc(nm.model || '')}"></div><div class="field"><label>Serial no.</label><input id="sr-nm-serial" placeholder="Serial number" autocapitalize="characters" value="${esc(nm.serial || '')}"></div><div class="field"><label>Room / site</label><input id="sr-nm-notes" placeholder="Optional" value="${esc(nm.notes || '')}"></div>` : ''}</div>
+    ${SR.machineId ? `<div class="ghead">System</div><div class="group">${type === 'OT' ? `<div class="field"><label>Modality</label><input id="sr-oth" value="${esc(SR.modalityOther)}" placeholder="e.g. Mammography"></div>` : ''}
+      <div class="field"><label>Software version</label><input id="sr-sw" value="${esc(SR.software)}" placeholder="Optional"></div><div class="field"><label>Installed</label><input id="sr-inst" type="date" value="${esc(SR.installDate)}"></div>
+      <div class="row" style="padding:10px 16px">${segHTML('sr-cov', COVERAGE, SR.coverage)}</div>
+      <div class="field"><label>Contract no.</label><input id="sr-cno" value="${esc(SR.contractNo)}" placeholder="Optional"></div></div>` : ''}
     ${kind ? `<div class="ghead">${kind === 'slice' ? 'Slice counter' : 'Helium level'}</div><div class="group">
       <div class="row"><span class="body"><div class="st" style="margin:0 0 2px">Previous${prev ? ' · ' + esc(fmtD(prev.date, { day: 'numeric', month: 'short', year: 'numeric' })) : ''}</div><div class="num" id="sr-prev">${prev ? (kind === 'slice' ? esc(nfmt(prev.value)) : prev.value + ' %') : 'No previous reading'}</div></span></div>
-      <div class="field"><label>${kind === 'slice' ? 'Counter now' : 'Helium now %'}</label><input id="sr-read" inputmode="decimal" placeholder="${kind === 'slice' ? 'Enter the updated counter' : '0–100'}" value="${esc(SR.readNew)}"></div></div>
+      <div class="field"><label>${kind === 'slice' ? 'Counter now' : 'Helium now %'}</label><input id="sr-read" inputmode="decimal" placeholder="${kind === 'slice' ? 'Enter the updated counter' : '0–100'}" value="${esc(SR.readNew)}"></div>
+      ${kind === 'helium' ? `<div class="field"><label>Heat exchanger</label><input id="sr-hex" value="${esc(SR.hexMeter)}" placeholder="Meter, optional"></div>` : ''}</div>
       <div class="foot" id="sr-delta"></div>` : ''}
+    ${SR.machineId && tube ? `<div class="ghead">Tube counter</div><div class="group"><div class="field"><label>Counter</label><input id="sr-tube" value="${esc(SR.tubeCounter)}" placeholder="Optional"></div></div>` : ''}
     ${SR.machineId ? `<div class="ghead">Customer contact</div><div class="group"><div class="field"><label>Name</label><input id="sr-contact" value="${esc(SR.contact)}" placeholder="Person on site" autocomplete="off"></div><div class="field"><label>Mobile</label><input id="sr-phone" type="tel" value="${esc(SR.phone)}" placeholder="Optional"></div><div class="field"><label>E-mail</label><input id="sr-email" type="email" value="${esc(SR.email)}" placeholder="Optional"></div></div>
-    <div class="ghead">Report form</div><div class="group"><div class="field"><label>Visit no.</label><input id="sr-visit" inputmode="numeric" value="${esc(SR.visitNo)}" style="max-width:90px;text-align:right"></div><div class="field"><label>Department</label><input id="sr-dept" value="${esc(SR.dept)}" placeholder="e.g. Radiology"></div><div class="field"><label>Reported by</label><input id="sr-repby" value="${esc(SR.reportedBy)}" placeholder="Who reported the fault"></div></div><div class="foot">Prefilled from the client and machine; the visit number counts this machine's reports.</div>` : ''}`;
+    <div class="ghead">Report form</div><div class="group"><div class="field"><label>Visit no.</label><input id="sr-visit" inputmode="numeric" value="${esc(SR.visitNo)}" style="max-width:90px;text-align:right"></div><div class="field"><label>Department</label><input id="sr-dept" value="${esc(SR.dept)}" placeholder="e.g. Radiology"></div></div><div class="foot">Prefilled from the client and machine; the visit number counts this machine's reports.</div>` : ''}`;
     $$('#sr-nm-type button', box).forEach(btn => btn.onclick = () => { srGrab(); SR.newMachine.type = btn.dataset.k; paint(); });
+    bindSeg(box, 'sr-cov', () => SR.coverage, k => { SR.coverage = k; }, true);
     const mch = $('#sr-mch', box); if (mch) mch.onchange = () => { SR.machineId = mch.value; SR.ack = false; paint(); };
     const rd = $('#sr-read', box); if (rd) { rd.oninput = () => { SR.readNew = rd.value; SR.ack = false; delta(prev, kind); }; delta(prev, kind); }
   };
@@ -4583,35 +4653,40 @@ function srValidate1() {
 }
 
 function srStep2() {
-  const partRow = (p, i) => `<div class="row"><span class="body"><div class="t">${esc(p.name)}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', 'Qty ' + p.qty, p.exch ? 'Exchange' : ''].filter(Boolean).join(' · '))}</div></span><span class="pill ${p.required ? 'warn' : 'ok'}">${p.required ? 'To order' : 'Used'}</span><button class="navbtn" data-delp="${i}" aria-label="Remove part" style="min-width:34px">${icon('x', 's')}</button></div>`;
+  const partRow = (p, i) => `<div class="row"><span class="body"><div class="t">${esc(p.name)}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', 'Qty ' + p.qty, p.required ? (p.priority === 'urgent' ? 'Urgent' : p.priority === 'normal' ? 'Normal' : '') : p.notes].filter(Boolean).join(' · '))}</div></span><span class="pill ${p.required ? 'warn' : 'ok'}">${p.required ? 'To order' : 'Replaced'}</span><button class="navbtn" data-delp="${i}" aria-label="Remove part" style="min-width:34px">${icon('x', 's')}</button></div>`;
+  const fu = SR.followUp === 'yes';
   openSheet(srSheetCfg(`${srBar(2)}
-    <div class="group"><div class="field"><label>Job type</label><select id="sr-job">${JOB_TYPES.map(j => `<option value="${j[0]}"${j[0] === SR.job ? ' selected' : ''}>${j[1]}</option>`).join('')}</select></div></div>
-    <div class="ghead">Fault</div><div class="group"><div class="field stack"><textarea id="sr-fault" rows="3" placeholder="Fault reported / found…">${esc(SR.fault)}</textarea></div></div>
-    <div class="ghead">Work done</div><div class="group"><div class="field stack"><textarea id="sr-work" rows="5" placeholder="What was done on the system…">${esc(SR.work)}</textarea></div></div>
-    <div class="ghead">Remarks</div><div class="group"><div class="field stack"><textarea id="sr-rem" rows="3" placeholder="Recommendations, open points, follow-up…">${esc(SR.remarks)}</textarea></div></div>
-    <div class="ghead">Parts used / required</div><div class="group" id="sr-parts">${SR.parts.map(partRow).join('')}
+    <div class="group"><div class="field"><label>Call type</label><select id="sr-job">${JOB_TYPES.map(j => `<option value="${j[0]}"${j[0] === SR.job ? ' selected' : ''}>${j[1]}</option>`).join('')}</select></div>
+      <div class="field ${SR.job === 'other' ? '' : 'hidden'}" id="sr-jobo-f"><label>Other</label><input id="sr-jobo" value="${esc(SR.jobOther)}" placeholder="Type of call"></div></div>
+    <div class="ghead">System on arrival</div><div class="group"><div class="row" style="padding:10px 16px">${segHTML('sr-arr', ARRIVAL, SR.arrival)}</div></div>
+    <div class="ghead">Reported fault / error code</div><div class="group"><div class="field stack"><textarea id="sr-fault" rows="3" placeholder="As reported by the customer…">${esc(SR.fault)}</textarea></div></div>
+    <div class="ghead">Diagnosis / root cause</div><div class="group"><div class="field stack"><textarea id="sr-diag" rows="3" placeholder="Your findings…">${esc(SR.diagnosis)}</textarea></div></div>
+    <div class="ghead">Work performed</div><div class="group"><div class="field stack"><textarea id="sr-work" rows="5" placeholder="Actions, adjustments, calibrations, tests, QA checks…">${esc(SR.work)}</textarea></div></div>
+    <div class="ghead">Parts replaced / required</div><div class="group" id="sr-parts">${SR.parts.map(partRow).join('')}
       <div class="field"><label>Part</label><input id="sr-p-name" placeholder="Part name"></div><div class="field"><label>Part no.</label><input id="sr-p-pn" placeholder="Optional" autocapitalize="characters"></div>
       <div class="field"><label>Quantity</label><input id="sr-p-qty" inputmode="numeric" value="1" style="max-width:80px;text-align:right"></div>
-      <div class="row"><span class="body">Exchange part</span><label class="switch"><input type="checkbox" id="sr-p-exch"><span></span></label></div>
       <div class="row"><span class="body">Needs ordering</span><label class="switch"><input type="checkbox" id="sr-p-req"><span></span></label></div>
+      <div class="field" id="sr-p-notes-f"><label>Notes</label><input id="sr-p-notes" placeholder="Optional, e.g. exchange"></div>
+      <div class="row hidden" id="sr-p-urg-f"><span class="body">Urgent</span><label class="switch"><input type="checkbox" id="sr-p-urg"><span></span></label></div>
       <button class="row tap has-icon" id="sr-p-add"><span class="ico" style="background:var(--fill2);color:var(--blue)">${icon('plus')}</span><span class="body" style="color:var(--blue)">Add part</span></button></div>
-    <div class="foot">Parts marked “Needs ordering” go into the Parts to order list, to forward to your manager.</div>
-    <div class="ghead">Machine status after the visit</div><div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="sr-status">${MSTATUS.map(s => `<button data-k="${s[0]}" class="${s[0] === SR.status ? 'on' : ''}">${s[1]}</button>`).join('')}</div></div></div>
-    <div class="ghead">Warranty &amp; contract</div><div class="group">
-      <div class="row"><span class="body">Warranty</span><div class="seg" style="width:140px" id="sr-war"><button data-k="no" class="${SR.warranty === 'yes' ? '' : 'on'}">No</button><button data-k="yes" class="${SR.warranty === 'yes' ? 'on' : ''}">Yes</button></div></div>
-      <div class="field"><label>Service contract</label><select id="sr-contract">${CONTRACTS.map(c => `<option${c === SR.contract ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
-      <div class="row"><span class="body">System down</span><div class="seg" style="width:140px" id="sr-down"><button data-k="no" class="${SR.sysDown === 'yes' ? '' : 'on'}">No</button><button data-k="yes" class="${SR.sysDown === 'yes' ? 'on' : ''}">Yes</button></div></div>
-      <div class="field ${SR.sysDown === 'yes' ? '' : 'hidden'}" id="sr-dh-f"><label>Hours down</label><input id="sr-dh" inputmode="decimal" placeholder="Optional" value="${esc(SR.downHours)}" style="max-width:90px;text-align:right"></div></div>`,
+    <div class="foot">Parts marked “Needs ordering” go into Required parts and the Parts to order list.</div>
+    <div class="ghead">After service</div><div class="group"><div class="row" style="padding:10px 16px">${segHTML('sr-out', OUTCOME, SR.outcome)}</div>
+      <div class="row"><span class="body">Follow-up required</span><div class="seg" style="width:140px" id="sr-fu"><button data-k="no" class="${fu ? '' : 'on'}">No</button><button data-k="yes" class="${fu ? 'on' : ''}">Yes</button></div></div>
+      <div class="field ${fu ? '' : 'hidden'}" id="sr-pend-f"><label>Pending action</label><input id="sr-pend" value="${esc(SR.pending)}" placeholder="What is still to do"></div></div>
+    <div class="ghead">Remarks &amp; recommendations</div><div class="group"><div class="field stack"><textarea id="sr-rem" rows="3" placeholder="To the customer…">${esc(SR.remarks)}</textarea></div></div>`,
     b => {
       $$('[data-delp]', b).forEach(x => x.onclick = () => { srGrab(); SR.parts.splice(+x.dataset.delp, 1); const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; });
-      const segSet = (id, k) => $$('#' + id + ' button', b).forEach(z => z.classList.toggle('on', z.dataset.k === k));
-      const downUI = () => { segSet('sr-down', SR.sysDown); $('#sr-dh-f', b).classList.toggle('hidden', SR.sysDown !== 'yes'); };
-      $$('#sr-status button', b).forEach(x => x.onclick = () => { SR.status = x.dataset.k; segSet('sr-status', SR.status); if (SR.status === 'down') { SR.sysDown = 'yes'; downUI(); } });
-      $$('#sr-war button', b).forEach(x => x.onclick = () => { SR.warranty = x.dataset.k; segSet('sr-war', SR.warranty); });
-      $$('#sr-down button', b).forEach(x => x.onclick = () => { SR.sysDown = x.dataset.k; downUI(); });
-      $('#sr-p-add', b).onclick = () => { const name = $('#sr-p-name', b).value.trim(); if (!name) { $('#sr-p-name', b).focus(); return toast('Enter the part name', 'warn'); } srGrab(); SR.parts.push({ id: uid('PT'), name, pn: $('#sr-p-pn', b).value.trim(), qty: Math.max(1, parseInt($('#sr-p-qty', b).value) || 1), required: $('#sr-p-req', b).checked, ordered: false, exch: $('#sr-p-exch', b).checked }); const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; };
-      $('#sheet-primary').onclick = () => { srGrab(); const pn = $('#sr-p-name', b).value.trim(); if (pn) { SR.parts.push({ id: uid('PT'), name: pn, pn: $('#sr-p-pn', b).value.trim(), qty: Math.max(1, parseInt($('#sr-p-qty', b).value) || 1), required: $('#sr-p-req', b).checked, ordered: false, exch: $('#sr-p-exch', b).checked }); }
-        if (!SR.work.trim()) return toast('Describe the work done', 'warn'); SR.step = 3; srDraw(); };
+      $('#sr-job', b).onchange = e => { SR.job = e.target.value; $('#sr-jobo-f', b).classList.toggle('hidden', SR.job !== 'other'); };
+      bindSeg(b, 'sr-arr', () => SR.arrival, k => { SR.arrival = k; }, true);
+      const fuUI = () => { $$('#sr-fu button', b).forEach(z => z.classList.toggle('on', z.dataset.k === (SR.followUp === 'yes' ? 'yes' : 'no'))); $('#sr-pend-f', b).classList.toggle('hidden', SR.followUp !== 'yes'); };
+      bindSeg(b, 'sr-out', () => SR.outcome, k => { SR.outcome = k; if ((k === 'parts' || k === 'revisit') && !SR.fuTouched) { SR.followUp = 'yes'; fuUI(); } }, false);
+      $$('#sr-fu button', b).forEach(x => x.onclick = () => { SR.followUp = x.dataset.k; SR.fuTouched = true; fuUI(); });
+      $('#sr-p-req', b).onchange = e => { $('#sr-p-urg-f', b).classList.toggle('hidden', !e.target.checked); $('#sr-p-notes-f', b).classList.toggle('hidden', e.target.checked); };
+      const takePart = () => { const name = $('#sr-p-name', b).value.trim(); if (!name) return null; const req = $('#sr-p-req', b).checked;
+        return { id: uid('PT'), name, pn: $('#sr-p-pn', b).value.trim(), qty: Math.max(1, parseInt($('#sr-p-qty', b).value) || 1), required: req, ordered: false, exch: false, notes: req ? '' : $('#sr-p-notes', b).value.trim(), priority: req ? ($('#sr-p-urg', b).checked ? 'urgent' : 'normal') : '' }; };
+      $('#sr-p-add', b).onclick = () => { const p = takePart(); if (!p) { $('#sr-p-name', b).focus(); return toast('Enter the part name', 'warn'); } srGrab(); SR.parts.push(p); const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; };
+      $('#sheet-primary').onclick = () => { srGrab(); const p = takePart(); if (p) SR.parts.push(p);
+        if (!SR.work.trim()) return toast('Describe the work performed', 'warn'); SR.step = 3; srDraw(); };
     }));
 }
 
@@ -4619,11 +4694,11 @@ function srStep3() {
   const photos = () => SR.photos.map((p, i) => `<div class="ph"><img src="${esc(p.thumb)}" alt="Photo"><button data-delph="${i}" aria-label="Remove photo">${icon('x', 's')}</button></div>`).join('');
   const sigBox = (k, label, sub) => `<div class="row tap" id="sr-sig-${k}" style="cursor:pointer"><span class="body"><div class="t">${label}</div><div class="st">${sub}</div></span>${SR[k] ? `<img class="sigprev" src="${SR[k]}" alt="">` : icon('chevR', 's chev')}</div>`;
   openSheet(srSheetCfg(`${srBar(3)}
-    <div class="group"><div class="field"><label>Date</label><input id="sr-d" type="date" value="${esc(SR.date)}"></div><div class="field"><label>Work start</label><input id="sr-ti" type="time" value="${esc(SR.timeIn)}"></div><div class="field"><label>Work end</label><input id="sr-to" type="time" value="${esc(SR.timeOut)}"></div><div class="field"><label>Traveling time (h)</label><input id="sr-trv" inputmode="decimal" placeholder="Optional" value="${esc(SR.travel)}" style="max-width:110px;text-align:right"></div></div>
-    <div class="ghead">Engineer</div><div class="group"><div class="field"><label>Name</label><input id="sr-eng" value="${esc(SR.engineer)}" placeholder="Your name" autocomplete="name"></div><div class="field"><label>Title</label><input id="sr-title" value="${esc(SR.title)}" placeholder="e.g. Field Service Engineer CT/MR"></div></div>
+    <div class="group"><div class="field"><label>Date of visit</label><input id="sr-d" type="date" value="${esc(SR.date)}"></div><div class="field"><label>Work start</label><input id="sr-ti" type="time" value="${esc(SR.timeIn)}"></div><div class="field"><label>Work end</label><input id="sr-to" type="time" value="${esc(SR.timeOut)}"></div></div>
+    <div class="ghead">Service engineer</div><div class="group"><div class="field"><label>Name</label><input id="sr-eng" value="${esc(SR.engineer)}" placeholder="Your name" autocomplete="name"></div><div class="field"><label>Title</label><input id="sr-title" value="${esc(SR.title)}" placeholder="e.g. Field Service Engineer CT/MR"></div></div>
+    <div class="ghead">Customer representative</div><div class="group"><div class="field"><label>Name</label><input id="sr-scn" value="${esc(SR.signClientName || SR.contact)}" placeholder="Person signing"></div><div class="field"><label>Title</label><input id="sr-sct" value="${esc(SR.signClientTitle)}" placeholder="e.g. Head of Radiology"></div></div>
+    <div class="ghead">Signatures</div><div class="group">${sigBox('signEng', 'Engineer', SR.signEng ? 'Tap to redo' : 'Tap to sign')}${sigBox('signClient', 'Customer', SR.signClient ? 'Tap to redo' : 'Optional · tap to sign')}</div>
     <div class="ghead">Photos</div><div class="photos" id="sr-photos">${photos()}<label class="ph add">${icon('camera')}<input type="file" id="sr-photo-in" accept="image/*" multiple hidden></label></div>
-    <div class="ghead">Signatures</div><div class="group">${sigBox('signEng', 'Engineer', SR.signEng ? 'Tap to redo' : 'Tap to sign')}${sigBox('signClient', 'Client', SR.signClient ? 'Tap to redo' : 'Optional · tap to sign')}<div class="field"><label>Client signer</label><input id="sr-scn" value="${esc(SR.signClientName || SR.contact)}" placeholder="Name of the person signing"></div></div>
-    <div class="ghead">PDF language</div><div class="group"><div class="row" style="padding:10px 16px"><div class="seg" style="flex:1" id="sr-lang"><button data-k="en" class="${SR.lang === 'en' ? 'on' : ''}">English</button><button data-k="fr" class="${SR.lang === 'fr' ? 'on' : ''}">Français</button></div></div></div>
     <div class="foot">The report stays editable until you finalize it.</div>`,
     b => {
       $$('[data-delph]', b).forEach(x => x.onclick = () => { srGrab(); SR.photos.splice(+x.dataset.delph, 1); const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; });
@@ -4632,8 +4707,7 @@ function srStep3() {
         for (const f of files.slice(0, 12)) { try { const s = await scaledPhoto(f); SR.photos.push({ id: uid('PH'), name: f.name || 'photo.jpg', thumb: s.thumb, blob: s.blob, caption: '' }); } catch (err) { toast('Could not read a photo', 'warn'); } }
         const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc;
       };
-      $$('#sr-lang button', b).forEach(x => x.onclick = () => { SR.lang = x.dataset.k; $$('#sr-lang button', b).forEach(z => z.classList.toggle('on', z === x)); $('#sr-lang', b).dataset.v = SR.lang; });
-      const sign = k => async () => { srGrab(); const v = await sigPad(k === 'signEng' ? 'Engineer signature' : 'Client signature', k === 'signClient' ? SR.signClientName : SR.engineer); if (v === null) return; SR[k] = v; const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; };
+      const sign = k => async () => { srGrab(); const v = await sigPad(k === 'signEng' ? 'Engineer signature' : 'Customer signature', k === 'signClient' ? SR.signClientName : SR.engineer); if (v === null) return; SR[k] = v; const sc = $('#sheet-b').scrollTop; srDraw(); $('#sheet-b').scrollTop = sc; };
       $('#sr-sig-signEng', b).onclick = sign('signEng'); $('#sr-sig-signClient', b).onclick = sign('signClient');
       $('#sheet-primary').onclick = async () => {
         srGrab(); if (!SR.engineer.trim()) { $('#sr-eng', b).focus(); return toast('Enter the engineer name', 'warn'); }
@@ -4650,6 +4724,10 @@ async function srCommit() {
   // machine
   let m = SR.machineId === '__new' || !machineById(SR.machineId) ? null : machineById(SR.machineId);
   if (!m) { const n = SR.newMachine || {}; m = createMachine({ clientId: c.id, type: n.type || 'OT', model: n.model, serial: n.serial, notes: n.notes }); }
+  /* system details belong to the machine: remember them for the next visit */
+  const tx = v => String(v || '').trim();
+  if (tx(SR.software)) m.software = tx(SR.software); if (SR.installDate) m.installDate = SR.installDate; if (tx(SR.contractNo)) m.contractNo = tx(SR.contractNo); if (m.type === 'OT' && tx(SR.modalityOther)) m.modalityOther = tx(SR.modalityOther);
+  if (SR.coverage) setMachineCoverage(m, SR.coverage);
   const kind = readingKind(m.type); const now = new Date().toISOString();
   let r = SR.id ? reportById(SR.id) : null; const isNew = !r;
   if (isNew) { const year = +SR.date.slice(0, 4) || new Date().getFullYear(); const seq = nextReportSeq(year); r = { id: uid('SR'), no: reportNo(year, seq), seq, year, createdAt: now, final: false }; db.reports.push(r); }
@@ -4660,19 +4738,24 @@ async function srCommit() {
   // readings
   const oldM = machineById(r.machineId); if (oldM) { oldM.readings = oldM.readings.filter(x => x.reportId !== r.id); machineRecalc(oldM); }
   const prevS = prevReading(m, 'slice', SR.date, r.id), prevH = prevReading(m, 'helium', SR.date, r.id), v = num(SR.readNew);
+  const cov = SR.coverage || '';
   Object.assign(r, { tripId: SR.tripId, tripLabel: tripShort(tripById(SR.tripId)) || r.tripLabel || '', clientId: c.id, machineId: m.id,
-    snap: { client: c.name, address: c.address || '', city: c.city || '', country: c.country || '', contact: SR.contact.trim(), phone: SR.phone.trim(), email: SR.email.trim(), type: m.type, model: m.model, serial: m.serial, notes: m.notes || '' },
-    date: SR.date, timeIn: SR.timeIn, timeOut: SR.timeOut, job: SR.job, work: SR.work.trim(), remarks: SR.remarks.trim(), parts: SR.parts.map(p => ({ ...p })), status: SR.status,
+    snap: { client: c.name, address: c.address || '', city: c.city || '', country: c.country || '', contact: SR.contact.trim(), phone: SR.phone.trim(), email: SR.email.trim(), type: m.type, model: m.model, serial: m.serial, notes: m.notes || '',
+      software: tx(SR.software) || m.software || '', installDate: SR.installDate || m.installDate || '', modalityOther: m.type === 'OT' ? (tx(SR.modalityOther) || m.modalityOther || '') : '' },
+    date: SR.date, timeIn: SR.timeIn, timeOut: SR.timeOut, job: SR.job, jobOther: SR.job === 'other' ? tx(SR.jobOther) : '', work: SR.work.trim(), remarks: SR.remarks.trim(), parts: SR.parts.map(p => ({ ...p })),
+    outcome: SR.outcome || '', status: OUTCOME_STATUS[SR.outcome] || 'ok', arrival: SR.arrival || '', diagnosis: tx(SR.diagnosis), followUp: SR.followUp || '', pending: SR.followUp === 'yes' ? tx(SR.pending) : '',
     sliceBefore: kind === 'slice' && prevS ? prevS.value : null, sliceAfter: kind === 'slice' ? v : null, heliumBefore: kind === 'helium' && prevH ? prevH.value : null, heliumAfter: kind === 'helium' ? v : null,
-    engineer: SR.engineer.trim(), engineerTitle: SR.title.trim(), signEng: SR.signEng, signClient: SR.signClient, signClientName: (SR.signClientName || SR.contact).trim(),
-    fault: SR.fault.trim(), warranty: SR.warranty, contract: SR.contract, sysDown: SR.sysDown, downHours: SR.sysDown === 'yes' ? String(SR.downHours || '').trim() : '', visitNo: num(SR.visitNo) == null ? '' : num(SR.visitNo), dept: SR.dept.trim(), reportedBy: SR.reportedBy.trim(), travel: String(SR.travel || '').trim(),
+    hexMeter: kind === 'helium' ? tx(SR.hexMeter) : '', tubeCounter: ['XR', 'XA', 'OT'].includes(m.type) ? tx(SR.tubeCounter) : '',
+    engineer: SR.engineer.trim(), engineerTitle: SR.title.trim(), signEng: SR.signEng, signClient: SR.signClient, signClientName: (SR.signClientName || SR.contact).trim(), signClientTitle: tx(SR.signClientTitle),
+    fault: SR.fault.trim(), coverage: cov, contractNo: tx(SR.contractNo), warranty: cov === 'warranty' ? 'yes' : 'no', contract: cov === 'contract' ? (m.contract && m.contract !== 'No' ? m.contract : 'Yes') : 'No',
+    sysDown: SR.arrival === 'down' ? 'yes' : 'no', downHours: SR.arrival === 'down' ? String(SR.downHours || '').trim() : '', visitNo: num(SR.visitNo) == null ? '' : num(SR.visitNo), dept: SR.dept.trim(), reportedBy: (SR.reportedBy || '').trim(), travel: String(SR.travel || '').trim(),
     photos: SR.photos.map(p => ({ id: p.id, name: p.name, thumb: p.thumb, caption: p.caption || '' })), lang: SR.lang, updatedAt: now });
   if (kind && v != null) addReading(m, kind, v, r.date, r.id, 'Service report');
   machineRecalc(m);
-  /* remember for next time: contact on the client, department / warranty / contract on the machine, reported-by per client */
-  c.contact = SR.contact.trim() || c.contact; c.phone = SR.phone.trim() || c.phone; c.email = SR.email.trim() || c.email; c.reportedBy = r.reportedBy || c.reportedBy || ''; m.dept = r.dept || m.dept || ''; m.warranty = r.warranty || m.warranty; m.contract = r.contract || m.contract; db.settings.lastDept = r.dept || db.settings.lastDept || '';
+  /* remember for next time: contact on the client, department on the machine */
+  c.contact = SR.contact.trim() || c.contact; c.phone = SR.phone.trim() || c.phone; c.email = SR.email.trim() || c.email; c.reportedBy = r.reportedBy || c.reportedBy || ''; m.dept = r.dept || m.dept || ''; db.settings.lastDept = r.dept || db.settings.lastDept || '';
   const t = tripById(r.tripId); if (t && !t.clientId) t.clientId = c.id;
-  db.settings.name = db.settings.name || r.engineer; db.settings.engineerTitle = r.engineerTitle || db.settings.engineerTitle || ''; if (r.signEng) db.settings.engineerSign = r.signEng; db.settings.reportLang = r.lang;
+  db.settings.name = db.settings.name || r.engineer; db.settings.engineerTitle = r.engineerTitle || db.settings.engineerTitle || ''; if (r.signEng) db.settings.engineerSign = r.signEng;
   save(); return r;
 }
 
@@ -4684,9 +4767,9 @@ function reportSheet(id) {
   const rd = kind === 'slice' ? `${nfmt(r.sliceBefore)} → ${nfmt(r.sliceAfter)}${r.sliceAfter != null && r.sliceBefore != null ? ' (' + nfmt(r.sliceAfter - r.sliceBefore) + ' slices)' : ''}` : kind === 'helium' ? `${r.heliumBefore != null ? r.heliumBefore + ' %' : '—'} → ${r.heliumAfter != null ? r.heliumAfter + ' %' : '—'}` : '';
   openSheet({ title: r.no, left: { label: 'Close' }, right: !r.final ? { label: 'Edit', fn: () => { closeSheet(); setTimeout(() => openReportFlow({ report: r.id }), 320); } } : null,
     body: `<div class="rhead"><span class="pill ${r.final ? 'ok' : 'warn'}">${r.final ? 'Final' : 'Draft'}</span><span class="pill ${st[2]}">${st[1]}</span></div>
-      <div class="group">${row('Client', [s.client, cityLine(s)].filter(Boolean).join(' — '))}${row('Machine', [mtype(s.type).label, s.model, s.serial ? 'SN ' + s.serial : ''].filter(Boolean).join(' · '))}${row('Date', fmtD(r.date, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) + (r.timeIn ? ` · ${r.timeIn}${r.timeOut ? '–' + r.timeOut : ''}` : ''))}${row('Job', jobLabel(r.job))}${row('Visit', [r.visitNo ? 'No. ' + r.visitNo : '', r.dept, r.reportedBy ? 'reported by ' + r.reportedBy : ''].filter(Boolean).join(' · '))}${row('Warranty / contract', [r.warranty === 'yes' ? 'Warranty' : 'No warranty', 'Contract: ' + (r.contract || 'No'), r.sysDown === 'yes' ? 'System down' + (r.downHours ? ' ' + r.downHours + ' h' : '') : ''].filter(Boolean).join(' · '))}${row(kind === 'slice' ? 'Slice counter' : 'Helium level', rd)}${row('Engineer', r.engineer)}${r.tripLabel ? row('Trip', r.tripLabel) : ''}</div>
-      ${r.fault ? `<div class="ghead">Fault</div><div class="group">${row('', r.fault)}</div>` : ''}<div class="ghead">Work done</div><div class="group">${row('', r.work) || ''}</div>${r.remarks ? `<div class="ghead">Remarks</div><div class="group">${row('', r.remarks)}</div>` : ''}
-      ${r.parts.length ? `<div class="ghead">Parts</div><div class="group">${r.parts.map(p => `<div class="row"><span class="body"><div class="t">${esc(p.name)}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', 'Qty ' + p.qty].filter(Boolean).join(' · '))}</div></span><span class="pill ${p.required ? 'warn' : 'ok'}">${p.required ? (p.ordered ? 'Ordered' : 'To order') : (p.exch ? 'Exchange' : 'Used')}</span></div>`).join('')}</div>` : ''}
+      <div class="group">${row('Client', [s.client, cityLine(s)].filter(Boolean).join(' — '))}${row('Machine', [mtype(s.type).label, s.model, s.serial ? 'SN ' + s.serial : ''].filter(Boolean).join(' · '))}${row('Date', fmtD(r.date, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) + (r.timeIn ? ` · ${r.timeIn}${r.timeOut ? '–' + r.timeOut : ''}` : ''))}${row('Call type', jobLabel(r.job) + (r.job === 'other' && r.jobOther ? ' · ' + r.jobOther : ''))}${row('Visit', [r.visitNo ? 'No. ' + r.visitNo : '', r.dept].filter(Boolean).join(' · '))}${row('Coverage', [(COVERAGE.find(c => c[0] === srCoverageOf(r)) || [, ''])[1], r.contractNo ? 'Contract no. ' + r.contractNo : ''].filter(Boolean).join(' · '))}${row('System', [s.software ? 'Software ' + s.software : '', s.installDate ? 'installed ' + fmtD(s.installDate, { day: 'numeric', month: 'short', year: 'numeric' }) : ''].filter(Boolean).join(' · '))}${row('Status', [srArrivalOf(r) ? 'On arrival: ' + ARRIVAL.find(a => a[0] === srArrivalOf(r))[1] : '', srOutcomeOf(r) ? 'After service: ' + OUTCOME.find(a => a[0] === srOutcomeOf(r))[1] : ''].filter(Boolean).join(' · '))}${r.followUp === 'yes' ? row('Follow-up required', r.pending || 'Yes') : ''}${row(kind === 'slice' ? 'Slice counter' : 'Helium level', rd)}${row('Heat exchanger', r.hexMeter)}${row('Tube counter', r.tubeCounter)}${row('Engineer', r.engineer)}${r.tripLabel ? row('Trip', r.tripLabel) : ''}</div>
+      ${r.fault ? `<div class="ghead">Reported fault</div><div class="group">${row('', r.fault)}</div>` : ''}${r.diagnosis ? `<div class="ghead">Diagnosis</div><div class="group">${row('', r.diagnosis)}</div>` : ''}<div class="ghead">Work performed</div><div class="group">${row('', r.work) || ''}</div>${r.remarks ? `<div class="ghead">Remarks</div><div class="group">${row('', r.remarks)}</div>` : ''}
+      ${r.parts.length ? `<div class="ghead">Parts</div><div class="group">${r.parts.map(p => `<div class="row"><span class="body"><div class="t">${esc(p.name)}</div><div class="st">${esc([p.pn ? 'P/N ' + p.pn : '', 'Qty ' + p.qty, p.required ? (p.priority === 'urgent' ? 'Urgent' : '') : (p.notes || (p.exch ? 'Exchange' : ''))].filter(Boolean).join(' · '))}</div></span><span class="pill ${p.required ? 'warn' : 'ok'}">${p.required ? (p.ordered ? 'Ordered' : 'To order') : 'Replaced'}</span></div>`).join('')}</div>` : ''}
       ${r.photos.length ? `<div class="photos" style="margin-top:14px">${r.photos.map(p => `<div class="ph"><img src="${esc(p.thumb)}" alt=""></div>`).join('')}</div>` : ''}
       <div style="margin-top:18px;display:grid;gap:10px"><button class="btn" id="rp-share">${icon('share', 's')} Share / Save PDF</button><button class="btn tinted" id="rp-view">${icon('eye', 's')} Preview PDF</button>
       <button class="btn tinted" id="rp-fin">${r.final ? 'Reopen for editing' : 'Finalize report'}</button></div>
@@ -4708,7 +4791,7 @@ async function deleteReport(id) {
 function reportsMatching(q, f) {
   q = (q || '').trim().toLowerCase();
   return reportsSorted(db.reports).filter(r => (f === 'draft' ? !r.final : f === 'final' ? r.final : true) &&
-    (!q || [r.no, (r.snap || {}).client, (r.snap || {}).model, (r.snap || {}).serial, r.fault, r.work, r.remarks, r.tripLabel, jobLabel(r.job), r.engineer, ...r.parts.map(p => p.name + ' ' + p.pn)].join(' ').toLowerCase().includes(q)));
+    (!q || [r.no, (r.snap || {}).client, (r.snap || {}).model, (r.snap || {}).serial, r.fault, r.diagnosis, r.work, r.remarks, r.tripLabel, jobLabel(r.job), r.engineer, ...r.parts.map(p => p.name + ' ' + p.pn)].join(' ').toLowerCase().includes(q)));
 }
 function reportsListHTML(q, f) {
   const l = reportsMatching(q, f);
@@ -4745,10 +4828,13 @@ function partsSheet() {
 function exportReportsCSV() {
   const list = reportsSorted(db.reports).reverse(); if (!list.length) return toast('No reports to export', 'warn');
   const q = v => { const s = String(v ?? ''); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [['Report no.', 'Status', 'Date', 'Time in', 'Time out', 'Client', 'City', 'Country', 'Machine type', 'Model', 'Serial no.', 'Job type', 'Machine status', 'Slice before', 'Slice after', 'Slices since last visit', 'Helium before %', 'Helium after %', 'Fault', 'Work done', 'Remarks', 'Parts', 'Parts to order', 'Engineer', 'Trip', 'Visit no.', 'Department', 'Reported by', 'Warranty', 'Service contract', 'System down', 'Hours down', 'Travel hours', 'Customer contact', 'Customer phone', 'Customer e-mail']];
+  const rows = [['Report no.', 'Status', 'Date', 'Time in', 'Time out', 'Client', 'City', 'Country', 'Machine type', 'Model', 'Serial no.', 'Job type', 'Machine status', 'Slice before', 'Slice after', 'Slices since last visit', 'Helium before %', 'Helium after %', 'Fault', 'Work done', 'Remarks', 'Parts', 'Parts to order', 'Engineer', 'Trip', 'Visit no.', 'Department', 'Reported by', 'Warranty', 'Service contract', 'System down', 'Hours down', 'Travel hours', 'Customer contact', 'Customer phone', 'Customer e-mail',
+    'Diagnosis', 'Call type (other)', 'Coverage', 'Contract no.', 'Software version', 'Installation date', 'Status on arrival', 'Status after service', 'Follow-up required', 'Pending action', 'Customer title', 'Engineer title', 'Tube counter', 'Heat exchanger meter', 'Replaced parts notes', 'Required parts priority']];
   for (const r of list) { const s = r.snap || {};
     rows.push([r.no, r.final ? 'Final' : 'Draft', r.date, r.timeIn, r.timeOut, s.client, s.city, s.country, mtype(s.type).label, s.model, s.serial, jobLabel(r.job), mstatus(r.status)[1], r.sliceBefore ?? '', r.sliceAfter ?? '', r.sliceAfter != null && r.sliceBefore != null ? r.sliceAfter - r.sliceBefore : '', r.heliumBefore ?? '', r.heliumAfter ?? '', r.fault, r.work, r.remarks,
-      r.parts.map(p => `${p.name}${p.pn ? ' [' + p.pn + ']' : ''} x${p.qty}`).join('; '), r.parts.filter(p => p.required).map(p => `${p.name}${p.pn ? ' [' + p.pn + ']' : ''} x${p.qty}${p.ordered ? ' (ordered)' : ''}`).join('; '), r.engineer, r.tripLabel || '', r.visitNo, r.dept, r.reportedBy, r.warranty, r.contract, r.sysDown, r.downHours, r.travel, s.contact, s.phone, s.email]); }
+      r.parts.map(p => `${p.name}${p.pn ? ' [' + p.pn + ']' : ''} x${p.qty}`).join('; '), r.parts.filter(p => p.required).map(p => `${p.name}${p.pn ? ' [' + p.pn + ']' : ''} x${p.qty}${p.ordered ? ' (ordered)' : ''}`).join('; '), r.engineer, r.tripLabel || '', r.visitNo, r.dept, r.reportedBy, r.warranty, r.contract, r.sysDown, r.downHours, r.travel, s.contact, s.phone, s.email,
+      r.diagnosis || '', r.jobOther || '', srCoverageOf(r), r.contractNo || '', s.software || '', s.installDate || '', srArrivalOf(r), srOutcomeOf(r), r.followUp || '', r.pending || '', r.signClientTitle || '', r.engineerTitle || '', r.tubeCounter || '', r.hexMeter || '',
+      r.parts.filter(p => !p.required && (p.notes || p.exch)).map(p => `${p.name}: ${p.notes || 'Exchange'}`).join('; '), r.parts.filter(p => p.required && p.priority).map(p => `${p.name}: ${p.priority}`).join('; ')]); }
   download(`veritrip-service-reports-${todayISO()}.csv`, '\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
 }
 
@@ -4756,147 +4842,154 @@ function exportReportsCSV() {
 const TMSP_LOGO = 'data:image/jpeg;base64,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';
 const TMSP_LOGO_PX = { w: 359, h: 157 };
 
-/* ===================== VeriTrip 3.7 — Service report PDF (jsPDF, fully offline) =====================
-   Page 1 reproduces the TMSP / Canon Medical Systems "Service Report" form (A4, boxed grid, serif labels, dotted lines).
-   Coordinates below are in points, measured from the user's template PDF. Photos and any text that does not fit go on an Annex page.
-   Header (company, subtitle, logo) comes from Settings -> Profile parameters. To restyle: edit SR_BOXES (grid) or the positions in buildReportPdf. */
-const SR_BOXES = [[42.8,37.4,44.8,99.1],[44.8,37.4,552.5,39.4],[550.6,39.4,552.5,99.1],[44.8,97.2,552.5,99.1],[42.8,106.2,44.8,185.9],[44.8,106.2,552.5,108.1],[347.5,108.1,349.4,185.9],[550.6,108.1,552.5,185.9],[44.8,132.6,347.5,133.6],[349.4,132.6,550.6,133.6],[44.8,158.5,347.5,159.5],[349.4,158.5,550.6,159.5],[44.8,184.0,552.5,185.9],[42.8,188.8,44.8,268.5],[44.8,188.8,552.5,190.7],[347.5,190.7,349.4,268.5],[550.6,190.7,552.5,268.5],[44.8,215.2,347.5,216.1],[349.4,215.2,550.6,216.1],[44.8,241.1,347.5,242.1],[349.4,241.1,550.6,242.1],[44.8,266.5,552.5,268.5],[42.8,271.3,44.8,325.1],[44.8,271.3,552.5,273.3],[347.5,273.3,349.4,325.1],[550.6,273.3,552.5,325.1],[44.8,297.8,347.5,298.7],[349.4,297.8,550.6,298.7],[44.8,323.2,552.5,325.1],[42.8,328.0,44.8,434.9],[44.8,328.0,552.5,329.9],[245.9,329.9,247.8,434.9],[550.6,329.9,552.5,434.9],[44.8,355.2,552.5,357.2],[44.8,433.0,552.5,434.9],[42.8,437.8,44.8,584.6],[44.8,437.8,552.5,439.7],[550.6,439.7,552.5,584.6],[44.8,465.1,552.5,467.0],[245.9,467.0,247.8,584.6],[347.5,467.0,349.4,584.6],[449.0,467.0,450.9,584.6],[44.8,491.0,552.5,492.9],[44.8,514.4,245.9,515.3],[247.8,514.4,347.5,515.3],[349.4,514.4,449.0,515.3],[450.9,514.4,550.6,515.3],[44.8,537.3,245.9,538.3],[247.8,537.3,347.5,538.3],[349.4,537.3,449.0,538.3],[450.9,537.3,550.6,538.3],[44.8,560.2,245.9,561.2],[247.8,560.2,347.5,561.2],[349.4,560.2,449.0,561.2],[450.9,560.2,550.6,561.2],[44.8,582.7,552.5,584.6],[42.8,587.5,44.8,641.3],[44.8,587.5,552.5,589.4],[144.4,589.4,146.3,641.3],[245.9,589.4,247.8,641.3],[347.5,589.4,349.4,641.3],[550.6,589.4,552.5,641.3],[146.3,613.4,552.5,615.3],[449.5,615.3,450.5,639.3],[44.8,639.3,552.5,641.3],[42.8,644.1,44.8,697.9],[44.8,644.1,552.5,646.1],[144.4,646.1,146.3,697.9],[550.6,646.1,552.5,697.9],[44.8,696.0,552.5,697.9],[42.8,700.8,44.8,806.4],[44.8,700.8,552.5,702.7],[144.4,702.7,146.3,806.4],[347.5,702.7,349.4,806.4],[550.6,702.7,552.5,806.4],[44.8,726.7,552.5,728.6],[44.8,753.1,144.4,754.1],[146.3,753.1,347.5,754.1],[349.4,753.1,550.6,754.1],[44.8,779.0,144.4,780.0],[146.3,779.0,347.5,780.0],[349.4,779.0,550.6,780.0],[44.8,804.5,552.5,806.4]];
-const SR_RED = [214, 0, 0];
-const SR_L = {
-  en: { title: 'Service Report', customer: 'Customer', date: 'Date', address: 'Address', name: 'Name', email: 'E-mail', mobile: 'Mobile', system: 'System', serial: 'Serial No.', warranty: 'Warranty', down: 'System Down', contract: 'Service Contract', visit: 'Visit No.', dept: 'Department', slice: 'Slice Counter', reportedBy: 'Reported by', helium: 'Helium Level',
-    fault: 'Fault', work: 'Work Done', parts: 'Replaced Parts', partName: 'Part Name', partNo: 'Part No.', qty: 'Qty', exch: 'Exch', wtime: 'Working Time', start: 'Start', end: 'End', travel: 'Traveling Time', remarks: 'Remarks', concerned: 'Concerned', cust: 'Customer', eng: 'Service Engineer', sig: 'Signature',
-    yes: 'Yes', no: 'No', annex: 'Annex', cont: 'continued', seeAnnex: 'see Annex', toOrder: 'Parts to order', photos: 'Photos', more: 'more part(s), see Annex', page: 'Page', of: 'of', draft: 'draft', hrs: 'h' },
-  fr: { title: "Rapport d'intervention", customer: 'Client', date: 'Date', address: 'Adresse', name: 'Nom', email: 'E-mail', mobile: 'Mobile', system: 'Système', serial: 'N° de série', warranty: 'Garantie', down: 'Système à l\u2019arrêt', contract: 'Contrat de service', visit: 'Visite n°', dept: 'Service', slice: 'Compteur de coupes', reportedBy: 'Signalé par', helium: 'Niveau d\u2019hélium',
-    fault: 'Panne', work: 'Travaux effectués', parts: 'Pièces remplacées', partName: 'Désignation', partNo: 'Référence', qty: 'Qté', exch: 'Éch.', wtime: 'Temps de travail', start: 'Début', end: 'Fin', travel: 'Temps de trajet', remarks: 'Remarques', concerned: 'Concerné', cust: 'Client', eng: 'Ingénieur SAV', sig: 'Signature',
-    yes: 'Oui', no: 'Non', annex: 'Annexe', cont: 'suite', seeAnnex: 'voir annexe', toOrder: 'Pièces à commander', photos: 'Photos', more: 'autre(s) pièce(s), voir annexe', page: 'Page', of: 'sur', draft: 'brouillon', hrs: 'h' }
-};
+/* ===================== VeriTrip 4.4 — Service report PDF (jsPDF, fully offline) =====================
+   Page 1 reproduces the official TMSP form "SERVICE REPORT — Field Service & Maintenance Record" (Form TMSP-SR-01 Rev. 02, A4).
+   SR_FORM.ops / SR_FORM.txt are the form's own boxes, lines and printed labels, measured from the user's PDF (points, top-left origin).
+   Values go into the form's field boxes (SR_F); ticked options get a check mark. Photos and text that does not fit go on an Annex page.
+   Header (company name, subtitle, logo) comes from Settings -> Profile parameters. */
+const SR_FORM = { ops: [["sN",1.2,26.0,18.0,543.3,46.0],["fR",249.6,48.4,104.0,1.6],["b",26.0,70.0,181.1,21.0],["b",207.1,70.0,181.1,21.0],["b",388.2,70.0,181.1,21.0],["fR",26.0,98.0,3.0,10.0],["lN",1.1,26.0,109.0,569.3,109.0],["b",26.0,109.0,326.0,21.0],["b",352.0,109.0,217.3,21.0],["b",26.0,130.0,326.0,21.0],["b",352.0,130.0,217.3,21.0],["b",26.0,151.0,195.6,21.0],["b",221.6,151.0,130.4,21.0],["b",352.0,151.0,217.3,21.0],["fR",26.0,179.0,3.0,10.0],["lN",1.1,26.0,190.0,569.3,190.0],["b",26.0,190.0,543.3,16.0],["c",70.3,194.8,6.9,6.9],["c",98.9,194.8,6.9,6.9],["c",131.1,194.8,6.9,6.9],["c",184.9,194.8,6.9,6.9],["c",257.5,194.8,6.9,6.9],["c",296.5,194.8,6.9,6.9],["b",26.0,206.0,184.7,21.0],["b",210.7,206.0,119.5,21.0],["b",330.2,206.0,119.5,21.0],["b",449.8,206.0,119.5,21.0],["b",26.0,227.0,239.0,21.0],["c",32.3,237.3,6.9,6.9],["c",80.5,237.3,6.9,6.9],["c",152.7,237.3,6.9,6.9],["b",265.0,227.0,76.1,21.0],["b",341.1,227.0,97.8,21.0],["b",438.9,227.0,130.4,21.0],["fR",26.0,255.0,3.0,10.0],["lN",1.1,26.0,266.0,569.3,266.0],["b",26.0,266.0,543.3,17.0],["c",70.3,271.3,6.9,6.9],["c",161.8,271.3,6.9,6.9],["c",254.8,271.3,6.9,6.9],["c",306.8,271.3,6.9,6.9],["c",359.5,271.3,6.9,6.9],["c",410.0,271.3,6.9,6.9],["b",26.0,283.0,543.3,17.0],["c",122.3,288.3,6.9,6.9],["c",159.7,288.3,6.9,6.9],["c",243.5,288.3,6.9,6.9],["fR",26.0,307.0,3.0,10.0],["lN",1.1,26.0,318.0,569.3,318.0],["b",26.0,318.0,271.6,56.0],["b",297.6,318.0,271.6,56.0],["fR",26.0,381.0,3.0,10.0],["lN",1.1,26.0,392.0,569.3,392.0],["b",26.0,392.0,543.3,62.0],["fR",26.0,461.0,3.0,10.0],["lN",1.1,26.0,472.0,293.6,472.0],["h",26.0,472.0,12.0,12.0],["h",38.0,472.0,84.8,12.0],["h",122.8,472.0,84.8,12.0],["h",207.6,472.0,22.0,12.0],["h",229.6,472.0,64.0,12.0],["b",26.0,484.0,12.0,15.0],["b",38.0,484.0,84.8,15.0],["b",122.8,484.0,84.8,15.0],["b",207.6,484.0,22.0,15.0],["b",229.6,484.0,64.0,15.0],["b",26.0,499.0,12.0,15.0],["b",38.0,499.0,84.8,15.0],["b",122.8,499.0,84.8,15.0],["b",207.6,499.0,22.0,15.0],["b",229.6,499.0,64.0,15.0],["b",26.0,514.0,12.0,15.0],["b",38.0,514.0,84.8,15.0],["b",122.8,514.0,84.8,15.0],["b",207.6,514.0,22.0,15.0],["b",229.6,514.0,64.0,15.0],["b",26.0,529.0,12.0,15.0],["b",38.0,529.0,84.8,15.0],["b",122.8,529.0,84.8,15.0],["b",207.6,529.0,22.0,15.0],["b",229.6,529.0,64.0,15.0],["b",26.0,544.0,12.0,15.0],["b",38.0,544.0,84.8,15.0],["b",122.8,544.0,84.8,15.0],["b",207.6,544.0,22.0,15.0],["b",229.6,544.0,64.0,15.0],["fR",301.6,461.0,3.0,10.0],["lN",1.1,301.6,472.0,569.3,472.0],["h",301.6,472.0,12.0,12.0],["h",313.6,472.0,84.8,12.0],["h",398.5,472.0,84.8,12.0],["h",483.3,472.0,22.0,12.0],["h",505.3,472.0,64.0,12.0],["b",301.6,484.0,12.0,15.0],["b",313.6,484.0,84.8,15.0],["b",398.5,484.0,84.8,15.0],["b",483.3,484.0,22.0,15.0],["b",505.3,484.0,64.0,15.0],["c",508.6,488.3,6.4,6.4],["c",538.6,488.3,6.4,6.4],["b",301.6,499.0,12.0,15.0],["b",313.6,499.0,84.8,15.0],["b",398.5,499.0,84.8,15.0],["b",483.3,499.0,22.0,15.0],["b",505.3,499.0,64.0,15.0],["c",508.6,503.3,6.4,6.4],["c",538.6,503.3,6.4,6.4],["b",301.6,514.0,12.0,15.0],["b",313.6,514.0,84.8,15.0],["b",398.5,514.0,84.8,15.0],["b",483.3,514.0,22.0,15.0],["b",505.3,514.0,64.0,15.0],["c",508.6,518.3,6.4,6.4],["c",538.6,518.3,6.4,6.4],["b",301.6,529.0,12.0,15.0],["b",313.6,529.0,84.8,15.0],["b",398.5,529.0,84.8,15.0],["b",483.3,529.0,22.0,15.0],["b",505.3,529.0,64.0,15.0],["c",508.6,533.3,6.4,6.4],["c",538.6,533.3,6.4,6.4],["b",301.6,544.0,12.0,15.0],["b",313.6,544.0,84.8,15.0],["b",398.5,544.0,84.8,15.0],["b",483.3,544.0,22.0,15.0],["b",505.3,544.0,64.0,15.0],["c",508.6,548.3,6.4,6.4],["c",538.6,548.3,6.4,6.4],["fR",26.0,566.0,3.0,10.0],["lN",1.1,26.0,577.0,569.3,577.0],["b",26.0,577.0,543.3,17.0],["c",106.3,582.3,6.9,6.9],["c",179.7,582.3,6.9,6.9],["c",263.5,582.3,6.9,6.9],["c",351.0,582.3,6.9,6.9],["b",26.0,594.0,119.5,21.0],["c",32.3,604.3,6.9,6.9],["c",63.7,604.3,6.9,6.9],["b",145.5,594.0,423.8,21.0],["b",26.0,615.0,543.3,60.0],["fH",26.0,683.0,543.3,12.0],["b",26.0,683.0,76.1,12.0],["b",102.1,683.0,233.6,12.0],["b",335.7,683.0,233.6,12.0],["b",26.0,695.0,76.1,13.0],["b",102.1,695.0,233.6,13.0],["b",335.7,695.0,233.6,13.0],["b",26.0,708.0,76.1,13.0],["b",102.1,708.0,233.6,13.0],["b",335.7,708.0,233.6,13.0],["b",26.0,721.0,76.1,48.0],["b",102.1,721.0,233.6,48.0],["b",335.7,721.0,233.6,48.0],["b",26.0,769.0,76.1,13.0],["b",102.1,769.0,233.6,13.0],["b",335.7,769.0,233.6,13.0],["lR",0.8,26.0,787.0,569.3,787.0]],
+  txt: [["Service Department",38.0,62.0,"ti",6.8,"S"],["SERVICE REPORT",226.5,43.0,"b",17.0,"N"],["Field Service & Maintenance Record",246.5,60.0,"n",6.8,"S"],["Report No.",29.5,77.5,"n",6.3,"S"],["Date of Visit",210.6,77.5,"n",6.3,"S"],["Visit No.",391.7,77.5,"n",6.3,"S"],["1.  CUSTOMER INFORMATION",34.0,105.6,"b",8.5,"N"],["Customer / Hospital",29.5,116.5,"n",6.3,"S"],["Department",355.5,116.5,"n",6.3,"S"],["Address",29.5,137.5,"n",6.3,"S"],["City / Country",355.5,137.5,"n",6.3,"S"],["Contact Person",29.5,158.5,"n",6.3,"S"],["Mobile",225.1,158.5,"n",6.3,"S"],["E-mail",355.5,158.5,"n",6.3,"S"],["2.  SYSTEM INFORMATION",34.0,186.6,"b",8.5,"N"],["Modality:",30.0,200.5,"b",6.8,"S"],["CT",80.0,200.8,"n",7.2,"K"],["MRI",108.6,200.8,"n",7.2,"K"],["Ultrasound",140.8,200.8,"n",7.2,"K"],["Angio / Cath Lab",194.6,200.8,"n",7.2,"K"],["X-Ray",267.2,200.8,"n",7.2,"K"],["Other:",306.2,200.8,"n",7.2,"K"],["System Model",29.5,213.5,"n",6.3,"S"],["Serial No.",214.2,213.5,"n",6.3,"S"],["Software Version",333.7,213.5,"n",6.3,"S"],["Installation Date",453.3,213.5,"n",6.3,"S"],["Coverage",29.5,234.5,"n",6.3,"S"],["Warranty",42.0,243.3,"n",7.2,"K"],["Service Contract",90.2,243.3,"n",7.2,"K"],["Billable / Chargeable",162.4,243.3,"n",7.2,"K"],["Contract No.",268.5,234.5,"n",6.3,"S"],["Slice / Tube Counter",344.6,234.5,"n",6.3,"S"],["Helium Level / Heat Exchanger Meter",442.4,234.5,"n",6.3,"S"],["3.  SERVICE CALL DETAILS",34.0,262.6,"b",8.5,"N"],["Call Type:",30.0,277.0,"b",6.8,"S"],["Corrective (Breakdown)",80.0,277.3,"n",6.9,"K"],["Preventive Maintenance",171.5,277.3,"n",6.9,"K"],["Installation",264.5,277.3,"n",6.9,"K"],["Application",316.5,277.3,"n",6.9,"K"],["Inspection",369.2,277.3,"n",6.9,"K"],["Other:",419.7,277.3,"n",6.9,"K"],["System Status on Arrival:",30.0,294.0,"b",6.8,"S"],["Down",132.0,294.3,"n",7.2,"K"],["Partially Operational",169.4,294.3,"n",7.2,"K"],["Operational",253.2,294.3,"n",7.2,"K"],["4.  FAULT DESCRIPTION & DIAGNOSIS",34.0,314.6,"b",8.5,"N"],["Reported Fault / Error Code (as reported by customer)",29.5,325.5,"n",6.3,"S"],["Diagnosis / Root Cause (engineer findings)",301.1,325.5,"n",6.3,"S"],["5.  WORK PERFORMED",34.0,388.6,"b",8.5,"N"],["Actions taken, adjustments, calibrations, tests and QA checks performed",29.5,399.5,"n",6.3,"S"],["6.  REPLACED PARTS",34.0,468.6,"b",8.5,"N"],["#",30.2,480.5,"b",6.6,"N"],["Part Name",64.1,480.5,"b",6.6,"N"],["Part No.",152.6,480.5,"b",6.6,"N"],["Qty",213.1,480.5,"b",6.6,"N"],["Notes",252.5,480.5,"b",6.6,"N"],["1",30.1,494.0,"n",6.8,"S"],["2",30.1,509.0,"n",6.8,"S"],["3",30.1,524.0,"n",6.8,"S"],["4",30.1,539.0,"n",6.8,"S"],["5",30.1,554.0,"n",6.8,"S"],["7.  REQUIRED PARTS",309.6,468.6,"b",8.5,"N"],["#",305.8,480.5,"b",6.6,"N"],["Part Name",339.7,480.5,"b",6.6,"N"],["Part No.",428.2,480.5,"b",6.6,"N"],["Qty",488.8,480.5,"b",6.6,"N"],["Priority",525.7,480.5,"b",6.6,"N"],["1",305.7,494.0,"n",6.8,"S"],["Urgent",516.8,493.6,"n",5.8,"K"],["Normal",546.8,493.6,"n",5.8,"K"],["2",305.7,509.0,"n",6.8,"S"],["Urgent",516.8,508.6,"n",5.8,"K"],["Normal",546.8,508.6,"n",5.8,"K"],["3",305.7,524.0,"n",6.8,"S"],["Urgent",516.8,523.6,"n",5.8,"K"],["Normal",546.8,523.6,"n",5.8,"K"],["4",305.7,539.0,"n",6.8,"S"],["Urgent",516.8,538.6,"n",5.8,"K"],["Normal",546.8,538.6,"n",5.8,"K"],["5",305.7,554.0,"n",6.8,"S"],["Urgent",516.8,553.6,"n",5.8,"K"],["Normal",546.8,553.6,"n",5.8,"K"],["8.  SERVICE OUTCOME & FOLLOW-UP",34.0,573.6,"b",8.5,"N"],["Status after Service:",30.0,588.0,"b",6.8,"S"],["Fully Operational",116.0,588.3,"n",7.2,"K"],["Partially Operational",189.4,588.3,"n",7.2,"K"],["Down: Awaiting Parts",273.2,588.3,"n",7.2,"K"],["Down: Further Visit Required",360.7,588.3,"n",7.2,"K"],["Follow-up Required",29.5,601.5,"n",6.3,"S"],["Yes",42.0,610.3,"n",7.2,"K"],["No",73.4,610.3,"n",7.2,"K"],["Pending Action",149.0,601.5,"n",6.3,"S"],["Remarks & Recommendations to Customer",29.5,622.5,"n",6.3,"S"],["Name",30.0,703.8,"b",6.8,"S"],["Title",30.0,716.8,"b",6.8,"S"],["Signature & Stamp",30.0,747.3,"b",6.8,"S"],["Date",30.0,777.8,"b",6.8,"S"],["Form TMSP-SR-01  |  Rev. 02",26.0,794.0,"n",5.9,"S"]] };
+const SR_C = { N: [31, 42, 68], G: [122, 129, 148], R: [200, 16, 46], H: [238, 241, 246], S: [74, 82, 102], K: [0, 0, 0], W: [255, 255, 255], V: [12, 22, 48] };
+/* field boxes [x0, y0, x1, y1] */
+const SR_F = { no: [27.5, 80, 205.6, 90], date: [208.6, 80, 386.7, 90], visit: [389.7, 80, 567.8, 90],
+  client: [27.5, 119, 350.5, 129], dept: [353.5, 119, 567.8, 129], address: [27.5, 140, 350.5, 150], city: [353.5, 140, 567.8, 150], contact: [27.5, 161, 220.1, 171], mobile: [223.1, 161, 350.5, 171], email: [353.5, 161, 567.8, 171],
+  modOther: [330.8, 193, 565.8, 203], model: [27.5, 216, 209.2, 226], serial: [212.2, 216, 328.7, 226], software: [331.7, 216, 448.3, 226], install: [451.3, 216, 567.8, 226],
+  contractNo: [266.5, 237, 339.6, 247], counter: [342.6, 237, 437.4, 247], helium: [440.4, 237, 567.8, 247], jobOther: [443.3, 269, 565.8, 280],
+  fault: [27.5, 328, 296.1, 373], diagnosis: [299.1, 328, 567.8, 373], work: [27.5, 402, 567.8, 453], pending: [147, 604, 567.8, 614], remarks: [27.5, 625, 567.8, 674],
+  cName: [103.6, 696, 334.2, 707], eName: [337.2, 696, 567.8, 707], cTitle: [103.6, 709, 334.2, 720], eTitle: [337.2, 709, 567.8, 720], cDate: [103.6, 770, 334.2, 781], eDate: [337.2, 770, 567.8, 781] };
+/* check boxes: top-left x, y (size 6.9; 6.4 for the priority boxes) */
+const SR_X = { mod: { CT: [70.3, 194.8], MR: [98.9, 194.8], US: [131.1, 194.8], XA: [184.9, 194.8], XR: [257.5, 194.8], OT: [296.5, 194.8] },
+  cov: { warranty: [32.3, 237.3], contract: [80.5, 237.3], billable: [152.7, 237.3] },
+  job: { cm: [70.3, 271.3], pm: [161.8, 271.3], inst: [254.8, 271.3], app: [306.8, 271.3], insp: [359.5, 271.3], other: [410.0, 271.3] },
+  arr: { down: [122.3, 288.3], partial: [159.7, 288.3], up: [243.5, 288.3] },
+  out: { up: [106.3, 582.3], partial: [179.7, 582.3], parts: [263.5, 582.3], revisit: [351.0, 582.3] },
+  fu: { yes: [32.3, 604.3], no: [63.7, 604.3] } };
 /* jsPDF's built-in fonts use WinAnsi (Windows-1252): Latin letters with accents, € and typographic punctuation print correctly.
    Anything outside that set (e.g. Arabic, Cyrillic) is replaced by '?'. */
 const pdfTxt = s => String(s ?? '').replace(/[\u00A0\u202F\u2009\u2007]/g, ' ').replace(/\t/g, '  ').replace(/\r/g, '').replace(/[\u2212]/g, '-')
   .replace(/[^\n\x20-\x7E\u00A1-\u00FF\u20AC\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u017D\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u017E\u0178]+/g, '?');
-const pdfNum = n => n == null || !isFinite(n) ? '' : Number(n).toLocaleString('en-US');
+const pdfNum = n => n == null || n === '' || !isFinite(n) ? '' : Number(n).toLocaleString('en-US');
 const pdfDMY = iso => iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '';
 function imgSize(src) { return new Promise(res => { const im = new Image(); im.onload = () => res({ w: im.naturalWidth, h: im.naturalHeight }); im.onerror = () => res(null); im.src = src; }); }
 async function reportPhotoData(p) { try { const f = await Files.get(p.id); if (f && f.blob) return await blobToDataUrl(f.blob); } catch (e) {} return p.thumb || null; }
-/* Header settings: company name, subtitle and logo (default = the bundled Canon "Official Distributor" logo) */
+/* Header settings: company name, subtitle and logo (default = the bundled Canon "Official Distributor" logo, as on the form) */
+const SR_SUB_OLD = 'Trading Medical Systems Private', SR_SUB = 'Trading Medical Systems Private Co. Ltd.';
 function reportBrand() {
   const s = db.settings, mode = s.reportLogoMode;
-  return { name: s.reportCompany == null ? 'TMSP' : s.reportCompany, sub: s.reportSub == null ? 'Trading Medical Systems Private' : s.reportSub,
+  return { name: s.reportCompany == null ? 'TMSP' : s.reportCompany, sub: s.reportSub == null || s.reportSub === SR_SUB_OLD ? SR_SUB : s.reportSub,
     logo: mode === 'none' ? null : mode === 'custom' && s.reportLogoData ? s.reportLogoData : TMSP_LOGO };
 }
-const srYN = (v, L) => v === 'yes' || v === true ? L.yes : v === 'no' || v === false ? L.no : '';
+
+/* ---------- One view of a report in the new form's terms (old reports are mapped; fields the old form did not have stay blank) ---------- */
+function srView(r) {
+  const s = r.snap || {}, kind = readingKind(s.type);
+  const req = (r.parts || []).filter(p => p.required), used = (r.parts || []).filter(p => !p.required);
+  const outcome = srOutcomeOf(r);
+  return {
+    no: r.no + (r.final ? '' : ' (draft)'), date: pdfDMY(r.date), visit: r.visitNo == null || r.visitNo === '' ? '' : String(r.visitNo),
+    client: s.client || '', dept: r.dept || '', address: s.address || '', city: [s.city, s.country].filter(Boolean).join(', '), contact: s.contact || '', mobile: s.phone || '', email: s.email || '',
+    mod: s.type || '', modOther: s.type === 'OT' ? (s.modalityOther || '') : '', model: [s.model, s.notes ? '(' + s.notes + ')' : ''].filter(Boolean).join(' '), serial: s.serial || '', software: s.software || '', install: pdfDMY(s.installDate),
+    cov: srCoverageOf(r), contractNo: r.contractNo || '',
+    counter: kind === 'slice' ? pdfNum(r.sliceAfter) : (r.tubeCounter || ''),
+    helium: [kind === 'helium' && r.heliumAfter != null ? r.heliumAfter + ' %' : '', r.hexMeter ? 'HEX ' + r.hexMeter : ''].filter(Boolean).join('  ·  '),
+    job: r.job || '', jobOther: r.job === 'other' ? (r.jobOther || '') : '', arr: srArrivalOf(r),
+    fault: r.fault || '', diagnosis: r.diagnosis || '', work: r.work || '',
+    used: used.map(p => ({ name: p.name, pn: p.pn || '', qty: p.qty, notes: p.notes || (p.exch ? 'Exchange' : '') })),
+    req: req.map(p => ({ name: p.name, pn: p.pn || '', qty: p.qty, pri: p.priority === 'urgent' || p.priority === 'normal' ? p.priority : '' })),
+    out: outcome, fu: r.followUp === 'yes' || r.followUp === 'no' ? r.followUp : '', pending: r.pending || '', remarks: r.remarks || '',
+    cName: r.signClientName || s.contact || '', cTitle: r.signClientTitle || '', eName: r.engineer || '', eTitle: r.engineerTitle || '',
+    cDate: r.signClient || r.signClientName ? pdfDMY(r.signClientDate || r.date) : '', eDate: r.signEng || r.engineer ? pdfDMY(r.signEngDate || r.date) : ''
+  };
+}
 
 async function buildReportPdf(r) {
   await loadScript(LIB.jspdf); const { jsPDF } = window.jspdf;
-  const L = SR_L[r.lang === 'fr' ? 'fr' : 'en'], T = pdfTxt, s = r.snap || {}, B = reportBrand();
-  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true }); doc.setProperties({ title: `${r.no} - ${s.client || ''}`, author: r.engineer || '', subject: 'Service report', creator: 'VeriTrip' });
-  const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight(), TOP = 0.82;
-  const font = (st, sz, c) => { doc.setFont('times', st); doc.setFontSize(sz); const k = c || [0, 0, 0]; doc.setTextColor(k[0], k[1], k[2]); };
-  const W = (t, st, sz) => { doc.setFont('times', st); doc.setFontSize(sz); return doc.getTextWidth(T(t)); };
-  const at = (txt, x, top, st, sz, opt, c) => { font(st, sz, c); doc.text(T(txt), x, top + sz * TOP, opt); };         /* text positioned by its top (as measured in the template) */
-  const fit = (txt, maxW, st, sz, min) => { txt = T(txt); let z = sz; while (z > min && W(txt, st, z) > maxW) z -= 0.25; if (W(txt, st, z) > maxW) { while (txt.length > 1 && W(txt + '...', st, z) > maxW) txt = txt.slice(0, -1); txt += '...'; } return { txt, z }; };
-  const locD = pdfDMY;
-  const kind = readingKind(s.type);
-  const over = [];                                                        /* content that goes to the Annex */
+  const T = pdfTxt, s = r.snap || {}, B = reportBrand(), V = srView(r);
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true }); doc.setProperties({ title: `${r.no} - ${s.client || ''}`, author: r.engineer || '', subject: 'Service report (Form TMSP-SR-01 Rev. 02)', creator: 'VeriTrip' });
+  const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight();
+  const FN = { n: ['helvetica', 'normal'], b: ['helvetica', 'bold'], tb: ['times', 'bold'], ti: ['times', 'italic'], i: ['helvetica', 'italic'] };
+  const font = (f, sz, c) => { const k = FN[f] || FN.n; doc.setFont(k[0], k[1]); doc.setFontSize(sz); const cc = SR_C[c] || c || SR_C.K; doc.setTextColor(cc[0], cc[1], cc[2]); };
+  const W = (t, f, sz) => { font(f, sz); return doc.getTextWidth(T(t)); };
+  const fit = (txt, maxW, f, sz, min) => { txt = T(txt); let z = sz; while (z > min && W(txt, f, z) > maxW) z -= 0.25; let cut = false; if (W(txt, f, z) > maxW) { cut = true; while (txt.length > 1 && W(txt + '...', f, z) > maxW) txt = txt.slice(0, -1); txt += '...'; } return { txt, z, cut }; };
+  const over = [];                                                         /* content that goes to the Annex */
+  const VSZ = 8;                                                           /* value text size */
 
-  /* --- Grid --- */
-  doc.setFillColor(0, 0, 0); SR_BOXES.forEach(([x0, y0, x1, y1]) => doc.rect(x0, y0, x1 - x0, y1 - y0, 'F'));
+  /* --- the printed form --- */
+  const fill = c => doc.setFillColor(...SR_C[c]), stroke = (c, w) => { doc.setDrawColor(...SR_C[c]); doc.setLineWidth(w); };
+  for (const o of SR_FORM.ops) {
+    const k = o[0];
+    if (k === 'b') { stroke('G', 0.6); doc.rect(o[1], o[2], o[3], o[4], 'S'); }
+    else if (k === 'c') { fill('W'); stroke('G', 0.6); doc.rect(o[1], o[2], o[3], o[4], 'FD'); }
+    else if (k === 'h') { fill('H'); stroke('G', 0.6); doc.rect(o[1], o[2], o[3], o[4], 'FD'); }
+    else if (k[0] === 'f') { fill(k.slice(1)); doc.rect(o[1], o[2], o[3], o[4], 'F'); }
+    else if (k[0] === 's') { stroke(k.slice(1), o[1]); doc.rect(o[2], o[3], o[4], o[5], 'S'); }
+    else if (k[0] === 'l') { stroke(k.slice(1), o[1]); doc.line(o[2], o[3], o[4], o[5]); }
+  }
+  for (const [t, x, y, f, sz, c] of SR_FORM.txt) { font(f, sz, c); doc.text(T(t), x, y); }
+  /* header: company name + subtitle from Settings (the form prints "TMSP" / "Trading Medical Systems Private Co. Ltd."), logo box on the right */
+  if (B.name) { const f = fit(B.name, 170, 'tb', 20, 9); font('tb', f.z, 'R'); doc.text(f.txt, 38, 42); }
+  if (B.sub) { const f = fit(B.sub, 175, 'tb', 7.6, 5); font('tb', f.z, 'N'); doc.text(f.txt, 38, 53); }
+  if (B.logo) { const z = B.logo === TMSP_LOGO ? TMSP_LOGO_PX : await imgSize(B.logo); if (z) { const bw = 96, bh = 42, k = Math.min(bw / z.w, bh / z.h), w = z.w * k, h = z.h * k;
+    try { doc.addImage(B.logo, /^data:image\/png/.test(B.logo) ? 'PNG' : 'JPEG', 466.3 + (bw - w) / 2, 20 + (bh - h) / 2, w, h, undefined, 'FAST'); } catch (e) { console.error('logo', e); } } }
+  font('b', 7, 'N'); doc.text('CUSTOMER REPRESENTATIVE', (102.1 + 335.7) / 2, 691.5, { align: 'center' });
+  doc.text(T(((B.name || 'TMSP') + ' SERVICE ENGINEER').toUpperCase()), (335.7 + 569.3) / 2, 691.5, { align: 'center' });
 
-  /* --- Header --- */
-  const cx1 = 144.5;
-  if (B.name) { const f = fit(B.name, 190, 'bold', 18.2, 9); font('bold', f.z, SR_RED); doc.text(f.txt, cx1, 53.6 + f.z * TOP, { align: 'center' }); }
-  if (B.sub) { const f = fit(B.sub, 190, 'bold', 11.35, 6.5); font('bold', f.z); doc.text(f.txt, cx1, 72.9 + f.z * TOP, { align: 'center' }); }
-  { const z = Math.min(16.5, 14 * 91.2 / W(L.title, 'bolditalic', 14)); font('bolditalic', z); doc.text(T(L.title), 296.5, 61.6 + 14 * TOP, { align: 'center' }); const w = doc.getTextWidth(T(L.title)); doc.rect(296.5 - w / 2, 73.3, w, 0.7, 'F'); }
-  font('normal', 8.5, [60, 60, 60]); doc.text(T(r.no + (r.final ? '' : ' (' + L.draft + ')')), 296.5, 91, { align: 'center' });
-  if (B.logo) { const z = B.logo === TMSP_LOGO ? TMSP_LOGO_PX : await imgSize(B.logo); if (z) { const bw = 122.9, bh = 51.9, k = Math.min(bw / z.w, bh / z.h), w = z.w * k, h = z.h * k;
-    try { doc.addImage(B.logo, /^data:image\/png/.test(B.logo) ? 'PNG' : 'JPEG', 418.7 + (bw - w) / 2, 42.6 + (bh - h) / 2, w, h, undefined, 'FAST'); } catch (e) { console.error('logo', e); } } }
-
-  /* --- Label / value cells --- */
-  const cell = (x, top, label, val, xmax, sz) => { const lab = L[label] + ' :'; at(lab, x, top, 'bold', 12); const vx = x + W(lab, 'bold', 12) + 6;
-    if (val !== '' && val != null) { const f = fit(val, xmax - vx - 5, 'normal', sz || 11.5, 7); font('normal', f.z); doc.text(f.txt, vx, top + 12 * TOP, {}); } };
-  const LX = 53.5, RX = 358.1, LM = 345, RM = 549;
-  const addr = [s.address, [s.city, s.country].filter(Boolean).join(', ')].filter(Boolean).join(', ');
-  const sysTxt = [s.model, s.notes ? '(' + s.notes + ')' : ''].filter(Boolean).join(' ');
-  const down = r.sysDown === 'yes' || (r.sysDown == null && r.status === 'down') ? L.yes + (r.downHours ? ' (' + r.downHours + ' ' + L.hrs + ')' : '') : srYN(r.sysDown || 'no', L);
-  const rows = [
-    [114.4, ['customer', s.client], ['date', locD(r.date)]],
-    [140.4, ['address', addr], ['name', s.contact]],
-    [166.3, ['email', s.email], ['mobile', s.phone]],
-    [197.0, ['system', sysTxt], ['serial', s.serial]],
-    [223.4, ['warranty', srYN(r.warranty, L)], ['down', down]],
-    [248.8, ['contract', r.contract == null ? '' : (r.contract === 'No' ? L.no : r.contract === 'Yes' ? L.yes : r.contract)], ['visit', r.visitNo == null || r.visitNo === '' ? '' : String(r.visitNo)]],
-    [279.6, ['dept', r.dept], ['slice', kind === 'slice' ? pdfNum(r.sliceAfter) : '']],
-    [305.5, ['reportedBy', r.reportedBy], ['helium', kind === 'helium' && r.heliumAfter != null ? r.heliumAfter + ' %' : '']]
-  ];
-  rows.forEach(([top, a, b]) => { cell(LX, top, a[0], a[1], LM); cell(RX, top, b[0], b[1], RM); });
-
-  /* --- Fault | Work Done --- */
-  const head = (txt, x0, x1, top, sz) => { at(txt, (x0 + x1) / 2, top, 'bold', sz, { align: 'center' }); };
-  head(L.fault, 44.8, 245.9, 336.5, 13); head(L.work, 247.8, 550.6, 336.5, 13);
-  const dots = (x0, x1, tops) => { tops.forEach(t => { font('bold', 14); let w = doc.getTextWidth('.'), n = Math.floor((x1 - x0) / w); doc.text('.'.repeat(n), x0, t + 14 * TOP); }); };
-  const dotted = (txt, x0, x1, topLines, name, boxTop, boxBot) => {
-    const maxW = x1 - x0 - 4; txt = T(txt || '').trim();
-    if (!topLines.length) return;
-    font('normal', 11.5); let size = 11.5, lines = txt ? doc.splitTextToSize(txt, maxW) : [];
-    if (lines.length <= topLines.length) { dots(x0, x1, topLines); font('normal', 11.5); lines.forEach((ln, i) => doc.text(ln, x0 + 1, topLines[i] + 14 * TOP - 3.4)); return; }
-    const avail = boxBot - boxTop - 4;
-    for (size = 10.5; size >= 7; size -= 0.5) { font('normal', size); lines = doc.splitTextToSize(txt, maxW); if (lines.length * size * 1.18 <= avail) break; }
-    font('normal', size); lines = doc.splitTextToSize(txt, maxW); const cap = Math.floor(avail / (size * 1.18));
-    if (lines.length > cap) { lines = lines.slice(0, cap); let last = lines[cap - 1]; const mk = ' ... (' + L.seeAnnex + ')'; while (last.length > 1 && doc.getTextWidth(last + mk) > maxW) last = last.slice(0, -1); lines[cap - 1] = last + mk; over.push(name); }
-    lines.forEach((ln, i) => doc.text(ln, x0 + 1, boxTop + 2 + size * 0.9 + i * size * 1.18));
+  /* --- values --- */
+  const put = (key, val, opt = {}) => { if (val === '' || val == null) return; const [x0, y0, x1, y1] = SR_F[key]; const f = fit(val, x1 - x0 - 3, opt.f || 'n', opt.sz || VSZ, 5.5); font(opt.f || 'n', f.z, 'V'); doc.text(f.txt, opt.center ? (x0 + x1) / 2 : x0 + 1.5, y1 - 2.2, opt.center ? { align: 'center' } : {}); if (f.cut && opt.annex) over.push(opt.annex); };
+  const tick = (xy, sz = 6.9) => { if (!xy) return; const [x, y] = xy; doc.setDrawColor(...SR_C.V); doc.setLineWidth(1.1); doc.setLineCap('round'); doc.setLineJoin('round');
+    doc.lines([[sz * 0.24, sz * 0.27], [sz * 0.44, sz * -0.62]], x + sz * 0.17, y + sz * 0.52, [1, 1], 'S', false); doc.setLineCap('butt'); doc.setLineJoin('miter'); };
+  put('no', V.no, { f: 'b' }); put('date', V.date); put('visit', V.visit);
+  put('client', V.client, { f: 'b' }); put('dept', V.dept); put('address', V.address); put('city', V.city); put('contact', V.contact); put('mobile', V.mobile); put('email', V.email);
+  tick(SR_X.mod[V.mod]); put('modOther', V.modOther); put('model', V.model); put('serial', V.serial); put('software', V.software); put('install', V.install);
+  tick(SR_X.cov[V.cov]); put('contractNo', V.contractNo); put('counter', V.counter); put('helium', V.helium);
+  tick(SR_X.job[V.job]); put('jobOther', V.jobOther); tick(SR_X.arr[V.arr]);
+  /* multi-line boxes: 8 pt; shrink to 6.5 pt if needed; still too long → "... (see Annex)" and the full text on the Annex */
+  const para = (key, txt, name) => {
+    txt = T(txt || '').trim(); if (!txt) return; const [x0, y0, x1, y1] = SR_F[key]; const maxW = x1 - x0 - 4, avail = y1 - y0 - 2;
+    let sz = VSZ, lines; for (; sz >= 6.5; sz -= 0.5) { font('n', sz); lines = doc.splitTextToSize(txt, maxW); if (lines.length * sz * 1.2 <= avail) break; }
+    sz = Math.max(sz, 6.5); font('n', sz, 'V'); lines = doc.splitTextToSize(txt, maxW); const cap = Math.floor(avail / (sz * 1.2));
+    if (lines.length > cap) { lines = lines.slice(0, cap); let last = lines[cap - 1]; const mk = ' ... (see Annex)'; while (last.length > 1 && doc.getTextWidth(last + mk) > maxW) last = last.slice(0, -1); lines[cap - 1] = last + mk; over.push(name); }
+    lines.forEach((ln, i) => doc.text(ln, x0 + 2, y0 + 1 + sz * 0.95 + i * sz * 1.2));
   };
-  dotted(r.fault, 53.6, 241, [371.7, 388.4, 405.2], 'fault', 357.2, 433.0);
-  dotted(r.work, 256.7, 546, [371.7, 388.4, 405.2], 'work', 357.2, 433.0);
-
-  /* --- Replaced parts --- */
-  at(L.parts, (44.8 + 552.5) / 2, 446.3, 'bold', 13, { align: 'center' });
-  [[44.8, 245.9, L.partName], [247.8, 347.5, L.partNo], [349.4, 449.0, L.qty], [450.9, 550.6, L.exch]].forEach(([a, b, t]) => at(t, (a + b) / 2, 473.3, 'bold', 12, { align: 'center' }));
-  const plist = (r.parts || []).filter(p => !p.required), ordered = (r.parts || []).filter(p => p.required);
-  const prow = [[492.9, 514.4], [515.3, 537.4], [538.3, 560.3], [561.2, 582.7]]; const nrow = plist.length > 4 ? 3 : plist.length;
-  for (let i = 0; i < nrow; i++) { const p = plist[i], [a, b] = prow[i], base = (a + b) / 2 + 4;
-    font('normal', 11); const nm = fit(p.name, 192, 'normal', 11, 7); font('normal', nm.z); doc.text(nm.txt, 50, base);
-    const pn = fit(p.pn || '', 92, 'normal', 11, 7); font('normal', pn.z); doc.text(pn.txt, 297.65, base, { align: 'center' });
-    font('normal', 11); doc.text(String(p.qty), 399.2, base, { align: 'center' }); doc.text(p.exch ? L.yes : L.no, 500.7, base, { align: 'center' }); }
-  if (plist.length > 4) { const [a, b] = prow[3]; font('italic', 10.5); doc.text(T(`+ ${plist.length - 3} ${L.more}`), 50, (a + b) / 2 + 4); over.push('parts'); }
-
-  /* --- Working / traveling time --- */
-  at(L.wtime, 55.6, 608.6, 'bold', 12); at(L.start, 195.1, 596.2, 'bold', 12, { align: 'center' }); at(L.end, 297.65, 596.2, 'bold', 12, { align: 'center' }); at(L.travel, 449.5, 595.7, 'bold', 12, { align: 'center' });
-  font('normal', 11.5); doc.text(T(r.timeIn || ''), 195.1, 627.2, { align: 'center' }); doc.text(T(r.timeOut || ''), 297.65, 627.2, { align: 'center' });
-  if (r.travel !== '' && r.travel != null) doc.text(T(r.travel + ' ' + L.hrs), 399.2, 627.2, { align: 'center' });
-
-  /* --- Remarks --- */
-  at(L.remarks, 53.6, 664.9, 'bold', 13);
-  const orderTxt = ordered.length ? L.toOrder + ': ' + ordered.map(p => p.name + (p.pn ? ' (' + p.pn + ')' : '') + (p.qty > 1 ? ' x' + p.qty : '')).join('; ') : '';
-  const remTxt = [r.remarks, orderTxt].filter(Boolean).join('\n');
-  dotted(remTxt, 148.8, 548, [656.0, 672.7], 'remarks', 646.1, 696.0);
-
-  /* --- Signatures --- */
-  at(L.concerned, 53.5, 709.5, 'bold', 12); at(L.cust, 246.5, 709.0, 'bold', 12, { align: 'center' }); at(L.eng, 449.0, 709.0, 'bold', 12, { align: 'center' });
-  at(L.name, 53.5, 735.4, 'bold', 12); at(L.sig, 53.5, 761.3, 'bold', 12); at(L.date, 53.5, 787.2, 'bold', 12);
-  const sname = (c, x, v) => { if (!v) return; const f = fit(v, 192, 'normal', 11.5, 7); font('normal', f.z); doc.text(f.txt, x, 735.4 + 12 * TOP, { align: 'center' }); };
-  sname(0, 246.5, r.signClientName || s.contact); sname(0, 449.0, [r.engineer].filter(Boolean).join(''));
-  const sig = async (data, x0, x1) => { if (!data) return; const z = await imgSize(data); if (z) { const bw = x1 - x0 - 8, bh = 22, k = Math.min(bw / z.w, bh / z.h); const w = z.w * k, h = z.h * k; doc.addImage(data, 'PNG', (x0 + x1) / 2 - w / 2, 754.1 + (24.9 - h) / 2, w, h); } };
-  await sig(r.signClient, 146.3, 347.5); await sig(r.signEng, 349.4, 550.6);
-  font('normal', 11.5); if (r.signClient || r.signClientName) doc.text(locD(r.signClientDate || r.date), 246.5, 787.2 + 12 * TOP, { align: 'center' }); if (r.signEng || r.engineer) doc.text(locD(r.signEngDate || r.date), 449.0, 787.2 + 12 * TOP, { align: 'center' });
+  para('fault', V.fault, 'fault'); para('diagnosis', V.diagnosis, 'diagnosis'); para('work', V.work, 'work');
+  /* parts tables: 5 rows each; more than 5 → 4 rows + "+ n more, see Annex" */
+  const rowsOf = (list, key) => { if (list.length <= 5) return list; over.push(key); return list.slice(0, 4).concat([{ more: list.length - 4 }]); };
+  const cellTxt = (txt, x0, x1, base, center, key) => { if (txt === '' || txt == null) return; const f = fit(String(txt), x1 - x0 - 3, 'n', 7.4, 5.2); font('n', f.z, 'V'); doc.text(f.txt, center ? (x0 + x1) / 2 : x0 + 1.5, base, center ? { align: 'center' } : {}); if (f.cut) over.push(key); };
+  rowsOf(V.used, 'used').forEach((p, i) => { const base = 494.4 + i * 15; if (p.more) { font('i', 7, 'S'); doc.text(T(`+ ${p.more} more part(s), see Annex`), 40, base); return; }
+    cellTxt(p.name, 38, 122.8, base, false, 'used'); cellTxt(p.pn, 122.8, 207.6, base, false, 'used'); cellTxt(String(p.qty), 207.6, 229.6, base, true, 'used'); cellTxt(p.notes, 229.6, 293.6, base, false, 'used'); });
+  rowsOf(V.req, 'req').forEach((p, i) => { const base = 494.4 + i * 15; if (p.more) { font('i', 7, 'S'); doc.text(T(`+ ${p.more} more part(s), see Annex`), 316, base); return; }
+    cellTxt(p.name, 313.6, 398.5, base, false, 'req'); cellTxt(p.pn, 398.5, 483.3, base, false, 'req'); cellTxt(String(p.qty), 483.3, 505.3, base, true, 'req');
+    if (p.pri) tick([p.pri === 'urgent' ? 508.6 : 538.6, 488.3 + i * 15], 6.4); });
+  tick(SR_X.out[V.out]); tick(SR_X.fu[V.fu]); put('pending', V.pending, { annex: 'pending' }); para('remarks', V.remarks, 'remarks');
+  /* signatures */
+  put('cName', V.cName); put('eName', V.eName); put('cTitle', V.cTitle); put('eTitle', V.eTitle); put('cDate', V.cDate); put('eDate', V.eDate);
+  const sig = async (data, x0, x1) => { if (!data) return; const z = await imgSize(data); if (z) { const bw = x1 - x0 - 16, bh = 40, k = Math.min(bw / z.w, bh / z.h); const w = z.w * k, h = z.h * k; doc.addImage(data, 'PNG', (x0 + x1) / 2 - w / 2, 721 + (48 - h) / 2, w, h); } };
+  await sig(r.signClient, 102.1, 335.7); await sig(r.signEng, 335.7, 569.3);
 
   /* --- Annex page: photos and anything that did not fit --- */
   const imgs = []; for (const p of (r.photos || [])) { const d = await reportPhotoData(p); if (d) { const z = await imgSize(d); if (z) imgs.push({ d, z }); } }
-  if (over.length || imgs.length) {
-    doc.addPage(); const M = 43, CWd = PW - 2 * M; let y = 46;
-    font('bold', 15); doc.text(T(`${L.title} - ${L.annex}`), M, y + 12); font('normal', 10, [60, 60, 60]); doc.text(T([r.no, s.client, [s.model, s.serial && 'SN ' + s.serial].filter(Boolean).join(' '), locD(r.date)].filter(Boolean).join('  |  ')), M, y + 28);
-    doc.setFillColor(0, 0, 0); doc.rect(M, y + 36, CWd, 1.2, 'F'); y += 52;
-    const ensure = h => { if (y + h > PH - 46) { doc.addPage(); y = 46; } };
-    const block = (head, txt) => { ensure(40); font('bold', 12); doc.text(T(head), M, y + 10); y += 18; font('normal', 11); const ls = doc.splitTextToSize(T(txt), CWd); for (const ln of ls) { ensure(15); font('normal', 11); doc.text(ln, M, y + 9); y += 14.5; } y += 10; };
-    if (over.includes('fault')) block(`${L.fault} (${L.cont})`, r.fault);
-    if (over.includes('work')) block(`${L.work} (${L.cont})`, r.work);
-    if (over.includes('remarks')) block(`${L.remarks} (${L.cont})`, remTxt);
-    if (over.includes('parts')) { ensure(40); font('bold', 12); doc.text(T(L.parts), M, y + 10); y += 18;
-      plist.forEach(p => { ensure(16); font('normal', 11); doc.text(T(p.name), M, y + 9, { maxWidth: 270 }); doc.text(T(p.pn || ''), M + 285, y + 9, { maxWidth: 110 }); doc.text(String(p.qty), M + 410, y + 9); doc.text(p.exch ? L.yes : L.no, M + 460, y + 9); y += 15; }); y += 10; }
-    if (imgs.length) { ensure(120); font('bold', 12); doc.text(T(L.photos), M, y + 10); y += 20; const g = 10, cw = (CWd - g) / 2, ch = cw * 0.75;
+  const ov = [...new Set(over)];
+  if (ov.length || imgs.length) {
+    doc.addPage(); const M = 26, CWd = PW - 2 * M; let y = 24;
+    stroke('N', 1.2); doc.rect(M, 18, CWd, 34, 'S'); font('b', 13, 'N'); doc.text('SERVICE REPORT - ANNEX', M + 10, 40); font('n', 7.5, 'S'); doc.text(T([r.no, s.client, [s.model, s.serial && 'SN ' + s.serial].filter(Boolean).join(' '), pdfDMY(r.date)].filter(Boolean).join('  |  ')), PW - M - 10, 39, { align: 'right' });
+    y = 66;
+    const ensure = h => { if (y + h > PH - 46) { doc.addPage(); y = 30; } };
+    const head = t => { ensure(40); fill('R'); doc.rect(M, y, 3, 10, 'F'); font('b', 8.5, 'N'); doc.text(T(t), M + 8, y + 8.2); stroke('N', 1.1); doc.line(M, y + 12, PW - M, y + 12); y += 20; };
+    const block = (t, txt) => { head(t); const ls = doc.splitTextToSize(T(txt), CWd - 6); for (const ln of ls) { ensure(12); font('n', 8.5, 'V'); doc.text(ln, M + 3, y + 7); y += 11; } y += 10; };
+    if (ov.includes('fault')) block('4. REPORTED FAULT / ERROR CODE (continued)', V.fault);
+    if (ov.includes('diagnosis')) block('4. DIAGNOSIS / ROOT CAUSE (continued)', V.diagnosis);
+    if (ov.includes('work')) block('5. WORK PERFORMED (continued)', V.work);
+    const ptable = (t, list, req) => { head(t); font('b', 7.5, 'N'); doc.text('#', M + 3, y + 7); doc.text('Part Name', M + 18, y + 7); doc.text('Part No.', M + 290, y + 7); doc.text('Qty', M + 400, y + 7); doc.text(req ? 'Priority' : 'Notes', M + 430, y + 7); y += 12;
+      list.forEach((p, i) => { ensure(12); font('n', 8, 'V'); doc.text(String(i + 1), M + 3, y + 7); doc.text(T(p.name), M + 18, y + 7, { maxWidth: 265 }); doc.text(T(p.pn), M + 290, y + 7, { maxWidth: 105 }); doc.text(String(p.qty), M + 400, y + 7); doc.text(T(req ? (p.pri === 'urgent' ? 'Urgent' : p.pri === 'normal' ? 'Normal' : '') : p.notes), M + 430, y + 7, { maxWidth: CWd - 432 }); stroke('G', 0.4); doc.line(M, y + 10, PW - M, y + 10); y += 12; }); y += 10; };
+    if (ov.includes('used')) ptable('6. REPLACED PARTS (all)', V.used, false);
+    if (ov.includes('req')) ptable('7. REQUIRED PARTS (all)', V.req, true);
+    if (ov.includes('pending')) block('8. PENDING ACTION (continued)', V.pending);
+    if (ov.includes('remarks')) block('8. REMARKS & RECOMMENDATIONS (continued)', V.remarks);
+    if (imgs.length) { head('PHOTOS'); const g = 10, cw = (CWd - g) / 2, ch = cw * 0.75;
       imgs.forEach((im, i) => { const c = i % 2; if (c === 0) ensure(ch + g); const x = M + c * (cw + g); const k = Math.min(cw / im.z.w, ch / im.z.h), w = im.z.w * k, h = im.z.h * k;
         doc.setFillColor(244, 244, 246); doc.rect(x, y, cw, ch, 'F'); doc.addImage(im.d, 'JPEG', x + (cw - w) / 2, y + (ch - h) / 2, w, h, undefined, 'FAST'); if (c === 1 || i === imgs.length - 1) y += ch + g; }); }
-    const n = doc.getNumberOfPages(); for (let i = 2; i <= n; i++) { doc.setPage(i); font('normal', 8.5, [110, 110, 114]); doc.text(T(`${r.no}  |  ${L.page} ${i} ${L.of} ${n}`), PW / 2, PH - 24, { align: 'center' }); }
   }
+  const n = doc.getNumberOfPages(); if (n > 1) for (let i = 1; i <= n; i++) { doc.setPage(i); font('n', 5.9, 'S'); doc.text(T(`${r.no}  |  Page ${i} of ${n}`), PW - 26, 794, { align: 'right' }); if (i > 1) { stroke('R', 0.8); doc.line(26, 787, PW - 26, 787); doc.text('Form TMSP-SR-01  |  Rev. 02', 26, 794); } }
   return doc.output('blob');
 }
 const reportPdfName = r => `${r.no}_${((r.snap || {}).client || 'client').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24)}_${((r.snap || {}).model || 'machine').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20)}.pdf`;
